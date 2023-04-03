@@ -1,0 +1,27 @@
+[package]
+name = "diachron-core"
+version = "0.1.0"
+edition = "2021"
+description = "Original phylogenetic likelihood and MCMC kernels for Diachron"
+license = "MIT"
+
+[lib]
+# Must match the PyO3 module init function (`_core`) so the produced cdylib is
+# importable as `diachron._core`. cdylib for the Python extension; rlib so the
+# pure-Rust test binary can link the crate directly without PyO3 in the loop.
+name = "_core"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# `extension-module` is gated behind our own `python` feature so that plain
+# `cargo test` can build and link the library without a Python interpreter in
+# the loop. maturin enables `python` when building the wheel.
+pyo3 = { version = "0.25", default-features = false, features = ["macros"] }
+
+[features]
+default = []
+python = ["pyo3/extension-module"]
+
+[profile.release]
+opt-level = 3
+lto = "thin"

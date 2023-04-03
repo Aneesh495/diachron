@@ -1,0 +1,41 @@
+# Agent-private accounting and continuity (never committed)
+.agent-local/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.hypothesis/
+build/
+dist/
+*.so
+
+# Rust
+rust/**/target/
+target/
+
+# Node / UI
+ui/node_modules/
+ui/dist/
+node_modules/
+
+# Evidence bundles and large artifacts
+evidence/
+runs/
+*.parquet
+*.npz
+*.ckpt
+data/cache/
+data/raw/*.zip
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Rendered scratch
+*.log
+/tmp/
