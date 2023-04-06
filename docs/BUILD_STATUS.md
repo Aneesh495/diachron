@@ -38,4 +38,13 @@ correctness oracles.
 
 ## Last verified push
 
-Pending initial commit.
+Repository: https://github.com/Aneesh495/diachron
+Remote main tip verified at commit 30bcffd (Rust core + bindings).
+
+## Progress log
+
+- Phase 1-2 foundation: Rust core (expm, CTMC models, Felsenstein pruning,
+  independent enumerator, serializable RNG, MCMC moves, geo kernels) compiles,
+  21 unit tests pass, and builds as a CPython 3.14 extension. The pruning vs
+  enumeration agreement is the start of G02; the Python oracle campaign will
+  scale it to 1000+ cases.
