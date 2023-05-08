@@ -19,7 +19,9 @@ target/
 # Node / UI
 ui/node_modules/
 ui/dist/
+ui/public/workbench.json
 node_modules/
+package-lock.json
 
 # Evidence bundles and large artifacts
 evidence/

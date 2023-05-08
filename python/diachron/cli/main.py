@@ -239,6 +239,18 @@ def cmd_release(args) -> int:
     return 0
 
 
+def cmd_export_workbench(args) -> int:
+    from .workbench import export_workbench
+
+    bundle_dirs = {}
+    for spec in args.bundle:
+        name, _, path = spec.partition("=")
+        bundle_dirs[name] = path
+    result = export_workbench(bundle_dirs, args.out)
+    _print(result)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="diachron", description="Diachron research CLI")
     p.add_argument("--version", action="version", version=f"diachron {__version__}")
@@ -320,6 +332,12 @@ def build_parser() -> argparse.ArgumentParser:
     vp.set_defaults(func=cmd_verify)
 
     sub.add_parser("release").set_defaults(func=cmd_release)
+
+    ewp = sub.add_parser("export-workbench")
+    ewp.add_argument("--bundle", action="append", default=[],
+                     help="model=path, repeatable (e.g. dated=runs/demo/dated)")
+    ewp.add_argument("--out", default="ui/public/workbench.json")
+    ewp.set_defaults(func=cmd_export_workbench)
     return p
 
 
