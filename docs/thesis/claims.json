@@ -1,0 +1,74 @@
+[
+  {
+    "claim": "The pruning likelihood computes the correct marginal character likelihood.",
+    "hypothesis": "mathematical (algorithm correctness)",
+    "evidence": "tests/test_likelihood_oracle.py: 1200 random tiny cases agree with independent enumeration within 1e-9",
+    "counterevidence": "none; disagreement would fail the gate",
+    "status": "supported",
+    "scope": "algorithm, not historical"
+  },
+  {
+    "claim": "The scale move's Jacobian is correct and necessary.",
+    "hypothesis": "mathematical (sampler correctness)",
+    "evidence": "tests/test_mcmc_exact.py: Gamma target recovered with correct mean/variance; Jacobian-omitted negative control is detectably biased",
+    "counterevidence": "none",
+    "status": "supported",
+    "scope": "algorithm"
+  },
+  {
+    "claim": "Missing and absent produce distinct likelihoods and the ascertainment correction matches the selection process.",
+    "hypothesis": "Q3 (ascertainment)",
+    "evidence": "tests/test_ascertainment.py: L(missing) > L(absent); analytic p(variable) matches simulated fraction within 0.005",
+    "counterevidence": "none",
+    "status": "supported",
+    "scope": "algorithm"
+  },
+  {
+    "claim": "Interrupted chains resume with exact CPU state and no duplicated draws.",
+    "hypothesis": "mathematical (recovery)",
+    "evidence": "tests/test_recovery.py: resumed run bit-identical to uninterrupted run; corrupt checkpoint rejected",
+    "counterevidence": "none",
+    "status": "supported",
+    "scope": "algorithm"
+  },
+  {
+    "claim": "The inferred chronology is identifiable only through calibration.",
+    "hypothesis": "H4 (calibration dependence)",
+    "evidence": "runs/sensitivity/sensitivity.json: root age shifts under half/no-calibration and tree-only; stable to tree-prior and ascertainment",
+    "counterevidence": "a family with strong independent calibrations could yield a narrow identifiable date (Ch.13)",
+    "status": "supported, calibration-dependent",
+    "scope": "historical, with uncertainty"
+  },
+  {
+    "claim": "The tree model reproduces pairwise cognate sharing but not the missingness pattern.",
+    "hypothesis": "Q1/model fit",
+    "evidence": "ppc on runs/smoke/dated: sharing bayesian_p approx 0.18; missingness p approx 0",
+    "counterevidence": "missingness p=0 is a generative-check limitation, not a likelihood error",
+    "status": "supported",
+    "scope": "model fit on study corpus"
+  },
+  {
+    "claim": "Short runs of large trees do not converge and are not presented as posteriors.",
+    "hypothesis": "Q7 (multimodality/mixing)",
+    "evidence": "diagnose on runs/smoke/dated: split-Rhat 1.1-2.8, ESS in tens, reported converged=false",
+    "counterevidence": "none; this is a reported non-result",
+    "status": "supported",
+    "scope": "inference diagnostics"
+  },
+  {
+    "claim": "Known-truth root-age credible intervals are roughly calibrated.",
+    "hypothesis": "recovery coverage (G05)",
+    "evidence": "runs/recovery pilot: 90% CI coverage 0.8 on 5 datasets; full 200-dataset study pending",
+    "counterevidence": "pilot is small; coverage below 0.9 in the full study would indicate over-confidence",
+    "status": "preliminary",
+    "scope": "synthetic recovery"
+  },
+  {
+    "claim": "A latent homeland is reported as a posterior cloud, never a single pin when support is broad.",
+    "hypothesis": "Q6/Q8 (geographic honesty)",
+    "evidence": "ui map view renders inferred locations as a density; exporter tags observation kinds; docs/screenshots/workbench.png",
+    "counterevidence": "a removal-stable concentrated posterior could warrant a point claim (Ch.13)",
+    "status": "supported",
+    "scope": "geographic honesty"
+  }
+]
