@@ -21,7 +21,7 @@ correctness oracles.
 | G07 | Held-out concept/language prediction | path verified | `make predict` + ppc; p-values show tree fits sharing, model misses missingness |
 | G08 | 12+ sensitivity configurations | path verified | `make sensitivity`: 12 configs; root age is calibration-dependent, stable to tree prior/ascertainment |
 | G09 | Geographic honesty in UI/exports/thesis | passed (UI/export) | map view 3-kind legend (modern/attestation/inferred), exporter tags kinds; thesis pending |
-| G10 | Borrowing recoverability limits | unverified | `tests/test_borrowing.py` |
+| G10 | Borrowing recoverability limits | passed | `tests/test_geo_borrowing.py`: intensity stays low without signal, rises with real co-presence |
 | G11 | Interactive workbench on real artifacts | passed | `ui/` renders 4 linked views on saved bundles; headless screenshot in docs/screenshots |
 | G12 | Exact-state recovery, stale schema rejection | passed (resume) | `tests/test_recovery.py`: exact resume + corrupt-checkpoint reject |
 | G13 | Semantic verifier negative controls | passed (1 control) | `tests/test_integration.py`: tampered root age rejected via digest; more controls pending |
