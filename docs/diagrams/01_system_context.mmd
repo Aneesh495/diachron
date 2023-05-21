@@ -1,0 +1,24 @@
+%% System context: how a researcher, data sources, and Diachron interact.
+flowchart TB
+  researcher([Researcher])
+  cldf[(CLDF collections\nIE-CoR / Lexibank)]
+  glottolog[(Glottolog\nversioned ids + coords)]
+  lit[(Primary linguistic\nliterature: attestations)]
+
+  subgraph Diachron
+    ingest[Ingestion + character transform]
+    infer[Inference: likelihood + MCMC]
+    diag[Diagnostics]
+    workbench[Workbench UI]
+    thesis[Thesis + research notes]
+  end
+
+  cldf --> ingest
+  glottolog --> ingest
+  lit --> ingest
+  ingest --> infer --> diag
+  infer --> workbench
+  diag --> thesis
+  researcher --> workbench
+  researcher --> thesis
+  workbench -. reads saved artifacts only .-> infer

@@ -1,0 +1,16 @@
+%% Posterior map rendering: three kinds of geographic mark kept distinct.
+flowchart TB
+  modern[modern reference coordinate\nhollow grey square]
+  attest[dated attestation\namber diamond + uncertainty ring]
+  latent[inferred latent location\nblue posterior cloud]
+  rule{support broad\nor multimodal?}
+  cloud[keep as cloud / credible region]
+  pin[concentrated, removal-stable\nmay warrant a point]
+
+  modern --> legend[Legend separates observed vs inferred]
+  attest --> legend
+  latent --> rule
+  rule -- yes --> cloud
+  rule -- no --> pin
+  cloud --> legend
+  pin --> legend

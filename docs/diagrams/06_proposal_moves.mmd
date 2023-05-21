@@ -1,0 +1,21 @@
+%% MCMC proposal moves and their Hastings terms.
+flowchart TB
+  pick{Pick move\nuniform over 6}
+  s0[scale gain\nHastings = log factor]
+  s1[scale loss\nHastings = log factor]
+  s2[scale clock rate\nHastings = log factor]
+  s3[slide node time\nHastings = 0, reflected window]
+  s4[scale root\nHastings = k log factor]
+  s5{topology\nhalf NNI half SPR}
+  nni[NNI\nHastings = 0]
+  spr["bounded SPR\nHastings = log ratio of valid target counts"]
+  accept{"accept if log alpha >= log u"}
+
+  pick --> s0 --> accept
+  pick --> s1 --> accept
+  pick --> s2 --> accept
+  pick --> s3 --> accept
+  pick --> s4 --> accept
+  pick --> s5
+  s5 --> nni --> accept
+  s5 --> spr --> accept

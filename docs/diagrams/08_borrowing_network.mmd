@@ -1,0 +1,12 @@
+%% Bounded borrowing network: fixed candidate edges with contact kinds.
+flowchart LR
+  subgraph tree[Inherited tree]
+    A((Lang A))
+    B((Lang B))
+    C((Lang C))
+    D((Lang D))
+  end
+  A -. documented loan\nintensity b1 .-> B
+  C -. proximity candidate\nintensity b2 .-> D
+  A -. hypothetical\nintensity b3 .-> D
+  note[Intensities have exponential prior toward 0.\nFinite candidate set: no unrestricted reticulation.]

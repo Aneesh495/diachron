@@ -1,0 +1,12 @@
+%% Chain state lifecycle: warmup, adaptation freeze, sampling, checkpoint.
+stateDiagram-v2
+  [*] --> Warmup
+  Warmup --> Warmup: adapt step sizes\n(no retained draws)
+  Warmup --> Sampling: adaptation frozen
+  Sampling --> Sampling: step + thinned draw
+  Sampling --> Checkpoint: every N iters\n(atomic RNG + tree + params)
+  Checkpoint --> Sampling: continue
+  Checkpoint --> [*]: interrupted
+  [*] --> Resume: from checkpoint
+  Resume --> Sampling: exact bit-identical continuation
+  Sampling --> [*]: budget reached

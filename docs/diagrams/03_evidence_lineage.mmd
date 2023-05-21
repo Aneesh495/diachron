@@ -1,0 +1,17 @@
+%% Evidence lineage: from a raw lexeme judgment to a model contribution.
+flowchart TB
+  lexeme[Lexeme: form + original script + source]
+  judgment[Cognate judgment: class, confidence, loan?, partial?]
+  cell["(language, concept) cell"]
+  char[Binary character: present / absent / missing]
+  evlink[EvidenceLink: cell -> lexemes + sources]
+  column[Character column in taxon order]
+  likelihood[Pruning likelihood contribution]
+
+  lexeme --> cell
+  judgment --> cell
+  cell --> char
+  char --> evlink
+  char --> column
+  column --> likelihood
+  evlink -. auditable trace back .-> judgment

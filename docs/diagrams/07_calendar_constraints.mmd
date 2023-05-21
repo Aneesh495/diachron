@@ -1,0 +1,15 @@
+%% Calendar constraints: how dates, calibration, and clock relate.
+flowchart LR
+  tips["tips at age 0\n(or dated/extinct tip age)"]
+  heights["internal node ages\nchild younger than parent"]
+  branch["branch length = parent age - child age (years)"]
+  clock["clock rate (subs/year)\nstrict or relaxed lognormal"]
+  subs["expected substitutions = rate * years"]
+  calib["root-age calibration\nfrom oldest attestation"]
+  identify["time scale identifiable\nonly with calibration"]
+
+  tips --> heights --> branch
+  branch --> subs
+  clock --> subs
+  calib --> heights
+  calib --> identify
