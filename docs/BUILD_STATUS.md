@@ -24,7 +24,7 @@ correctness oracles.
 | G10 | Borrowing recoverability limits | passed | `tests/test_geo_borrowing.py`: intensity stays low without signal, rises with real co-presence |
 | G11 | Interactive workbench on real artifacts | passed | `ui/` renders 4 linked views on saved bundles; headless screenshot in docs/screenshots |
 | G12 | Exact-state recovery, stale schema rejection | passed (resume) | `tests/test_recovery.py`: exact resume + corrupt-checkpoint reject |
-| G13 | Semantic verifier negative controls | passed (1 control) | `tests/test_integration.py`: tampered root age rejected via digest; more controls pending |
+| G13 | Semantic verifier negative controls | passed | `tests/test_verifier_controls.py`: 5 controls (fabricated likelihood, negative age, synthetic-as-observed, modern-as-ancient, corrupt digest) rejected by subprocess verifier for correct reason |
 | G14 | Thesis claim-to-evidence closure | passed | `docs/thesis/`: 15 chapters + claims.json (9 claims, all resolve to evidence) |
 | G15 | Clean-checkout release + hosted publication | unverified | release pipeline |
 

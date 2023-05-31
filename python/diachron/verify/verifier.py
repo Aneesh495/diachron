@@ -214,6 +214,18 @@ def verify_evidence(evidence_dir: str, probe_draws: int = 12,
             record(f"{os.path.basename(bdir)}:rhat_finite", np.isfinite(rhat),
                    {"split_rhat": round(float(rhat), 4)})
 
+        # 3b. Physical plausibility of recorded quantities. Node ages are years
+        # before present and must be nonnegative; a log posterior of a product of
+        # probabilities and bounded log-priors cannot be a large positive number.
+        ages_ok = all(d["root_age"] >= 0 for ch in bundle["chains"] for d in ch)
+        record(f"{os.path.basename(bdir)}:ages_nonnegative", ages_ok,
+               {"min_age": min((d["root_age"] for ch in bundle["chains"] for d in ch),
+                               default=0.0)})
+        lp_ok = all(d["log_posterior"] <= 1.0 for ch in bundle["chains"] for d in ch)
+        record(f"{os.path.basename(bdir)}:log_posterior_plausible", lp_ok,
+               {"max_log_post": max((d["log_posterior"]
+                                     for ch in bundle["chains"] for d in ch), default=0.0)})
+
         # 4. Geographic honesty: synthetic bundles must be flagged synthetic and
         # must not carry ancient coordinates lifted from modern points.
         synthetic_ok = True
