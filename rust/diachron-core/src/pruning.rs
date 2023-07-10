@@ -153,6 +153,119 @@ pub fn log_likelihood_block(
     columns.iter().map(|col| plan.score(col, root_prior)).sum()
 }
 
+/// Conditional probability of the actual binary ascertainment event, given
+/// the observed-tip mask. A bucket tracks whether we saw any zero and how
+/// many ones we saw (saturated at two). The final accepted bucket is read
+/// directly, so near-constant trees do not lose precision to subtraction.
+fn retained_probability(
+    plan: &PruningPlan<'_>,
+    observed: &[bool],
+    min_present: usize,
+    prior: &[f64],
+) -> f64 {
+    const BUCKETS: usize = 6;
+    const ANY_ZERO: usize = 3;
+    type Counts = [f64; BUCKETS];
+
+    let mut messages = vec![[[0.0; BUCKETS]; 2]; plan.tree.nodes.len()];
+    for &node in &plan.order {
+        let mut mass = [[0.0; BUCKETS]; 2];
+        if let Some(taxon) = plan.tree.nodes[node].taxon {
+            let scored = observed[taxon];
+            mass[0][if scored { ANY_ZERO } else { 0 }] = 1.0;
+            mass[1][usize::from(scored)] = 1.0;
+        } else {
+            mass[0][0] = 1.0;
+            mass[1][0] = 1.0;
+            for &child in &plan.tree.nodes[node].children {
+                let p = &plan.transitions[child];
+                for (state, left) in mass.iter_mut().enumerate() {
+                    let mut right: Counts = [0.0; BUCKETS];
+                    for (bucket, prob) in right.iter_mut().enumerate() {
+                        *prob = p.at(state, 0) * messages[child][0][bucket]
+                            + p.at(state, 1) * messages[child][1][bucket];
+                    }
+                    let mut combined: Counts = [0.0; BUCKETS];
+                    for (a, &pa) in left.iter().enumerate() {
+                        if pa == 0.0 {
+                            continue;
+                        }
+                        for (b, &pb) in right.iter().enumerate() {
+                            let has_zero = (a >= ANY_ZERO || b >= ANY_ZERO) as usize;
+                            let ones = (a % ANY_ZERO + b % ANY_ZERO).min(2);
+                            combined[has_zero * ANY_ZERO + ones] += pa * pb;
+                        }
+                    }
+                    *left = combined;
+                }
+            }
+        }
+        messages[node] = mass;
+    }
+    messages[plan.tree.root]
+        .iter()
+        .zip(prior)
+        .map(|(mass, pi)| pi * mass[ANY_ZERO + min_present..].iter().sum::<f64>())
+        .sum()
+}
+
+fn log_mean_exp(log_probs: &[f64]) -> f64 {
+    let max = log_probs.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    if max == f64::NEG_INFINITY {
+        return max;
+    }
+    let total: f64 = log_probs.iter().map(|p| (p - max).exp()).sum();
+    max + (total / log_probs.len() as f64).ln()
+}
+
+/// Per-site equal-weight rate mixture. When selection is enabled, mix the
+/// probabilities of both the pattern and its selection event before dividing.
+pub fn binary_mixture_scores(
+    tree: &Tree,
+    model: &dyn SubstModel,
+    columns: &[Vec<Option<usize>>],
+    root_prior: &[f64],
+    rate_categories: &[f64],
+    min_present: usize,
+) -> Vec<f64> {
+    use std::collections::HashMap;
+
+    let plans: Vec<_> = rate_categories
+        .iter()
+        .map(|rate| PruningPlan::new(tree, model, *rate))
+        .collect();
+    let mut normalizers = HashMap::new();
+    let mut mixtures = vec![0.0; plans.len()];
+    columns
+        .iter()
+        .map(|column| {
+            let log_normalizer = if min_present == 0 {
+                0.0
+            } else {
+                let present = column.iter().filter(|s| **s == Some(1)).count();
+                if present < min_present || !column.contains(&Some(0)) {
+                    return f64::NEG_INFINITY;
+                }
+                let observed: Vec<_> = column.iter().map(Option::is_some).collect();
+                *normalizers.entry(observed.clone()).or_insert_with(|| {
+                    let retained: f64 = plans
+                        .iter()
+                        .map(|plan| retained_probability(plan, &observed, min_present, root_prior))
+                        .sum();
+                    (retained / plans.len() as f64).ln()
+                })
+            };
+            if !log_normalizer.is_finite() {
+                return f64::NEG_INFINITY;
+            }
+            for (result, plan) in mixtures.iter_mut().zip(&plans) {
+                *result = plan.score(column, root_prior);
+            }
+            log_mean_exp(&mixtures) - log_normalizer
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

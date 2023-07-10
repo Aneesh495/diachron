@@ -23,7 +23,6 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from diachron import _core
-from .ascertainment import ascertainment_log_correction
 from .priors import coalescent_log_prior, calibration_log_density
 from .clock import StrictClock
 
@@ -48,6 +47,11 @@ class ModelConfig:
     use_borrowing: bool = False
     pop_size: float = 3000.0  # coalescent effective scale in years
     ascertainment: bool = True
+    # Among-character rate heterogeneity. None disables it (single rate); a
+    # positive alpha enables a discrete-gamma mixture with that shape and
+    # `rate_categories` categories.
+    rate_alpha: float | None = None
+    rate_categories: int = 4
 
     @staticmethod
     def tree_only() -> "ModelConfig":
@@ -90,30 +94,33 @@ class PosteriorModel:
     tip_regions: dict[int, int] = field(default_factory=dict)
     n_tips: int = 0
 
-    def character_log_likelihood(self, tree, gain: float, loss: float, clock_rate: float) -> float:
-        """Summed character likelihood with the ascertainment correction.
+    # Two when singleton positives were filtered, one for variable-only data.
+    minimum_present: int = 1
 
-        The clock scales branch lengths into substitution units by multiplying
-        node durations by `clock_rate`; we pass a tree whose heights already
-        encode years, and fold the clock into the model's rates so the binding
-        sees substitutions-per-year times years.
-        """
-        parent, bl, h, tax, root = tree.to_core_arrays()
-        # Fold the clock rate into the gain/loss rates: evolving for `t` years at
-        # rate `r` per year is the same as the branch carrying `r*t` expected
-        # events. The binding multiplies the model rates by branch length, so we
-        # scale gain/loss by clock_rate here.
-        g = gain * clock_rate
-        l = loss * clock_rate
-        root_prior = [l / (g + l), g / (g + l)]
-        ll = _core.block_log_likelihood(
-            parent, bl, h, tax, root, "binary", [g, l], self.columns, root_prior
+    def __post_init__(self) -> None:
+        alpha = self.config.rate_alpha
+        if alpha is not None and (
+            not np.isfinite(alpha) or alpha <= 0 or not 1 <= self.config.rate_categories <= 32
+        ):
+            raise ValueError("gamma shape must be positive with 1 to 32 rate categories")
+        self._site_rates = (
+            [1.0] if alpha is None
+            else _core.discrete_gamma_rates(alpha, self.config.rate_categories)
         )
-        if self.config.ascertainment and np.isfinite(ll):
-            ll += ascertainment_log_correction(
-                tree, "binary", [g, l], root_prior, self.n_states, len(self.columns)
-            )
-        return ll
+
+    def character_scores(
+        self, tree, gain: float, loss: float, clock_rate: float,
+        columns: list[list[int]] | None = None,
+    ) -> list[float]:
+        """Per-character likelihood under the observed-mask selection process."""
+        return _core.binary_character_scores(
+            *tree.to_core_arrays(), gain * clock_rate, loss * clock_rate,
+            self.columns if columns is None else columns, self._site_rates,
+            self.minimum_present if self.config.ascertainment else 0,
+        )
+
+    def character_log_likelihood(self, tree, gain: float, loss: float, clock_rate: float) -> float:
+        return sum(self.character_scores(tree, gain, loss, clock_rate))
 
     def calibration_log_density(self, tree) -> float:
         if not self.config.use_calibration or not self.calibrations:

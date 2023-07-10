@@ -31,6 +31,12 @@ fn build_tree(
     if branch_len.len() != n || height.len() != n || taxon.len() != n {
         return Err(PyValueError::new_err("tree arrays length mismatch"));
     }
+    if n == 0 || n > 10_000 || root >= n || parent[root] != -1 {
+        return Err(PyValueError::new_err("invalid tree root or node count"));
+    }
+    if branch_len.iter().chain(height).any(|x| !x.is_finite() || *x < 0.0) {
+        return Err(PyValueError::new_err("invalid tree branch length or height"));
+    }
     // Construct directly from the arrays, tolerant of arbitrary node ordering
     // (a parent may be listed after its children). We fill nodes first, then
     // wire up the children lists in a second pass.
@@ -50,12 +56,22 @@ fn build_tree(
                 return Err(PyValueError::new_err("parent index out of range"));
             }
             tree.nodes[pp].children.push(i);
+        } else if i != root {
+            return Err(PyValueError::new_err("multiple tree roots"));
         }
     }
-    if root >= n {
-        return Err(PyValueError::new_err("root index out of range"));
-    }
     tree.root = root;
+    if tree.postorder().len() != n {
+        return Err(PyValueError::new_err("tree has unreachable nodes or a cycle"));
+    }
+    let mut tips = vec![false; tree.n_tips()];
+    for node in &tree.nodes {
+        match (node.children.is_empty(), node.taxon) {
+            (true, Some(t)) if t < tips.len() && !tips[t] => tips[t] = true,
+            (false, None) => (),
+            _ => return Err(PyValueError::new_err("invalid or duplicate tree taxon index")),
+        }
+    }
     Ok(tree)
 }
 
@@ -128,6 +144,45 @@ fn block_log_likelihood(
         })
         .collect();
     Ok(log_likelihood_block(&tree, model.as_ref(), &cols, &root_prior))
+}
+
+/// Binary character scores with observed-mask conditioning and a site rate mixture.
+#[pyfunction]
+#[allow(clippy::too_many_arguments)]
+fn binary_character_scores(
+    parent: Vec<i64>,
+    branch_len: Vec<f64>,
+    height: Vec<f64>,
+    taxon: Vec<i64>,
+    root: usize,
+    gain: f64,
+    loss: f64,
+    columns: Vec<Vec<i64>>,
+    rate_categories: Vec<f64>,
+    min_present: usize,
+) -> PyResult<Vec<f64>> {
+    let tree = build_tree(&parent, &branch_len, &height, &taxon, root)?;
+    let n_tips = tree.n_tips();
+    if min_present > 2
+        || rate_categories.is_empty()
+        || rate_categories.len() > 32
+        || rate_categories.iter().any(|r| !r.is_finite() || *r <= 0.0)
+        || !gain.is_finite() || gain <= 0.0
+        || !loss.is_finite() || loss <= 0.0
+        || !(gain + loss).is_finite()
+        || columns.iter().any(|col| {
+            col.len() != n_tips || col.iter().any(|s| !(-1..=1).contains(s))
+        })
+    {
+        return Err(PyValueError::new_err("invalid binary mixture rates or character states"));
+    }
+    let model = BinaryGainLoss::new(gain, loss);
+    let cols: Vec<Vec<Option<usize>>> = columns.iter().map(|col| {
+        col.iter().map(|&s| usize::try_from(s).ok()).collect()
+    }).collect();
+    Ok(crate::pruning::binary_mixture_scores(
+        &tree, &model, &cols, &model.stationary(), &rate_categories, min_present,
+    ))
 }
 
 /// A checkpointable RNG exposed to Python for reproducible sampling.
@@ -259,6 +314,7 @@ fn run_native_chain(
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(char_log_likelihood, m)?)?;
     m.add_function(wrap_pyfunction!(block_log_likelihood, m)?)?;
+    m.add_function(wrap_pyfunction!(binary_character_scores, m)?)?;
     m.add_function(wrap_pyfunction!(brownian_sphere_logpdf, m)?)?;
     m.add_function(wrap_pyfunction!(haversine_km, m)?)?;
     m.add_function(wrap_pyfunction!(discrete_gamma_rates, m)?)?;
