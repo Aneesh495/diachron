@@ -1,0 +1,46 @@
+{
+  "version": "v0.3",
+  "git_commit": "81748db0c5fcf3bf1d8c8372b86df75c375e1f22",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "doi": "10.5281/zenodo.23558745",
+  "url": "https://github.com/lexibank/abvd/releases/tag/v0.3",
+  "metadata": "cldf/cldf-metadata.json",
+  "files": {
+    "LICENSE": {
+      "bytes": 18652,
+      "sha256": "945fbcb37deca05bccd7c3ca0e261679f1f5373515504fdbad68f6f3cf6f49b9"
+    },
+    "cldf/cldf-metadata.json": {
+      "bytes": 19559,
+      "sha256": "a6a4eca3eb53ef0c1031877ca74c048e0ad2d0445dfe3e8753f37b3e2cd72658"
+    },
+    "cldf/cognates.csv": {
+      "bytes": 25049416,
+      "sha256": "bcac9efcf94a63877d71a8d76ce9acfd884d6327c1bf17691cfeba64549a16c5"
+    },
+    "cldf/forms.csv": {
+      "bytes": 27269643,
+      "sha256": "ae471a382c9caa972e5c96e3b4f7e12f5176e0519cf874a663edf89c98a512a8"
+    },
+    "cldf/languages.csv": {
+      "bytes": 153012,
+      "sha256": "3bfb0a6411ae3364880296061496e8ed7504b16b8112ee70d70a84915208797a"
+    },
+    "cldf/parameters.csv": {
+      "bytes": 9217,
+      "sha256": "494adff377dddc44915fe1189bb7b09ed544876f698a8abc664f5c31875e8975"
+    },
+    "cldf/sources.bib": {
+      "bytes": 160455,
+      "sha256": "29cffa0de832bc9b86895578105c864b87ff0cdb202dc5c975238f3aa37a020c"
+    }
+  },
+  "selection": {
+    "family": "Austronesian",
+    "required_varieties": 30,
+    "min_judged_concepts": 100,
+    "distinct_glottocodes": true,
+    "max_varieties": 40,
+    "selection_seed": "diachron-abvd-1"
+  }
+}

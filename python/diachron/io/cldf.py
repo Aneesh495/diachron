@@ -24,6 +24,8 @@ from __future__ import annotations
 import csv
 import json
 import os
+from pathlib import Path
+from unicodedata import normalize
 from typing import Optional
 
 from .types import (
@@ -53,15 +55,26 @@ def _find_column(table_schema: dict, property_suffix: str) -> Optional[str]:
     return None
 
 
-def _read_csv(base_dir: str, url: str) -> list[dict]:
-    path = os.path.join(base_dir, url)
-    if not os.path.exists(path):
-        raise DataError(f"CLDF table file missing: {url}")
-    with open(path, newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
+def _read_csv(base_dir: str, url: str):
+    base = Path(base_dir).resolve()
+    path = (base / url).resolve()
+    if not path.is_relative_to(base) or not path.is_file():
+        raise DataError(f"CLDF table must be a local file inside the dataset: {url}")
+    if path.stat().st_size > 128 * 1024 * 1024:
+        raise DataError(f"CLDF table exceeds 128 MiB: {url}")
+    with path.open(newline="", encoding="utf-8-sig") as f:
+        rows = csv.DictReader(f)
+        if not rows.fieldnames or len(set(rows.fieldnames)) != len(rows.fieldnames):
+            raise DataError(f"CLDF table has an invalid header: {url}")
+        for row in rows:
+            if None in row or None in row.values():
+                raise DataError(f"CLDF table has a malformed row at {url}:{rows.line_num}")
+            yield row
 
 
-def load_cldf_wordlist(metadata_path: str) -> Dataset:
+def load_cldf_wordlist(
+    metadata_path: str, *, profile: str | None = None,
+) -> Dataset:
     """Read a CLDF Wordlist directory into a Diachron `Dataset`.
 
     `metadata_path` points at the `*-metadata.json` file. The function locates
@@ -69,16 +82,23 @@ def load_cldf_wordlist(metadata_path: str) -> Dataset:
     role-bearing columns by property, so column naming differences do not break
     it.
     """
+    if profile not in (None, "iecor", "abvd"):
+        raise DataError(f"unknown CLDF source profile: {profile}")
+    if Path(metadata_path).stat().st_size > 4 * 1024 * 1024:
+        raise DataError("CLDF metadata exceeds 4 MiB")
     with open(metadata_path, encoding="utf-8") as f:
         meta = json.load(f)
     base_dir = os.path.dirname(os.path.abspath(metadata_path))
 
     # Dataset-level license and identifier.
     license_ = meta.get("dc:license", "unknown")
-    doi = None
-    for ident in meta.get("dc:identifier", []) if isinstance(meta.get("dc:identifier"), list) else []:
-        if isinstance(ident, str) and "doi.org" in ident:
-            doi = ident
+    identifiers = meta.get("dc:identifier", [])
+    if isinstance(identifiers, str):
+        identifiers = [identifiers]
+    doi = next(
+        (ident for ident in identifiers if isinstance(ident, str) and "doi.org/" in ident),
+        None,
+    )
     name = meta.get("dc:title", os.path.basename(base_dir))
     version = str(meta.get("dc:hasVersion", meta.get("prov:wasGeneratedBy", "unknown")))
 
@@ -108,6 +128,9 @@ def load_cldf_wordlist(metadata_path: str) -> Dataset:
                 glottocode=row.get(glotto_col) if glotto_col else None,
                 latitude=_float_or_none(row.get(lat_col)) if lat_col else None,
                 longitude=_float_or_none(row.get(lon_col)) if lon_col else None,
+                family=(row.get("Family") or None) if profile else None,
+                is_historical=_flag(row.get("historical")) is True if profile == "iecor" else False,
+                source_classification=(row.get("Clade") or None) if profile == "iecor" else None,
             )
         )
 
@@ -142,17 +165,23 @@ def load_cldf_wordlist(metadata_path: str) -> Dataset:
     for row in _read_csv(base_dir, form_table["url"]):
         cid = row[f_param]
         if cid not in concept_ids:
-            # Derive a concept on first sight when no ParameterTable existed.
+            if "ParameterTable" in tables:
+                raise DataError(f"form {row[f_id]} references unknown concept {cid}")
             concepts.append(Concept(id=cid, gloss=cid))
             concept_ids.add(cid)
+        raw_value = (row.get(f_value) or None) if f_value else None
+        native = (row.get("native_script") or None) if profile == "iecor" else None
         lexemes.append(
             Lexeme(
                 id=row[f_id],
                 language_id=row[f_lang],
                 concept_id=cid,
-                form=row.get(f_form, ""),
-                original=row.get(f_value) if f_value else None,
-                source_ref=row.get(f_source) if f_source else None,
+                form=normalize("NFC", row.get(f_form, "")),
+                original=native or raw_value,
+                source_value=raw_value,
+                transliteration_source=f"{form_table['url']}:{f_form}" if native else None,
+                loan_annotation=_flag(row.get("Loan")) if profile else None,
+                source_ref=(row.get(f_source) or None) if f_source else None,
             )
         )
 
@@ -163,18 +192,39 @@ def load_cldf_wordlist(metadata_path: str) -> Dataset:
         c_form = _find_column(cog_table, "#formReference") or "Form_ID"
         c_class = _find_column(cog_table, "#cognatesetReference") or "Cognateset_ID"
         c_source = _find_column(cog_table, "#source")
-        form_concept = {lx.id: lx.concept_id for lx in lexemes}
+        c_slice = _find_column(cog_table, "#segmentSlice")
+        c_id = _find_column(cog_table, "#id") or "ID"
+        forms = {lx.id: lx for lx in lexemes}
+        loans = {}
+        if profile == "iecor":
+            loans = {row["Cognateset_ID"]: row for row in _read_csv(base_dir, "loans.csv")}
+        judgment_ids = set()
         for row in _read_csv(base_dir, cog_table["url"]):
             form_id = row[c_form]
-            concept_id = form_concept.get(form_id)
-            if concept_id is None:
-                continue
+            form = forms.get(form_id)
+            if form is None:
+                raise DataError(f"cognate judgment references unknown form {form_id}")
+            identifier = row.get(c_id)
+            if not identifier or identifier in judgment_ids:
+                raise DataError(f"missing or duplicate cognate judgment id: {identifier}")
+            judgment_ids.add(identifier)
+            cognate_class = row[c_class]
+            segment_slice = (row.get(c_slice) or None) if c_slice else None
+            loan = loans.get(cognate_class)
             judgments.append(
                 CognateJudgment(
                     lexeme_id=form_id,
-                    concept_id=concept_id,
-                    cognate_class=row[c_class],
-                    source_ref=row.get(c_source) if c_source else None,
+                    concept_id=form.concept_id,
+                    cognate_class=cognate_class,
+                    source_ref=(row.get(c_source) or None) if c_source else None,
+                    id=identifier,
+                    doubtful=_flag(row.get("Doubt")) if profile else None,
+                    detection_method=(row.get("Cognate_Detection_Method") or None) if profile else None,
+                    segment_slice=segment_slice,
+                    is_partial=segment_slice is not None,
+                    is_loan=loan is not None or form.loan_annotation is True,
+                    loan_event=cognate_class if loan is not None else None,
+                    loan_source=(loan.get("SourceCognateset_ID") or None) if loan else None,
                 )
             )
 
@@ -201,3 +251,11 @@ def _float_or_none(v) -> Optional[float]:
         return float(v)
     except (TypeError, ValueError):
         return None
+
+
+def _flag(value: str | None) -> bool | None:
+    if not value:
+        return None
+    if value.lower() not in ("true", "false", "1", "0"):
+        raise DataError(f"invalid source annotation flag: {value!r}")
+    return value.lower() in ("true", "1")
