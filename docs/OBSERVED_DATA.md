@@ -55,3 +55,41 @@ the source flag is attached to the form and carried through to its judgments.
 A source doubt flag is categorical and carries no calibrated probability.
 The local Arrow tables retain source licensing and identity in schema metadata.
 Raw wordlists and Arrow tables stay outside the public source release.
+
+## Dated and located inscriptions
+
+The Epigraphic Database Heidelberg cohort uses the first 250 XML filenames in
+`inscriptions/1/1` at the pinned EDH snapshot. The reader retains records with a
+Latin edition, a two-sided date, a single named origin locality, and bibliography.
+The resulting 175 entries each link to a distinct EDH record and carry its
+bibliography, date bounds, and a source section locator. Of those, 61 also have a
+unique EDH gazetteer reference point matched by ancient name and Trismegistos ID.
+An ambiguous point is left unset. The other 75 source entries were excluded for
+missing or ambiguous locality (59), incomplete date (14), or edition language (2).
+
+The date display uses year units before 1950. The original date strings are
+retained, including month and day where available. The reader retains multiple
+structured dates as linked alternatives. Competing dates present only in prose
+require individual review. Location precision is qualitative. An inscription
+origin records where an object is reported to originate and cannot locate a
+speech community. The cohort is a Latin-heavy epigraphic slice. Its records are
+indexed to the IE-CoR Latin variety without asserting that all these inscriptions
+sample that variety's lexical or temporal distribution. It provides inspection
+evidence and is excluded from automatic root-age calibration.
+
+The derived attestation table carries EDH's CC BY-SA 4.0 terms and attribution.
+It contains bibliographic citations and provenance with no inscription text.
+
+- [Epigraphic Database Heidelberg](https://edh.ub.uni-heidelberg.de/)
+- [Pinned EDH snapshot](https://github.com/epigraphic-database-heidelberg/data/tree/45f166654ab4551a1954617a0df8e56fa7724ccb)
+- [EDH data reuse guide](https://doi.org/10.11588/heidok.00026599)
+
+```bash
+mkdir -p data/cache/edh
+edh_base=https://raw.githubusercontent.com/epigraphic-database-heidelberg/data/45f166654ab4551a1954617a0df8e56fa7724ccb
+jq -r '.files | keys[]' data/manifests/edh.json |
+  xargs -P 6 -I '{}' curl -fsSL --retry 2 --max-time 30 \
+    "$edh_base/inscriptions/1/1/{}" -o 'data/cache/edh/{}'
+curl -fsSL --max-time 60 "$edh_base/geography/edhGeographicData.json" -o data/cache/edh-geography.json
+make attestations ATTESTATION_ARGS='edh --source data/cache/edh --geography data/cache/edh-geography.json --out runs/observed/attestations.json'
+```

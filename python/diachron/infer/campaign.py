@@ -80,7 +80,9 @@ def prepare_study(
     calibrations: list[Calibration] = []
     usable = [
         a for a in (attestations or [])
-        if a.language_id in lang_to_idx and a.language_assignment_confidence >= 0.5
+        if a.language_id in lang_to_idx
+        and a.language_assignment_confidence is not None
+        and a.language_assignment_confidence >= 0.5
     ]
     if usable:
         all_taxa = tuple(range(len(tip_labels)))

@@ -66,7 +66,7 @@ cldf:
 
 .PHONY: attestations
 attestations:
-	$(PY) -m diachron.cli.main attestations build
+	$(PY) -m diachron.cli.main attestations $(ATTESTATION_ARGS)
 
 .PHONY: likelihood-check
 likelihood-check:
