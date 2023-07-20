@@ -84,3 +84,44 @@ def test_node_slide_stays_in_window():
             assert tree.times_valid()
         else:
             tree.heights = snap
+
+
+def test_spr_returns_to_exact_original_state_at_same_parent_age():
+    class Choice:
+        def __init__(self, *choices):
+            self.choices = iter(choices)
+
+        def below(self, n):
+            choice = next(self.choices)
+            assert 0 <= choice < n
+            return choice
+
+    from diachron.models.tree import PhyloTree
+
+    tree = PhyloTree([4, 4, 5, 5, 6, 6, -1], [0, 0, 0, 0, 2, 4, 8], [0, 1, 2, 3, -1, -1, -1])
+    original = tree.copy()
+    moves = MoveSet()
+    # Prune child 0 at age 2 and insert its parent above tip 2. The
+    # detached backbone has target edges above tips 1, 2, and 3.
+    assert moves.spr(tree, Choice(0, 1)).valid
+    assert tree.parent != original.parent
+    assert tree.heights == original.heights
+    assert moves.spr(tree, Choice(0, 0)).valid
+    assert tree == original
+
+
+def test_root_slide_uses_same_window_in_both_directions():
+    class Step:
+        def __init__(self, value):
+            self.value = value
+
+        def uniform(self):
+            return self.value
+
+    from diachron.models.tree import PhyloTree
+
+    tree = PhyloTree([2, 2, 4, 4, -1], [0, 0, 100, 0, 200], [0, 1, -1, 2, -1])
+    moves = MoveSet()
+    assert moves.slide_node_time(tree, 4, Step(0.75)).valid
+    assert moves.slide_node_time(tree, 4, Step(0.25)).valid
+    assert tree.root_age() == 200
