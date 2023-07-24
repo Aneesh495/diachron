@@ -19,12 +19,12 @@ come from the added structure, not from changing what counts as data.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 
 import numpy as np
 
 from diachron import _core
-from .priors import coalescent_log_prior, calibration_log_density
-from .clock import StrictClock
+from .priors import coalescent_log_prior, calibration_log_density, lognormal_logpdf
 
 
 @dataclass
@@ -52,6 +52,11 @@ class ModelConfig:
     # `rate_categories` categories.
     rate_alpha: float | None = None
     rate_categories: int = 4
+    rate_prior_median: float = 0.001  # events per year before the clock multiplier
+    rate_prior_log_sd: float = 1.5
+    clock_prior_log_sd: float = 0.5  # dimensionless multiplier centered at one
+    diffusion_prior_median: float = 0.004  # degree squared / year
+    diffusion_prior_log_sd: float = 2.0
 
     @staticmethod
     def tree_only() -> "ModelConfig":
@@ -167,13 +172,10 @@ class PosteriorModel:
         return total
 
     def geography_log_density(self, tree, geo_sigma2: float) -> float:
-        """Brownian-on-sphere likelihood of tip coordinates given latent locations.
+        """Geographic term under planar contrasts or an attached region model.
 
-        We integrate out internal locations with a fast upward pass that treats
-        each internal location's conditional as the precision-weighted mean of
-        its children (a Gaussian message-passing approximation on the sphere's
-        tangent plane). This is an approximation, documented as such; the region
-        CTMC alternative is exact for coarse data and is compared against it.
+        The planar model uses raw latitude and longitude as a local approximation.
+        Its degree-squared diffusion scale does not describe global movement.
         """
         if not self.config.use_geography:
             return 0.0
@@ -261,7 +263,10 @@ class PosteriorModel:
     ) -> float:
         if not tree.times_valid():
             return float("-inf")
-        if gain <= 0 or loss <= 0 or clock_rate <= 0:
+        parameters = (gain, loss, clock_rate, geo_sigma2)
+        if any(not math.isfinite(p) or p <= 0 for p in parameters):
+            return float("-inf")
+        if not math.isfinite((gain + loss) * clock_rate) or min(gain, loss) * clock_rate == 0:
             return float("-inf")
 
         lp = self.character_log_likelihood(tree, gain, loss, clock_rate)
@@ -274,7 +279,16 @@ class PosteriorModel:
 
         # Tree prior (coalescent) and clock prior.
         lp += coalescent_log_prior(tree.heights, tree.parent, self.config.pop_size)
-        lp += StrictClock(clock_rate).log_prior()
+        rate_center = math.log(self.config.rate_prior_median)
+        rate_width = self.config.rate_prior_log_sd
+        lp += lognormal_logpdf(gain, rate_center, rate_width)
+        lp += lognormal_logpdf(loss, rate_center, rate_width)
+        lp += lognormal_logpdf(clock_rate, 0.0, self.config.clock_prior_log_sd)
+        if self.config.use_geography:
+            lp += lognormal_logpdf(
+                geo_sigma2, math.log(self.config.diffusion_prior_median),
+                self.config.diffusion_prior_log_sd,
+            )
         return lp
 
 
@@ -302,56 +316,50 @@ def _mrca(tree, taxa: tuple[int, ...], taxon_to_node: dict[int, int]) -> int | N
 
 
 def _brownian_tree_loglik(tree, tip_coords: dict[int, tuple[float, float]], sigma2: float) -> float:
-    """Gaussian Brownian likelihood of tip coordinates on the tree.
+    """Planar Gaussian contrasts over observed latitude and longitude pairs.
 
-    Felsenstein's independent-contrasts pruning for a Gaussian trait, applied
-    independently to latitude and longitude in tangent space. This integrates out
-    all internal node locations in closed form and gives the exact marginal
-    likelihood of the tip coordinates under Brownian motion with rate `sigma2`
-    (degrees^2 per year), which is the continuous analogue of the character
-    pruning recursion.
+    A message is a conditional mean and its variance. Missing subtrees
+    contribute no message. Combining children sequentially is equivalent to
+    integrating a Gaussian common ancestor and supports multifurcations.
+    The likelihood is defined on contrasts, with a translation-invariant root.
     """
-    ch = tree.children()
-    bl = tree.branch_lengths()
-    order = _postorder(tree)
-    # Per-node running mean and extra variance for each coordinate.
-    mean_lat = {}
-    mean_lon = {}
-    var_add = {}
+    children = tree.children()
+    durations = tree.branch_lengths()
+    messages = {}
     loglik = 0.0
-    two_pi = 2.0 * np.pi
-    for node in order:
+    for node in _postorder(tree):
         if tree.is_tip(node):
-            lat, lon = tip_coords.get(tree.taxon[node], (np.nan, np.nan))
-            mean_lat[node] = lat
-            mean_lon[node] = lon
-            var_add[node] = 0.0
-        else:
-            kids = ch[node]
-            # Combine children by precision weighting (independent contrasts).
-            inv_var = []
-            for c in kids:
-                v = sigma2 * bl[c] + var_add[c]
-                inv_var.append(1.0 / v if v > 0 else 1e12)
-            total_prec = sum(inv_var)
-            m_lat = sum(iv * mean_lat[c] for iv, c in zip(inv_var, kids)) / total_prec
-            m_lon = sum(iv * mean_lon[c] for iv, c in zip(inv_var, kids)) / total_prec
-            mean_lat[node] = m_lat
-            mean_lon[node] = m_lon
-            var_add[node] = 1.0 / total_prec
-            # Contrast contributions between pairs of children (binary assumed;
-            # for multifurcations we sum sequential contrasts).
-            if len(kids) >= 2:
-                for a, b in zip(kids[:-1], kids[1:]):
-                    va = sigma2 * bl[a] + var_add[a]
-                    vb = sigma2 * bl[b] + var_add[b]
-                    v = va + vb
-                    for mean in (mean_lat, mean_lon):
-                        diff = mean[a] - mean[b]
-                        if np.isnan(diff):
-                            continue
-                        loglik += -0.5 * (diff * diff) / v - 0.5 * np.log(two_pi * v)
-    return float(loglik)
+            coords = tip_coords.get(tree.taxon[node])
+            if coords is not None:
+                messages[node] = (*coords, 0.0)
+            continue
+
+        combined = None
+        for child in children[node]:
+            if child not in messages:
+                continue
+            lat, lon, variance = messages[child]
+            variance += sigma2 * durations[child]
+            if combined is None:
+                combined = (lat, lon, variance)
+                continue
+
+            prev_lat, prev_lon, prev_var = combined
+            contrast_var = prev_var + variance
+            if contrast_var <= 0.0:
+                return float("-inf")
+            distance2 = (lat - prev_lat) ** 2 + (lon - prev_lon) ** 2
+            loglik -= 0.5 * distance2 / contrast_var + math.log(2 * math.pi * contrast_var)
+            weight = prev_var / contrast_var
+            combined = (
+                prev_lat + weight * (lat - prev_lat),
+                prev_lon + weight * (lon - prev_lon),
+                weight * variance,
+            )
+        if combined is not None:
+            messages[node] = combined
+
+    return loglik
 
 
 def _postorder(tree) -> list[int]:
