@@ -176,6 +176,7 @@ def cmd_sample(args) -> int:
         thin=args.thin,
         out_dir=args.out,
         profile=args.profile,
+        resume=args.resume,
     )
     _print(result)
     return 0
@@ -329,7 +330,8 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--iterations", type=int, default=6000)
     sp.add_argument("--thin", type=int, default=10)
     sp.add_argument("--out", default="runs/sample")
-    sp.add_argument("--profile", default="cpu")
+    sp.add_argument("--profile", choices=("cpu", "full"), default="cpu")
+    sp.add_argument("--resume", action="store_true")
     sp.set_defaults(func=cmd_sample)
 
     gp = sub.add_parser("diagnose")

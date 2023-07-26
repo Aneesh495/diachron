@@ -35,6 +35,7 @@ class PosteriorBundle:
     source_commit: str = "unknown"
     notes: str = ""
     summary: dict = field(default_factory=dict)
+    context: dict = field(default_factory=dict)
 
     def save(self, directory: str) -> None:
         os.makedirs(directory, exist_ok=True)
