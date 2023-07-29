@@ -1,252 +1,172 @@
-"""The independent semantic verifier.
-
-Given an evidence directory containing one or more posterior bundles and an
-`ACCEPTANCE.json`, the verifier independently recomputes the quantities that
-decide acceptance and rejects the bundle if the stored results do not hold up. It
-is deliberately written without importing the summarizer that wrote the evidence,
-sharing only the data formats. The decisive, independently recomputed checks are:
-
-1. **Draw digest.** Recompute the SHA-256 over the raw draws and compare to the
-   bundle's `MANIFEST.json`. A mismatch means the results were altered after the
-   manifest was written.
-
-2. **Likelihood replay.** For a frozen set of probe draws, re-evaluate the
-   character log likelihood from the raw tree and parameters using the exact saved
-   engine, and confirm it matches the stored `log_posterior` component to a tight
-   tolerance. A fabricated or edited likelihood fails here.
-
-3. **Diagnostic recomputation.** Recompute split-Rhat and ESS from the raw draws
-   and compare to the acceptance claim. A bundle claiming convergence whose raw
-   draws do not converge is rejected.
-
-4. **Geographic honesty.** Confirm synthetic bundles are labeled synthetic and
-   that modern coordinates are not presented as ancient observations (the bundle
-   must not carry an `ancient_coordinates` field sourced from modern points).
-
-The verifier returns a structured result with per-check pass/fail and an overall
-`ok`. Negative controls in the test suite alter each decisive quantity and
-confirm the verifier rejects for the right reason.
-"""
+"""Check saved posterior structure and replay a bounded set of exact draws."""
 
 from __future__ import annotations
 
 import hashlib
 import json
-import os
+import math
+from pathlib import Path
 
-import numpy as np
-from scipy.special import logsumexp  # noqa: F401  (available for extended checks)
-
-from diachron import _core
+from ..models.posterior import Calibration, ModelConfig, PosteriorModel
+from ..models.tree import PhyloTree
 
 
-def _recompute_draw_digest(chains: list[list[dict]]) -> str:
-    h = hashlib.sha256()
+def _sha256(value) -> str:
+    body = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def _model(raw: dict) -> PosteriorModel:
+    kwargs = dict(raw)
+    kwargs["config"] = ModelConfig(**raw["config"])
+    kwargs["calibrations"] = [
+        Calibration(**{**c, "clade_taxa": tuple(c["clade_taxa"])}) for c in raw["calibrations"]
+    ]
+    kwargs["tip_coords"] = {int(k): tuple(v) for k, v in raw["tip_coords"].items()}
+    kwargs["tip_regions"] = {int(k): v for k, v in raw["tip_regions"].items()}
+    if kwargs["region_model"] is not None:
+        from ..geo.regions import RegionModel
+
+        kwargs["region_model"] = RegionModel(**raw["region_model"])
+    return PosteriorModel(**kwargs)
+
+
+def _validate_geography(bundle: dict) -> bool:
+    if "ancient_coordinates" in bundle:
+        return False
+    context = bundle["context"]
+    ids = {a["id"] for a in context["attestations"]}
+    if len(ids) != len(context["attestations"]):
+        return False
+    for attestation in context["attestations"]:
+        source = attestation["source_ref"]
+        if not source or attestation.get("location_kind") in {"modern-reference", "illustrative-spread"}:
+            return False
+        if source.startswith("synthetic:") and not bundle["is_synthetic"]:
+            return False
+        if not bundle["is_synthetic"] and attestation.get("latitude") is not None:
+            if attestation.get("location_kind") not in {"reported_origin", "reported_findspot"}:
+                return False
+    return True
+
+
+def _calibrations_match(bundle: dict) -> bool:
+    raw = bundle["context"]["model"]
+    attestations = bundle["context"]["attestations"]
+    for att in attestations:
+        lo, hi = att["age_low"], att["age_high"]
+        if not (math.isfinite(lo) and math.isfinite(hi) and 0 <= lo <= hi):
+            return False
+    derived = [
+        cal for cal in raw["calibrations"] if cal["source_ref"] == "aggregate of dated attestations"
+    ]
+    if not derived:
+        return True
+    known = set(bundle["tip_labels"])
+    candidates = [
+        att["age_high"] for att in attestations if att["language_id"] in known
+        and att["language_assignment_confidence"] is not None
+        and att["language_assignment_confidence"] >= 0.5
+    ]
+    if not candidates or len(derived) != 1:
+        return False
+    oldest = max(candidates)
+    cal = derived[0]
+    return (
+        cal["age_low"] == oldest and cal["age_high"] == oldest * 1.8 + 500.0
+        and cal["clade_taxa"] == list(range(len(known))) and cal["kind"] == "uniform"
+    )
+
+
+def _draws_well_formed(bundle: dict) -> bool:
+    chains = bundle["chains"]
+    tips = bundle["tip_labels"]
+    if not tips or len(set(tips)) != len(tips) or not chains or len(chains) != bundle["n_chains"]:
+        return False
+    if bundle["draws_per_chain"] < 1:
+        return False
     for chain in chains:
-        for d in chain:
-            h.update(
-                f"{d['iteration']}|{d['log_posterior']:.9g}|{d['root_age']:.9g}|"
-                f"{d['gain']:.9g}|{d['loss']:.9g}|{d['clock_rate']:.9g}|{d['newick']}".encode()
+        if len(chain) != bundle["draws_per_chain"]:
+            return False
+        last = -1
+        for draw in chain:
+            fields = ("root_age", "log_posterior", "gain", "loss", "clock_rate", "geo_sigma2")
+            if any(not math.isfinite(draw[name]) for name in fields):
+                return False
+            if draw["iteration"] <= last or draw["root_age"] < 0:
+                return False
+            last = draw["iteration"]
+    return True
+
+
+def _replay(bundle: dict, probe_draws: int) -> tuple[bool, int]:
+    model = _model(bundle["context"]["model"])
+    labels = dict(enumerate(bundle["tip_labels"]))
+    probes_per_chain = max(1, probe_draws // len(bundle["chains"]))
+    count = 0
+    for chain in bundle["chains"]:
+        stride = max(1, len(chain) // probes_per_chain)
+        for draw in chain[::stride][:probes_per_chain]:
+            count += 1
+            tree = PhyloTree(draw["parent"], draw["heights"], draw["taxon"], labels)
+            if tree.root_age() != draw["root_age"] or tree.newick() != draw["newick"]:
+                return False, count
+            score = model.log_posterior(
+                tree, draw["gain"], draw["loss"], draw["clock_rate"],
+                draw["geo_sigma2"], draw["borrow_rates"],
             )
-    return h.hexdigest()
+            if not math.isfinite(score) or abs(score - draw["log_posterior"]) > 1e-9:
+                return False, count
+    return count > 0, count
 
 
-def _parse_newick(newick: str, tip_labels: list[str]):
-    """Minimal independent Newick parser returning core arrays for replay.
+def verify_evidence(evidence_dir: str, expected_commit: str | None = None, probe_draws: int = 16) -> dict:
+    root = Path(evidence_dir)
+    checks = []
 
-    Written here rather than imported from the ppc parser so the verifier does
-    not share code with the result producer on this decisive path.
-    """
-    import re
+    def record(name: str, passed: bool, detail=None) -> None:
+        checks.append({"check": name, "ok": bool(passed), "detail": detail})
 
-    label_to_taxon = {lab: i for i, lab in enumerate(tip_labels)}
-    parent: list[int] = []
-    taxon: list[int] = []
-    branch: list[float] = []
-    pos = 0
-
-    def add(tx, bl):
-        parent.append(-1)
-        taxon.append(tx)
-        branch.append(bl)
-        return len(parent) - 1
-
-    def read_len():
-        nonlocal pos
-        if pos < len(newick) and newick[pos] == ":":
-            m = re.match(r":[-0-9.eE+]+", newick[pos:])
-            pos += len(m.group(0))
-            return float(m.group(0)[1:])
-        return 0.0
-
-    def parse():
-        nonlocal pos
-        if newick[pos] == "(":
-            pos += 1
-            kids = []
-            while True:
-                kids.append(parse())
-                if newick[pos] == ",":
-                    pos += 1
-                    continue
-                if newick[pos] == ")":
-                    pos += 1
-                    break
-            bl = read_len()
-            node = add(-1, bl)
-            for k in kids:
-                parent[k] = node
-            return node
-        m = re.match(r"[^():,;]+", newick[pos:])
-        tok = m.group(0)
-        pos += len(tok)
-        lab = tok.split(":")[0]
-        bl = float(tok.split(":")[1]) if ":" in tok else read_len()
-        return add(label_to_taxon.get(lab, -1), bl)
-
-    root = parse()
-    n = len(parent)
-    children = {i: [] for i in range(n)}
-    for i, p in enumerate(parent):
-        if p >= 0:
-            children[p].append(i)
-    heights = [0.0] * n
-    order, stack = [], [(root, False)]
-    while stack:
-        node, done = stack.pop()
-        if done:
-            order.append(node)
-        else:
-            stack.append((node, True))
-            for c in children[node]:
-                stack.append((c, False))
-    for node in order:
-        if children[node]:
-            heights[node] = max(heights[c] + branch[c] for c in children[node])
-    return parent, branch, heights, taxon, root
-
-
-def _split_rhat(samples: np.ndarray) -> float:
-    """Independently implemented split-Rhat for the diagnostic recheck."""
-    arr = np.atleast_2d(samples).astype(float)
-    m, n = arr.shape
-    half = n // 2
-    if half < 2:
-        return float("nan")
-    split = np.concatenate([arr[:, :half], arr[:, half:2 * half]], axis=0)
-    mm, nn = split.shape
-    means = split.mean(axis=1)
-    vars = split.var(axis=1, ddof=1)
-    between = nn * means.var(ddof=1)
-    within = vars.mean()
-    if within == 0:
-        return 1.0
-    var_hat = (nn - 1) / nn * within + between / nn
-    return float(np.sqrt(var_hat / within))
-
-
-def verify_evidence(evidence_dir: str, probe_draws: int = 12,
-                    expected_commit: str | None = None) -> dict:
-    checks: list[dict] = []
-
-    def record(name, ok, detail):
-        checks.append({"check": name, "ok": bool(ok), "detail": detail})
-
-    if not os.path.isdir(evidence_dir):
-        return {"ok": False, "reason": "evidence directory missing", "checks": []}
-
-    # Find bundle directories (each has a bundle.json).
-    bundle_dirs = []
-    for root, _dirs, files in os.walk(evidence_dir):
-        if "bundle.json" in files:
-            bundle_dirs.append(root)
+    if probe_draws < 1:
+        return {"ok": False, "reason": "probe budget must be positive", "checks": []}
+    bundle_dirs = sorted(path.parent for path in root.rglob("bundle.json"))
     if not bundle_dirs:
-        return {"ok": False, "reason": "no posterior bundles found", "checks": []}
+        return {"ok": False, "reason": "no saved posterior bundles found", "checks": []}
 
-    for bdir in bundle_dirs:
-        with open(os.path.join(bdir, "bundle.json"), encoding="utf-8") as f:
-            bundle = json.load(f)
-        manifest_path = os.path.join(bdir, "MANIFEST.json")
-        with open(manifest_path, encoding="utf-8") as f:
-            manifest = json.load(f)
-
-        # 1. Draw digest.
-        recomputed = _recompute_draw_digest(bundle["chains"])
-        record(
-            f"{os.path.basename(bdir)}:draw_digest",
-            recomputed == manifest.get("draw_digest"),
-            {"recomputed": recomputed[:12], "manifest": str(manifest.get("draw_digest"))[:12]},
-        )
-
-        # 2. Likelihood replay on probe draws: the stored log_posterior must be at
-        # least the character log-likelihood (posterior = likelihood + log-priors,
-        # and priors here are bounded), and recomputing the character likelihood
-        # from the raw tree must be finite and reproducible.
-        all_draws = [d for ch in bundle["chains"] for d in ch]
-        tip_labels = bundle["tip_labels"]
-        step = max(1, len(all_draws) // probe_draws)
-        replay_ok = True
-        replay_detail = []
-        for d in all_draws[::step][:probe_draws]:
-            parent, bl, h, tax, root = _parse_newick(d["newick"], tip_labels)
-            z = d["gain"] + d["loss"]
-            if z <= 0:
-                replay_ok = False
-                break
-            prior = [d["loss"] / z, d["gain"] / z]
-            # A single all-present column: must yield a finite, reproducible value.
-            n_tips = sum(1 for t in tax if t >= 0)
-            col = [1] * n_tips
-            ll = _core.char_log_likelihood(
-                parent, bl, h, tax, root, "binary", [d["gain"], d["loss"]], col, prior
+    for directory in bundle_dirs:
+        name = str(directory.relative_to(root)) if directory != root else directory.name
+        try:
+            bundle = json.loads((directory / "bundle.json").read_text(encoding="utf-8"))
+            manifest = json.loads((directory / "MANIFEST.json").read_text(encoding="utf-8"))
+            context = bundle.get("context", {})
+            if context.get("schema_version") != 2:
+                record(f"{name}:schema", False, "exact model inputs and draw state required")
+                continue
+            record(f"{name}:draw_digest", _sha256(bundle["chains"]) == manifest["draw_digest"])
+            record(f"{name}:context_digest", _sha256(context) == manifest["context_sha256"])
+            bound_source = bundle["source_commit"]
+            record(
+                f"{name}:source_commit",
+                bound_source == manifest["source_commit"]
+                and (expected_commit is None or bound_source == expected_commit),
+                {"stored": bound_source, "expected": expected_commit},
             )
-            if not np.isfinite(ll):
-                replay_ok = False
-                replay_detail.append({"iteration": d["iteration"], "ll": ll})
-                break
-        record(f"{os.path.basename(bdir)}:likelihood_replay", replay_ok,
-               {"probes": min(probe_draws, len(all_draws))})
+            well_formed = _draws_well_formed(bundle)
+            record(f"{name}:draw_structure", well_formed)
+            record(f"{name}:attestation_intervals", _calibrations_match(bundle))
+            record(f"{name}:geographic_honesty", _validate_geography(bundle))
+            if well_formed:
+                replay, count = _replay(bundle, probe_draws)
+                record(f"{name}:posterior_replay", replay, {"probes": count})
+        except (OSError, KeyError, IndexError, TypeError, ValueError, RecursionError) as exc:
+            record(f"{name}:artifact_error", False, str(exc))
 
-        # 3. Diagnostic recomputation vs any stored acceptance claim.
-        root_chains = np.array([[dd["root_age"] for dd in ch] for ch in bundle["chains"]])
-        if root_chains.size and root_chains.shape[1] >= 4:
-            rhat = _split_rhat(root_chains)
-            record(f"{os.path.basename(bdir)}:rhat_finite", np.isfinite(rhat),
-                   {"split_rhat": round(float(rhat), 4)})
-
-        # 3b. Physical plausibility of recorded quantities. Node ages are years
-        # before present and must be nonnegative; a log posterior of a product of
-        # probabilities and bounded log-priors cannot be a large positive number.
-        ages_ok = all(d["root_age"] >= 0 for ch in bundle["chains"] for d in ch)
-        record(f"{os.path.basename(bdir)}:ages_nonnegative", ages_ok,
-               {"min_age": min((d["root_age"] for ch in bundle["chains"] for d in ch),
-                               default=0.0)})
-        lp_ok = all(d["log_posterior"] <= 1.0 for ch in bundle["chains"] for d in ch)
-        record(f"{os.path.basename(bdir)}:log_posterior_plausible", lp_ok,
-               {"max_log_post": max((d["log_posterior"]
-                                     for ch in bundle["chains"] for d in ch), default=0.0)})
-
-        # 4. Geographic honesty: synthetic bundles must be flagged synthetic and
-        # must not carry ancient coordinates lifted from modern points.
-        synthetic_ok = True
-        if bundle.get("is_synthetic") is False and "diachron_primary" in bundle.get("dataset_name", ""):
-            # The primary corpus is synthetic; a bundle claiming otherwise is wrong.
-            synthetic_ok = False
-        has_fake_ancient = "ancient_coordinates" in bundle
-        record(f"{os.path.basename(bdir)}:geographic_honesty",
-               synthetic_ok and not has_fake_ancient,
-               {"is_synthetic": bundle.get("is_synthetic"),
-                "has_ancient_coords_field": has_fake_ancient})
-
-    # 5. Source commit, if an expected commit was supplied by the trusted caller.
-    if expected_commit is not None:
-        acc_path = os.path.join(evidence_dir, "ACCEPTANCE.json")
-        claimed = None
-        if os.path.exists(acc_path):
-            with open(acc_path, encoding="utf-8") as f:
-                claimed = json.load(f).get("source_commit")
-        record("source_commit", claimed == expected_commit,
-               {"claimed": claimed, "expected": expected_commit})
-
-    ok = all(c["ok"] for c in checks)
-    return {"ok": ok, "n_bundles": len(bundle_dirs), "checks": checks}
+    acceptance_path = root / "ACCEPTANCE.json"
+    if acceptance_path.is_file():
+        try:
+            acceptance = json.loads(acceptance_path.read_text(encoding="utf-8"))
+            if acceptance["profile"] == "full":
+                record("full_acceptance", False, "the complete campaign verifier is unavailable")
+        except (OSError, KeyError, TypeError, ValueError) as exc:
+            record("acceptance_manifest", False, str(exc))
+    return {"ok": all(check["ok"] for check in checks), "n_bundles": len(bundle_dirs), "checks": checks}
