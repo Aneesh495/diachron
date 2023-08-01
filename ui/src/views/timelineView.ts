@@ -33,6 +33,7 @@ export class TimelineView {
 
     const slider = document.createElement("input");
     slider.type = "range";
+    slider.setAttribute("aria-label", "Years before present");
     slider.min = "0";
     slider.max = String(maxAge);
     slider.step = "50";
@@ -53,6 +54,8 @@ export class TimelineView {
   private renderReadout(): void {
     const readout = this.el.querySelector(".timeline-readout");
     if (!readout) return;
+    const slider = this.el.querySelector<HTMLInputElement>("input");
+    if (slider) slider.value = String(Math.round(this.store.selection.timeYbp));
     const root = this.store.summary.scalarSummary("root_age");
     readout.textContent =
       `time: ${Math.round(this.store.selection.timeYbp)} years before present  |  ` +

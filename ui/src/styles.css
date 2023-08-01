@@ -86,3 +86,15 @@ body {
     grid-template-areas: "tree" "map" "timeline" "matrix";
   }
 }
+
+.attestation-inspector { padding: 0 16px 10px; font-size: 13px; }
+.attestation-inspector select { max-width: 100%; }
+.attestation-inspector p { margin: 6px 0; overflow-wrap: anywhere; }
+.attestation-inspector a { overflow-wrap: anywhere; }
+.attestation-inspector button { display: block; margin-top: 6px; }
+
+@media (max-width: 820px) {
+  .workbench { height: auto; min-height: 100vh; }
+  .wb-header { flex-wrap: wrap; }
+  .wb-grid { grid-template-rows: 300px 300px auto minmax(280px, 1fr); }
+}

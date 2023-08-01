@@ -1,99 +1,120 @@
-"""Export a workbench.json the TypeScript UI can load (bounded serving, D35).
-
-This reads already-saved posterior bundles and the dataset context and writes a
-single JSON file with everything the four linked views need: the bundles (one per
-model), the modern reference coordinates, the dated attestations, and the
-character matrix. It performs no inference; moving the timeline or switching
-models in the UI only reads this file, so a user interaction can never trigger an
-uncontrolled chain.
-
-Geographic honesty is enforced at the boundary: modern coordinates are tagged
-`modern-reference`, attestations `attestation`, and the UI renders inferred
-latent locations as clouds from the posterior draws. The exporter never writes a
-single crisp homeland coordinate.
-"""
+"""Export a bounded workbench snapshot from exact saved posterior context."""
 
 from __future__ import annotations
 
 import json
-import os
+from pathlib import Path
 
-from ..io.corpus import build_primary_corpus
-from ..infer.campaign import prepare_study
+import numpy as np
+
 from ..infer.artifacts import PosteriorBundle
+from ..models.posterior import planar_geography
+from ..models.tree import PhyloTree
+
+_MAX_DRAWS = 120
+_MAX_MODELS = 8
+
+
+def _retained_subset(bundle: PosteriorBundle) -> list[list[dict]]:
+    if not bundle.chains or len(bundle.chains) > _MAX_DRAWS or any(not c for c in bundle.chains):
+        raise ValueError("workbench requires nonempty, bounded posterior chains")
+    per_chain = _MAX_DRAWS // len(bundle.chains)
+    return [
+        [chain[i] for i in np.linspace(0, len(chain) - 1, min(per_chain, len(chain)), dtype=int)]
+        for chain in bundle.chains
+    ]
+
+
+def _root_locations(bundle: PosteriorBundle, chains: list[list[dict]]) -> list[dict]:
+    model = bundle.context["model"]
+    if not model["config"]["use_geography"] or model["region_model"] is not None:
+        return []
+    coords = {int(taxon): tuple(point) for taxon, point in model["tip_coords"].items()}
+    if len(coords) < 2:
+        return []
+    rng = np.random.default_rng(20261104)
+    cloud = []
+    for chain in chains:
+        for draw in chain:
+            tree = PhyloTree(draw["parent"], draw["heights"], draw["taxon"])
+            _, root = planar_geography(tree, coords, draw["geo_sigma2"])
+            if root is None:
+                continue
+            lat, lon, variance = root
+            sample = rng.normal((lat, lon), np.sqrt(variance))
+            cloud.append({"lat": float(sample[0]), "lon": float(sample[1]), "age": draw["root_age"]})
+    return cloud
 
 
 def export_workbench(bundle_dirs: dict[str, str], out_path: str) -> dict:
-    """Write workbench.json from a mapping of model name -> bundle directory."""
-    corpus = build_primary_corpus()
-    study = prepare_study(corpus.dataset, corpus.attestations)
-
+    """Export saved draws and linked data without initiating an inference chain."""
+    if not 1 <= len(bundle_dirs) <= _MAX_MODELS:
+        raise ValueError("workbench requires one to eight saved bundles")
     bundles = {}
-    for name, d in bundle_dirs.items():
-        if not os.path.isdir(d):
-            continue
-        b = PosteriorBundle.load(d)
+    first = None
+    for name, directory in bundle_dirs.items():
+        bundle = PosteriorBundle.load(directory)
+        if bundle.context.get("schema_version") != 2:
+            raise ValueError("bundle requires replayable model and evidence context")
+        if first is None:
+            first = bundle
+        if (
+            bundle.tip_labels != first.tip_labels or bundle.dataset_name != first.dataset_name
+            or bundle.dataset_version != first.dataset_version
+            or bundle.is_synthetic != first.is_synthetic
+            or bundle.context["attestations"] != first.context["attestations"]
+            or bundle.context["model"]["tip_coords"] != first.context["model"]["tip_coords"]
+            or bundle.context["model"]["columns"] != first.context["model"]["columns"]
+        ):
+            raise ValueError("workbench model bundles must share the same study observations")
+
+        retained = _retained_subset(bundle)
         bundles[name] = {
-            "model_name": b.model_name,
-            "dataset_name": b.dataset_name,
-            "dataset_version": b.dataset_version,
-            "is_synthetic": b.is_synthetic,
-            "n_chains": b.n_chains,
-            "draws_per_chain": b.draws_per_chain,
-            "tip_labels": b.tip_labels,
-            "chains": b.chains,
-            "source_commit": b.source_commit,
-            "notes": b.notes,
+            "model_name": bundle.model_name,
+            "dataset_name": bundle.dataset_name,
+            "dataset_version": bundle.dataset_version,
+            "is_synthetic": bundle.is_synthetic,
+            "n_chains": bundle.n_chains,
+            "draws_per_chain": bundle.draws_per_chain,
+            "tip_labels": bundle.tip_labels,
+            "source_commit": bundle.source_commit,
+            "notes": bundle.notes,
+            "chains": [
+                [{k: d[k] for k in ("iteration", "root_age", "gain", "loss", "clock_rate",
+                                     "log_posterior", "newick")} for d in chain]
+                for chain in retained
+            ],
+            "rootLocations": _root_locations(bundle, retained),
         }
 
-    # Modern reference coordinates in the tip-label order the bundle uses.
-    coord_by_lang = {
-        lang.id: (lang.latitude, lang.longitude) for lang in corpus.dataset.languages
-    }
-    modern_points = []
-    for lid in study.tip_labels:
-        lat, lon = coord_by_lang.get(lid, (None, None))
-        modern_points.append(
-            {
-                "lat": lat if lat is not None else 0.0,
-                "lon": lon if lon is not None else 0.0,
-                "kind": "modern-reference",
-                "label": lid,
-            }
-        )
-
+    coordinates = first.context["model"]["tip_coords"]
+    modern_points = [
+        {"lat": lat, "lon": lon, "kind": "modern-reference", "label": first.tip_labels[int(t)]}
+        for t, (lat, lon) in coordinates.items()
+    ]
     attestations = [
         {
-            "lat": a.latitude if a.latitude is not None else 0.0,
-            "lon": a.longitude if a.longitude is not None else 0.0,
-            "kind": "attestation",
-            "label": a.language_id,
-            "uncertaintyKm": a.location_uncertainty_km,
-            "ageLow": a.age_low,
-            "ageHigh": a.age_high,
+            "id": a["id"], "lat": a["latitude"], "lon": a["longitude"], "kind": "attestation",
+            "label": a["language_id"], "ageLow": a["age_low"], "ageHigh": a["age_high"],
+            "uncertaintyKm": a["location_uncertainty_km"], "region": a["region"],
+            "sourceRef": a["source_ref"], "page": a["page"], "bibliography": a["bibliography"],
+            "locationKind": a["location_kind"], "locationNote": a["location_uncertainty_note"],
+            "languageNote": a["language_assignment_note"], "conflicts": a["conflicting_with"],
         }
-        for a in corpus.attestations
-        if a.language_id in study.tip_labels
+        for a in first.context["attestations"] if a["language_id"] in first.tip_labels
     ]
-
     matrix = {
-        "languageLabels": study.tip_labels,
-        "columns": study.columns[:400],  # cap columns for responsive rendering
+        "languageLabels": first.tip_labels,
+        "columns": first.context["model"]["columns"][:400],
     }
-
     payload = {
-        "bundles": bundles,
-        "modernPoints": modern_points,
-        "attestations": attestations,
-        "matrix": matrix,
+        "bundles": bundles, "modernPoints": modern_points,
+        "attestations": attestations, "matrix": matrix,
     }
-    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f)
+    out = Path(out_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, allow_nan=False), encoding="utf-8")
     return {
-        "out": out_path,
-        "models": list(bundles),
-        "modern_points": len(modern_points),
-        "attestations": len(attestations),
-        "matrix_columns": len(matrix["columns"]),
+        "out": str(out), "models": list(bundles), "modern_points": len(modern_points),
+        "attestations": len(attestations), "matrix_columns": len(matrix["columns"]),
     }

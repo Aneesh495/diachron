@@ -316,6 +316,12 @@ def _mrca(tree, taxa: tuple[int, ...], taxon_to_node: dict[int, int]) -> int | N
 
 
 def _brownian_tree_loglik(tree, tip_coords: dict[int, tuple[float, float]], sigma2: float) -> float:
+    return planar_geography(tree, tip_coords, sigma2)[0]
+
+
+def planar_geography(
+    tree, tip_coords: dict[int, tuple[float, float]], sigma2: float,
+) -> tuple[float, tuple[float, float, float] | None]:
     """Planar Gaussian contrasts over observed latitude and longitude pairs.
 
     A message is a conditional mean and its variance. Missing subtrees
@@ -347,7 +353,7 @@ def _brownian_tree_loglik(tree, tip_coords: dict[int, tuple[float, float]], sigm
             prev_lat, prev_lon, prev_var = combined
             contrast_var = prev_var + variance
             if contrast_var <= 0.0:
-                return float("-inf")
+                return float("-inf"), None
             distance2 = (lat - prev_lat) ** 2 + (lon - prev_lon) ** 2
             loglik -= 0.5 * distance2 / contrast_var + math.log(2 * math.pi * contrast_var)
             weight = prev_var / contrast_var
@@ -359,7 +365,7 @@ def _brownian_tree_loglik(tree, tip_coords: dict[int, tuple[float, float]], sigm
         if combined is not None:
             messages[node] = combined
 
-    return loglik
+    return loglik, messages.get(tree.root)
 
 
 def _postorder(tree) -> list[int]:
