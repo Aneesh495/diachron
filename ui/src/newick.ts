@@ -1,13 +1,12 @@
 // Newick parser for the workbench.
 //
 // The bundle stores each sampled tree as a Newick string with branch lengths in
-// years. This parser rebuilds the node structure and derives node heights (ages)
-// from branch lengths by accumulating from the tips upward, which matches the
-// convention the Python side uses when it serializes.
+// years. Derive ages from the recorded root so historical terminal nodes
+// retain their sampled ages.
 
 import type { ParsedTree, TreeNode } from "./types";
 
-export function parseNewick(newick: string, tipLabels: string[]): ParsedTree {
+export function parseNewick(newick: string, tipLabels: string[], rootAge: number): ParsedTree {
   const labelToTaxon = new Map<string, number>();
   tipLabels.forEach((lab, i) => labelToTaxon.set(lab, i));
 
@@ -78,24 +77,13 @@ export function parseNewick(newick: string, tipLabels: string[]): ParsedTree {
 
   const root = parse();
 
-  // Derive heights by post-order accumulation.
-  const order: number[] = [];
-  const stack: Array<[number, boolean]> = [[root, false]];
+  nodes[root].height = rootAge;
+  const stack = [root];
   while (stack.length) {
-    const [node, done] = stack.pop()!;
-    if (done) {
-      order.push(node);
-    } else {
-      stack.push([node, true]);
-      for (const c of nodes[node].children) stack.push([c, false]);
-    }
-  }
-  for (const node of order) {
-    const kids = nodes[node].children;
-    if (kids.length) {
-      nodes[node].height = Math.max(
-        ...kids.map((c) => nodes[c].height + nodes[c].branchLength)
-      );
+    const parent = stack.pop()!;
+    for (const child of nodes[parent].children) {
+      nodes[child].height = Math.max(0, nodes[parent].height - nodes[child].branchLength);
+      stack.push(child);
     }
   }
 

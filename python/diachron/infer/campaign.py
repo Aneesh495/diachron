@@ -22,6 +22,7 @@ import numpy as np
 from ..io.types import Dataset, Attestation
 from ..io.characters import build_character_matrix
 from ..models.tree import random_starting_tree
+from ..models.tip_dates import TipDate
 from ..models.posterior import PosteriorModel, ModelConfig, Calibration
 from .chain import Chain, ChainConfig, ChainState
 from .artifacts import bundle_from_chains, PosteriorBundle
@@ -39,6 +40,7 @@ class StudyData:
     borrow_candidates: list[tuple[int, int]] = None  # type: ignore[assignment]
     minimum_present: int = 1
     attestations: list[Attestation] = field(default_factory=list)
+    tip_dates: dict[int, TipDate] = field(default_factory=dict)
 
 
 def prepare_study(
@@ -89,7 +91,7 @@ def prepare_study(
         and a.language_assignment_confidence is not None
         and a.language_assignment_confidence >= 0.5
     ]
-    if usable:
+    if usable and dataset.is_synthetic:
         all_taxa = tuple(range(len(tip_labels)))
         oldest = max(a.age_high for a in usable)
         # Lower bound: the oldest attested age. Upper bound: a margin above it,
@@ -112,6 +114,10 @@ def prepare_study(
     # explicitly a candidate set, not a claim of historical contact.
     borrow_candidates = _nearest_neighbor_candidates(tip_coords, max_edges=20)
 
+    tip_dates = {
+        lang_to_idx[l.id]: TipDate(l.date_distribution, l.date_mean, l.date_sd, l.date_offset)
+        for l in dataset.languages if l.id in lang_to_idx and l.date_distribution is not None
+    }
     return StudyData(
         tip_labels=tip_labels,
         columns=columns,
@@ -121,6 +127,7 @@ def prepare_study(
         borrow_candidates=borrow_candidates,
         minimum_present=2 if drop_singletons else 1,
         attestations=list(attestations or ()),
+        tip_dates=tip_dates,
     )
 
 
@@ -166,6 +173,7 @@ def build_model(study: StudyData, config: ModelConfig) -> PosteriorModel:
         columns=study.columns,
         n_states=2,
         minimum_present=study.minimum_present,
+        tip_dates=study.tip_dates if config.use_calibration else {},
         calibrations=study.calibrations,
         tip_coords=study.tip_coords,
         borrow_candidates=candidates if config.use_borrowing else [],
@@ -191,7 +199,8 @@ def run_campaign(
     chains: list[Chain] = []
     for c in range(n_chains):
         rng = np.random.default_rng(base_seed + c)
-        start = random_starting_tree(study.tip_labels, root_age_init, rng)
+        dates = {taxon: date.center() for taxon, date in model.tip_dates.items()}
+        start = random_starting_tree(study.tip_labels, root_age_init, rng, dates)
         cfg = ChainConfig(
             seed=base_seed + 7919 * (c + 1),
             warmup=warmup,

@@ -15,7 +15,7 @@ from pathlib import Path
 from .cldf import load_cldf_wordlist
 from .types import DataError, Dataset
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def verify_inputs(root: Path, files: dict) -> None:
@@ -178,7 +178,8 @@ def write_study(out: Path, dataset: Dataset, crosswalk: list[dict], report: dict
         "languages": (dataset.languages, {
             "id": "s", "name": "s", "glottocode": "s", "family": "s", "latitude": "f",
             "longitude": "f", "is_extinct": "b", "tip_age": "f", "is_historical": "b",
-            "source_classification": "s",
+            "source_classification": "s", "date_distribution": "s", "date_mean": "f",
+            "date_sd": "f", "date_offset": "f",
         }),
         "concepts": (dataset.concepts, {
             "id": "s", "gloss": "s", "concepticon_id": "s", "semantic_field": "s",

@@ -5,10 +5,10 @@ enumerate its observed cognate classes; each class becomes one binary character
 whose state for a language is:
 
 * present (1): the language has a lexeme judged to belong to this class;
-* absent (0): the language has lexical data for this concept but no form in this
-  class;
-* missing (-1): the language has no lexical data for this concept at all, so we
-  cannot say whether the class is present or absent.
+* absent (0): every recorded form in the lexical cell has a full classification,
+  but none belongs to this class;
+* missing (-1): a lexical cell is unobserved or has insufficient classification
+  coverage to support an absence.
 
 The present/absent/missing distinction is the crux of gate G04: a language with
 data for a concept but not in this class contributes an informative 0, while a
@@ -132,11 +132,12 @@ def build_character_matrix(
     lang_index = {lid: i for i, lid in enumerate(languages)}
     n_lang = len(languages)
 
-    # Which (language, concept) cells have any lexical data? A language with no
-    # lexeme for a concept is missing for every class of that concept.
-    concept_langs: dict[str, set[str]] = {}
+    # Absence requires classification coverage for all recorded forms. Uncoded
+    # or deliberately removed forms can hide an unobserved presence.
+    cell_forms: dict[tuple[str, str], set[str]] = {}
     for lx in dataset.lexemes:
-        concept_langs.setdefault(lx.concept_id, set()).add(lx.language_id)
+        cell_forms.setdefault((lx.concept_id, lx.language_id), set()).add(lx.id)
+    scored_forms: set[str] = set()
 
     # Index judgments by (concept, cognate_class) -> {language -> [lexeme ids]}.
     # Only judgments whose lexeme and concept agree are used.
@@ -151,9 +152,10 @@ def build_character_matrix(
         if lx is None or lx.concept_id != j.concept_id:
             raise DataError(f"judgment {j.lexeme_id} inconsistent with its lexeme")
         if j.is_loan and not include_loans_as_present:
-            # Loan removal mode: the form does not count toward the inherited
-            # class, but the cell is still observed (the language has data).
+            # Loan removal also removes this source of negative evidence.
             continue
+        if not j.is_partial:
+            scored_forms.add(lx.id)
         key = (j.concept_id, j.cognate_class)
         members = class_members.setdefault(key, {})
         members.setdefault(lx.language_id, []).append(lx.id)
@@ -164,6 +166,9 @@ def build_character_matrix(
         if j.source_ref:
             judgment_src.setdefault(src_key, []).append(j.source_ref)
 
+    complete_cells = {
+        key for key, forms in cell_forms.items() if forms <= scored_forms
+    }
     characters: list[Character] = []
     evidence: list[EvidenceLink] = []
     excluded_singletons = 0
@@ -175,12 +180,11 @@ def build_character_matrix(
             continue
 
         states = [MISSING] * n_lang
-        langs_with_concept = concept_langs.get(concept_id, set())
         for lid in languages:
             idx = lang_index[lid]
             if lid in present_langs:
                 states[idx] = PRESENT
-            elif lid in langs_with_concept:
+            elif (concept_id, lid) in complete_cells:
                 states[idx] = ABSENT
             else:
                 states[idx] = MISSING
@@ -202,7 +206,10 @@ def build_character_matrix(
             st = states[idx]
             if st == MISSING:
                 continue
-            lex_ids = tuple(members.get(lid, []))
+            lex_ids = (
+                tuple(members[lid]) if st == PRESENT
+                else tuple(sorted(cell_forms[(concept_id, lid)]))
+            )
             srcs = tuple(judgment_src.get((concept_id, cognate_class, lid), []))
             evidence.append(
                 EvidenceLink(

@@ -58,6 +58,10 @@ class Language:
     tip_age: Optional[float] = None
     is_historical: bool = False
     source_classification: Optional[str] = None
+    date_distribution: Optional[str] = None
+    date_mean: Optional[float] = None
+    date_sd: Optional[float] = None
+    date_offset: Optional[float] = None
 
 
 @dataclass(frozen=True)

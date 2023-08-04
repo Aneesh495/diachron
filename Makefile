@@ -74,7 +74,7 @@ likelihood-check:
 
 .PHONY: sample
 sample:
-	$(PY) -m diachron.cli.main sample --profile cpu
+	$(PY) -m diachron.cli.main sample --profile cpu $(SAMPLE_ARGS)
 
 .PHONY: diagnose
 diagnose:
