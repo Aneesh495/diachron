@@ -28,7 +28,7 @@ jobs:
           python-version: "3.12"
 
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.88.0
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -43,14 +43,13 @@ jobs:
         run: |
           python -m venv .venv
           . .venv/bin/activate
-          pip install --upgrade pip
-          pip install maturin pytest hypothesis pyarrow matplotlib scipy pandas numpy
+          pip install -r requirements-dev.txt
 
       - name: Rust unit tests
-        run: cd rust/diachron-core && cargo test --lib
+        run: cd rust/diachron-core && cargo test --locked --lib
 
       - name: Build extension
-        run: . .venv/bin/activate && maturin develop --release
+        run: . .venv/bin/activate && maturin develop --locked --release
 
       - name: Python correctness suite
         run: . .venv/bin/activate && python -m pytest tests -q
@@ -67,10 +66,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: ui/.nvmrc
       - name: Install and typecheck workbench
         run: |
           cd ui
-          npm install
+          npm ci --ignore-scripts
           npm run typecheck
           npm run build

@@ -21,7 +21,6 @@ ui/node_modules/
 ui/dist/
 ui/public/workbench.json
 node_modules/
-package-lock.json
 
 # Evidence bundles and large artifacts
 evidence/
@@ -30,6 +29,7 @@ runs/
 *.npz
 *.ckpt
 data/cache/
+*.arrow
 data/raw/*.zip
 
 # OS / editor
