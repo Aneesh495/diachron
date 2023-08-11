@@ -388,7 +388,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     acp = sub.add_parser("acceptance")
     acp.add_argument("--run-id", dest="run_id", required=True)
-    acp.add_argument("--profile", default="full")
+    acp.add_argument("--profile", choices=("cpu", "full"), default="full")
     acp.set_defaults(func=cmd_acceptance)
 
     vp = sub.add_parser("verify")

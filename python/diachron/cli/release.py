@@ -28,16 +28,19 @@ def run_release() -> dict:
     )
     # The public release ships only synthetic/derived data and acquisition
     # recipes; confirm no restricted raw lexical dumps are tracked.
-    restricted = []
-    for root, _dirs, files in os.walk("data"):
-        for f in files:
-            if f.endswith(".zip") or "raw" in root.split(os.sep):
-                restricted.append(os.path.join(root, f))
-    checks["no_restricted_raw_tracked"] = len(restricted) == 0
+    import subprocess
+
+    tracked = subprocess.check_output(["git", "ls-files", "-z"]).decode().split("\0")
+    checks["no_restricted_raw_tracked"] = not any(
+        name.startswith(("data/raw/", "data/cache/")) or name.endswith((".parquet", ".arrow"))
+        for name in tracked
+    )
     checks["working_tree_clean"] = working_tree_clean()
     checks["source_commit"] = source_commit()
 
-    checks["ready"] = all(
-        v is True for k, v in checks.items() if isinstance(v, bool)
+    checks["source_package_checks_passed"] = all(
+        value for value in checks.values() if isinstance(value, bool)
     )
+    checks["ready"] = False
+    checks["release_blocker"] = "No independently verified full acceptance bundle."
     return checks
