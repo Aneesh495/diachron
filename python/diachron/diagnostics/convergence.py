@@ -37,21 +37,21 @@ def split_chains(samples: np.ndarray) -> np.ndarray:
     if half == 0:
         return arr
     first = arr[:, :half]
-    second = arr[:, half : 2 * half]
+    second = arr[:, -half:]
     return np.concatenate([first, second], axis=0)
 
 
 def _rhat_core(arr: np.ndarray) -> float:
     """Potential scale reduction factor on an (n_chains, n_draws) array."""
     m, n = arr.shape
-    if n < 2 or m < 2:
+    if n < 2 or m < 2 or not np.isfinite(arr).all():
         return float("nan")
     chain_means = arr.mean(axis=1)
     chain_vars = arr.var(axis=1, ddof=1)
     between = n * chain_means.var(ddof=1)
     within = chain_vars.mean()
     if within == 0:
-        return 1.0
+        return float("inf") if between > 0 else float("nan")
     var_hat = (n - 1) / n * within + between / n
     return float(np.sqrt(var_hat / within))
 
@@ -73,9 +73,12 @@ def _rank_normalize(arr: np.ndarray) -> np.ndarray:
 
 def rank_normalized_rhat(samples: np.ndarray) -> float:
     """Rank-normalized split-Rhat, robust to heavy tails and non-normality."""
-    arr = _as_2d(samples)
-    z = _rank_normalize(arr)
-    return _rhat_core(split_chains(z))
+    split = split_chains(samples)
+    if not split.size:
+        return float("nan")
+    location = _rhat_core(_rank_normalize(split))
+    spread = _rhat_core(_rank_normalize(np.abs(split - np.median(split))))
+    return max(location, spread) if np.isfinite(spread) else spread
 
 
 def autocorrelation(x: np.ndarray, max_lag: int | None = None) -> np.ndarray:
@@ -107,40 +110,43 @@ def effective_sample_size(samples: np.ndarray) -> float:
     """
     arr = _as_2d(samples)
     m, n = arr.shape
-    if n < 4:
-        return float(m * n)
+    if n < 4 or not np.isfinite(arr).all():
+        return 0.0
+    variances = np.where(np.ptp(arr, axis=1) == 0.0, 0.0, arr.var(axis=1, ddof=1))
+    within = float(variances.mean())
+    if within <= 0:
+        return 0.0
+    between = arr.mean(axis=1).var(ddof=1) if m > 1 else 0.0
+    pooled = within * (n - 1) / n + between
+    covariances = np.mean([
+        autocorrelation(chain) * variance * (n - 1) / n
+        for chain, variance in zip(arr, variances)
+    ], axis=0)
+    rho = 1.0 - (within - covariances) / pooled
+    rho[0] = 1.0
 
-    # Average autocorrelation across chains at each lag.
-    acfs = np.array([autocorrelation(arr[c], max_lag=n - 1) for c in range(m)])
-    # Variance-weighted combination (chains assumed similar variance).
-    rho = acfs.mean(axis=0)
-
-    # Geyer's initial monotone sequence: pair lags, require positive sums,
-    # enforce monotone non-increasing.
-    tau = 1.0
-    max_pairs = (n - 1) // 2
-    prev = np.inf
-    for k in range(1, max_pairs + 1):
-        pair = rho[2 * k - 1] + rho[2 * k]
-        if pair < 0:
+    total = 0.0
+    previous = np.inf
+    for even in range(0, n - 1, 2):
+        pair = rho[even] + rho[even + 1]
+        if pair <= 0:
             break
-        pair = min(pair, prev)
-        prev = pair
-        tau += 2 * pair
-    tau = max(tau, 1.0)
+        previous = min(pair, previous)
+        total += previous
+    tau = max(2.0 * total - 1.0, 1.0)
     return float(m * n / tau)
 
 
 def bulk_ess(samples: np.ndarray) -> float:
     """Bulk-ESS: ESS of rank-normalized draws (sensitive to the bulk)."""
-    arr = _as_2d(samples)
-    z = _rank_normalize(arr)
-    return effective_sample_size(z)
+    return effective_sample_size(_rank_normalize(split_chains(samples)))
 
 
 def tail_ess(samples: np.ndarray) -> float:
     """Tail-ESS: the smaller of the ESS of the 5% and 95% tail indicators."""
-    arr = _as_2d(samples)
+    arr = split_chains(samples)
+    if not arr.size:
+        return 0.0
     flat = arr.reshape(-1)
     q05, q95 = np.quantile(flat, [0.05, 0.95])
     low = (arr <= q05).astype(float)

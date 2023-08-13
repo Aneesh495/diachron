@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from itertools import combinations
 from pathlib import Path
 import time
 
@@ -126,16 +127,19 @@ def run_diagnose(bundle_dir: str) -> dict:
     bundle = PosteriorBundle.load(bundle_dir)
     out: dict = {"model": bundle.model_name, "n_chains": bundle.n_chains}
 
+    def finite(value: float) -> float | None:
+        return float(value) if np.isfinite(value) else None
+
     scalars = {}
     for name in ["root_age", "gain", "loss", "clock_rate", "log_posterior"]:
         chains = np.array(bundle.scalar(name))
         scalars[name] = {
             "mean": float(np.mean(chains)),
-            "split_rhat": round(cv.split_rhat(chains), 4),
-            "rank_rhat": round(cv.rank_normalized_rhat(chains), 4),
+            "split_rhat": finite(round(cv.split_rhat(chains), 4)),
+            "rank_rhat": finite(round(cv.rank_normalized_rhat(chains), 4)),
             "bulk_ess": round(cv.bulk_ess(chains), 1),
             "tail_ess": round(cv.tail_ess(chains), 1),
-            "mcse_mean": float(cv.mcse_mean(chains)),
+            "mcse_mean": finite(float(cv.mcse_mean(chains))),
         }
     out["scalars"] = scalars
 
@@ -143,17 +147,22 @@ def run_diagnose(bundle_dir: str) -> dict:
     for c in range(bundle.n_chains):
         topo.append(tp.topology_mixing_summary(bundle.chain_newicks(c)))
     out["topology_per_chain"] = topo
-    if bundle.n_chains >= 2:
-        out["clade_agreement_01"] = round(
-            tp.clade_agreement(bundle.chain_newicks(0), bundle.chain_newicks(1)), 3
-        )
+    out["clade_agreement"] = [
+        {"chains": [a, b], "score": round(
+            tp.clade_agreement(bundle.chain_newicks(a), bundle.chain_newicks(b)), 4,
+        )}
+        for a, b in combinations(range(bundle.n_chains), 2)
+    ]
 
-    # Convergence verdict against the declared thresholds.
     endpoints = ["root_age", "gain", "loss", "clock_rate"]
-    rhat_ok = all(scalars[e]["split_rhat"] < 1.01 for e in endpoints)
+    rhat_ok = all(
+        scalars[e][metric] is not None and scalars[e][metric] < 1.01
+        for e in endpoints for metric in ("split_rhat", "rank_rhat")
+    )
     ess_ok = all(
         scalars[e]["bulk_ess"] > 400 and scalars[e]["tail_ess"] > 400 for e in endpoints
     )
-    out["converged"] = bool(rhat_ok and ess_ok)
+    topology_moves = all(chain["distinct"] > 1 for chain in topo)
+    out["converged"] = bool(bundle.n_chains >= 4 and rhat_ok and ess_ok and topology_moves)
     out["thresholds"] = {"split_rhat_below": 1.01, "ess_above": 400}
     return out
