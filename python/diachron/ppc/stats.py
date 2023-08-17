@@ -46,23 +46,14 @@ def mean_pairwise_sharing(columns: list[list[int]]) -> float:
     This probes whether the tree-induced correlation structure matches the data:
     a model that gets the topology wrong predicts a different sharing level.
     """
-    if not columns:
-        return 0.0
-    n_lang = len(columns[0])
     totals = []
-    for col in columns:
-        obs = [i for i in range(n_lang) if col[i] != MISSING]
-        if len(obs) < 2:
-            continue
-        same = 0
-        pairs = 0
-        for a in range(len(obs)):
-            for b in range(a + 1, len(obs)):
-                pairs += 1
-                if col[obs[a]] == col[obs[b]]:
-                    same += 1
-        if pairs:
-            totals.append(same / pairs)
+    for column in columns:
+        present = column.count(PRESENT)
+        absent = column.count(ABSENT)
+        observed = present + absent
+        if observed >= 2:
+            total = observed * (observed - 1)
+            totals.append((present * (present - 1) + absent * (absent - 1)) / total)
     return float(np.mean(totals)) if totals else 0.0
 
 

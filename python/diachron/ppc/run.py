@@ -1,23 +1,11 @@
-"""Run posterior predictive checks on a saved bundle.
-
-For each of several posterior draws we simulate a fresh character matrix down the
-sampled tree with the sampled rates, compute the summary statistics, and compare
-the distribution of predicted statistics to the observed value. A Bayesian
-p-value near 0 or 1 for a statistic indicates the model cannot reproduce that
-feature of the data (gate G07 support, and a direct misspecification probe).
-
-Simulation reuses the forward model from the simulator but conditions on the
-exact sampled tree and rates rather than drawing a fresh tree, so the check asks
-"could this fitted model have produced data like ours".
-"""
+"""Posterior predictive checks on the exact study and draws saved in a bundle."""
 
 from __future__ import annotations
 
 import numpy as np
 
 from ..infer.artifacts import PosteriorBundle
-from ..io.corpus import build_primary_corpus
-from ..infer.campaign import prepare_study
+from diachron import _core
 from ..models.tree import PhyloTree
 from . import stats
 
@@ -110,79 +98,126 @@ def _parse_newick_to_tree(newick: str, tip_labels: list[str]) -> PhyloTree:
     return PhyloTree(parent=nodes_parent, heights=heights, taxon=nodes_taxon, tip_labels=labels)
 
 
-def _simulate_binary_columns(tree: PhyloTree, gain: float, loss: float,
-                             n_chars: int, rng: np.random.Generator) -> list[list[int]]:
-    """Forward-simulate binary characters down the tree under the gain/loss model."""
-    z = gain + loss
-    pi_present = gain / z
-    ch = tree.children()
-    bl = tree.branch_lengths()
+def _replicate(tree, gain, loss, rates, observed, minimum, rng):
+    """Rejection sample by observed mask and the same rule used for fitting."""
+    n_characters, n_tips = observed.shape
+    remaining = np.arange(n_characters)
+    replicated = np.full(observed.shape, -1, dtype=np.int8)
     root = tree.root
-    n_tips = sum(1 for i in range(tree.n_nodes) if tree.is_tip(i))
-    columns = []
-    for _ in range(n_chars):
-        state = {root: 1 if rng.random() < pi_present else 0}
-        stack = list(ch[root])
-        while stack:
-            node = stack.pop()
-            p = tree.parent[node]
-            t = bl[node]
-            e = np.exp(-z * t)
-            if state[p] == 0:
-                p_present = pi_present * (1 - e)
-            else:
-                p_present = pi_present + (loss / z) * e
-            state[node] = 1 if rng.random() < p_present else 0
-            stack.extend(ch[node])
-        col = [-1] * n_tips
-        for i in range(tree.n_nodes):
-            if tree.is_tip(i):
-                col[tree.taxon[i]] = state[i]
-        columns.append(col)
-    return columns
+    children = tree.children()
+    order = [root]
+    for node in order:
+        order.extend(children[node])
+    branches = tree.branch_lengths()
+    pi = gain / (gain + loss)
+    for _ in range(512):
+        if not remaining.size:
+            return replicated.tolist()
+        categories = rng.choice(rates, size=remaining.size)
+        values = np.empty((tree.n_nodes, remaining.size), dtype=np.int8)
+        values[root] = rng.random(remaining.size) < pi
+        leaves = np.empty((remaining.size, n_tips), dtype=np.int8)
+        for node in order:
+            parent = tree.parent[node]
+            if parent >= 0:
+                retain = np.exp(-(gain + loss) * categories * branches[node])
+                probability = pi * (1.0 - retain) + values[parent] * retain
+                values[node] = rng.random(remaining.size) < probability
+            if tree.is_tip(node):
+                leaves[:, tree.taxon[node]] = values[node]
+        mask = observed[remaining]
+        if minimum:
+            present = ((leaves == 1) & mask).sum(axis=1)
+            absent = ((leaves == 0) & mask).any(axis=1)
+            accepted = (present >= minimum) & absent
+        else:
+            accepted = np.ones(remaining.size, dtype=bool)
+        replicated[remaining[accepted]] = np.where(mask[accepted], leaves[accepted], -1)
+        remaining = remaining[~accepted]
+    raise ValueError(f"predictive draw exhausted selection budget for {remaining.size} patterns")
+
+
+def _spatial_dispersion(points: np.ndarray) -> float:
+    return float(np.mean(np.sum((points - points.mean(axis=0)) ** 2, axis=1)))
+
+
+def _replicate_geography(tree, observed_tips, sigma2, rng):
+    positions = np.zeros((tree.n_nodes, 2))
+    branches = tree.branch_lengths()
+    children = tree.children()
+    order = [tree.root]
+    points = []
+    for node in order:
+        order.extend(children[node])
+        parent = tree.parent[node]
+        if parent >= 0:
+            positions[node] = positions[parent] + rng.normal(0.0, np.sqrt(sigma2 * branches[node]), 2)
+        if tree.taxon[node] in observed_tips:
+            points.append(positions[node])
+    return _spatial_dispersion(np.array(points))
 
 
 def run_posterior_predictive(bundle_dir: str, n_draws: int = 40, seed: int = 0) -> dict:
     bundle = PosteriorBundle.load(bundle_dir)
-    corpus = build_primary_corpus()
-    study = prepare_study(corpus.dataset, corpus.attestations)
-    observed = stats.all_statistics(study.columns)
+    if bundle.context.get("schema_version") != 2:
+        raise ValueError("posterior predictive checks require exact study context")
+    model = bundle.context["model"]
+    columns = model["columns"]
+    if not columns or not 1 <= n_draws <= 1000:
+        raise ValueError("posterior predictive checks require nonempty columns and a bounded draw count")
+    config = model["config"]
+    minimum = model["minimum_present"] if config["ascertainment"] else 0
+    rates = [1.0] if config["rate_alpha"] is None else _core.discrete_gamma_rates(
+        config["rate_alpha"], config["rate_categories"],
+    )
+    mask = np.asarray(columns) >= 0
+    observed = stats.all_statistics(columns)
+    observed.pop("n_characters")
+    coords = model["tip_coords"]
+    spatial = config["use_geography"] and model["region_model"] is None and len(coords) >= 2
+    if spatial:
+        observed["planar_dispersion_degree2"] = _spatial_dispersion(np.array(list(coords.values())))
 
     rng = np.random.default_rng(seed)
-    # Pool draws across chains and subsample.
-    all_draws = [d for chain in bundle.chains for d in chain]
+    all_draws = [draw for chain in bundle.chains for draw in chain]
     if not all_draws:
-        return {"error": "empty bundle"}
+        raise ValueError("empty posterior bundle")
     picks = rng.choice(len(all_draws), size=min(n_draws, len(all_draws)), replace=False)
-
-    predicted: dict[str, list[float]] = {
-        "missingness_rate": [],
-        "mean_pairwise_sharing": [],
-        "singleton_fraction": [],
-        "mean_class_size": [],
-    }
-    n_chars = len(study.columns)
+    predicted = {name: [] for name in observed}
     for idx in picks:
-        d = all_draws[idx]
-        tree = _parse_newick_to_tree(d["newick"], bundle.tip_labels)
-        cols = _simulate_binary_columns(tree, d["gain"], d["loss"], n_chars, rng)
-        s = stats.all_statistics(cols)
-        for k in predicted:
-            predicted[k].append(s[k])
+        draw = all_draws[idx]
+        tree = PhyloTree(draw["parent"], draw["heights"], draw["taxon"])
+        replicate = _replicate(
+            tree, draw["gain"] * draw["clock_rate"], draw["loss"] * draw["clock_rate"],
+            rates, mask, minimum, rng,
+        )
+        summary = stats.all_statistics(replicate)
+        if spatial:
+            summary["planar_dispersion_degree2"] = _replicate_geography(
+                tree, {int(t) for t in coords}, draw["geo_sigma2"], rng,
+            )
+        for name in predicted:
+            predicted[name].append(summary[name])
 
-    # Bayesian p-values: fraction of predicted >= observed.
-    pvalues = {}
-    for k, vals in predicted.items():
-        arr = np.array(vals)
-        pvalues[k] = {
-            "observed": observed[k],
-            "predicted_mean": float(arr.mean()),
-            "predicted_sd": float(arr.std()),
-            "bayesian_p": float(np.mean(arr >= observed[k])),
-        }
     return {
-        "gate": "G07-support",
+        "study": bundle.dataset_name,
         "model": bundle.model_name,
-        "n_draws_used": int(len(picks)),
-        "statistics": pvalues,
+        "source_commit": bundle.source_commit,
+        "seed": seed,
+        "draw_indices": picks.tolist(),
+        "statistics": {
+            name: {
+                "observed": observed[name],
+                "predicted_mean": float(np.mean(values)),
+                "predicted_sd": float(np.std(values)),
+                "bayesian_p": (
+                    None if name == "missingness_rate" or (name == "singleton_fraction" and minimum == 2)
+                    else float(np.mean(np.asarray(values) >= observed[name]))
+                ),
+                "replicates": values,
+            }
+            for name, values in predicted.items()
+        },
+        "missingness": "Conditioned on the original observed-tip masks.",
+        "borrowing": "Loan annotation outcomes are outside this predictive model.",
     }
