@@ -117,6 +117,7 @@ def build_character_matrix(
     *,
     drop_singletons: bool = True,
     include_loans_as_present: bool = True,
+    include_unobserved_languages: bool = False,
 ) -> CharacterMatrix:
     """Transform a dataset into a character matrix with an evidence trail.
 
@@ -128,7 +129,10 @@ def build_character_matrix(
     """
     dataset.validate()
 
-    languages = sorted({lx.language_id for lx in dataset.lexemes})
+    languages = sorted(
+        {lang.id for lang in dataset.languages} if include_unobserved_languages
+        else {lx.language_id for lx in dataset.lexemes}
+    )
     lang_index = {lid: i for i, lid in enumerate(languages)}
     n_lang = len(languages)
 
