@@ -21,7 +21,7 @@ from diachron.verify.verifier import verify_evidence
 
 def _small_campaign(tmp_path, seed=1):
     ds, truth = simulate_dataset(
-        n_languages=10, n_concepts=50, root_age=6000.0,
+        n_languages=12, n_concepts=50, root_age=6000.0,
         borrow_prob=0.2, missing_frac=0.08, seed=seed, name="diachron_primary",
     )
     atts = simulate_attestations(ds, truth, n_records=30, seed=seed)
