@@ -149,6 +149,8 @@ fn block_log_likelihood(
 /// Binary character scores with observed-mask conditioning and a site rate mixture.
 #[pyfunction]
 #[allow(clippy::too_many_arguments)]
+#[pyo3(signature = (parent, branch_len, height, taxon, root, gain, loss, columns,
+                    rate_categories, min_present, contacts=None))]
 fn binary_character_scores(
     parent: Vec<i64>,
     branch_len: Vec<f64>,
@@ -160,10 +162,18 @@ fn binary_character_scores(
     columns: Vec<Vec<i64>>,
     rate_categories: Vec<f64>,
     min_present: usize,
+    contacts: Option<Vec<(usize, usize, f64)>>,
 ) -> PyResult<Vec<f64>> {
     let tree = build_tree(&parent, &branch_len, &height, &taxon, root)?;
     let n_tips = tree.n_tips();
-    if min_present > 2
+    let contacts = contacts.unwrap_or_default();
+    if contacts.len() > 16
+        || contacts.iter().any(|&(donor, recipient, intensity)| {
+            donor >= n_tips || recipient >= n_tips || donor == recipient
+                || !intensity.is_finite() || intensity < 0.0
+        })
+        || !contacts.iter().map(|(_, _, w)| w).sum::<f64>().is_finite()
+        || min_present > 2
         || rate_categories.is_empty()
         || rate_categories.len() > 32
         || rate_categories.iter().any(|r| !r.is_finite() || *r <= 0.0)
@@ -181,7 +191,7 @@ fn binary_character_scores(
         col.iter().map(|&s| usize::try_from(s).ok()).collect()
     }).collect();
     Ok(crate::pruning::binary_mixture_scores(
-        &tree, &model, &cols, &model.stationary(), &rate_categories, min_present,
+        &tree, &model, &cols, &model.stationary(), &rate_categories, min_present, &contacts,
     ))
 }
 

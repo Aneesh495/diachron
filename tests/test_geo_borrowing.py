@@ -84,20 +84,15 @@ def test_borrowing_responds_to_shared_cognates():
         config=ModelConfig.borrowing(), columns=cols,
         borrow_candidates=[(0, 1)],
     )
-    # A dummy tree is not needed for the borrowing term's co-presence count, but
-    # log_posterior needs a valid tree; build a tiny star-like tree.
+    # Compare two intensities on the same tree and selected patterns.
     from diachron.models.tree import PhyloTree
 
     parent = [n, n, n, n, n, n, -1]
     heights = [0, 0, 0, 0, 0, 0, 1000.0]
     taxon = [0, 1, 2, 3, 4, 5, -1]
     tree = PhyloTree(parent=parent, heights=heights, taxon=taxon)
-    # Only compare the borrowing term by isolating it.
-    low = model.borrowing_log_density(tree, np.array([0.05]))
-    high = model.borrowing_log_density(tree, np.array([0.9]))
-    # When the pair always co-occurs, higher intensity explains it better, so the
-    # likelihood part should favor high; the prior penalizes high but the strong
-    # co-presence signal should make high competitive or preferred.
+    low = sum(model.character_scores(tree, 0.0004, 0.0009, 1.0, borrow_rates=[0.05]))
+    high = sum(model.character_scores(tree, 0.0004, 0.0009, 1.0, borrow_rates=[0.9]))
     assert high > low
 
 
@@ -110,3 +105,41 @@ def test_planar_geography_keeps_observed_contrast_when_other_subtree_is_missing(
     tree = PhyloTree([3, 3, 4, 4, -1], [0.0, 0.0, 0.0, 2.0, 5.0], [0, 1, 2, -1, -1])
     actual = _brownian_tree_loglik(tree, {0: (2.0, 1.0), 2: (3.0, 4.0)}, 0.5)
     assert abs(actual - (-1.0 - math.log(10 * math.pi))) < 1e-12
+
+
+def test_contact_mixture_matches_enumeration_with_missing_donor():
+    from collections import defaultdict
+    from itertools import product
+
+    import pytest
+    from diachron import _core
+
+    gain, loss = 0.3, 0.8
+    pi = (loss / (gain + loss), gain / (gain + loss))
+    lengths = (0.6, 1.3, 0.7, 0.3)
+    contacts = [(0, 1, 0.4), (2, 0, 0.7)]
+    for mask in ((0, 1, 2, 3), (1, 2, 3)):
+        outcomes = defaultdict(float)
+        for hidden in product((0, 1), repeat=4):
+            mass = 0.0
+            for root in (0, 1):
+                prob = pi[root]
+                for state, duration in zip(hidden, lengths):
+                    retain = np.exp(-(gain + loss) * duration)
+                    prob *= (1 - retain) * pi[state] + (root == state) * retain
+                mass += prob
+            for donor, recipient, weight in [(0, 0, 1.0), *contacts]:
+                visible = list(hidden)
+                visible[recipient] = hidden[donor]
+                column = tuple(s if t in mask else -1 for t, s in enumerate(visible))
+                if column.count(1) >= 2 and 0 in column:
+                    outcomes[column] += mass * weight
+        columns = list(outcomes)
+        observed = _core.binary_character_scores(
+            [-1, 0, 0, 0, 0], [0.0, *lengths], [2.0, 1.4, 0.7, 1.3, 1.7],
+            [-1, 0, 1, 2, 3], 0, gain, loss, columns, [1.0], 2, contacts,
+        )
+        selected_mass = sum(outcomes.values())
+        assert np.exp(observed) == pytest.approx(
+            [outcomes[column] / selected_mass for column in columns], abs=1e-12,
+        )

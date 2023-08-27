@@ -19,6 +19,8 @@ from pathlib import Path
 
 import numpy as np
 
+from diachron import _core
+
 from ..io.types import Dataset, Attestation
 from ..io.characters import build_character_matrix
 from ..models.tree import random_starting_tree
@@ -113,7 +115,7 @@ def prepare_study(
     # fixed, finite candidate set. This is the "bounded network" the borrowing
     # model operates on; it is derived from modern reference coordinates and is
     # explicitly a candidate set, not a claim of historical contact.
-    borrow_candidates = _nearest_neighbor_candidates(tip_coords, max_edges=20)
+    borrow_candidates = _nearest_neighbor_candidates(tip_coords, max_edges=4)
 
     tip_dates = {
         lang_to_idx[l.id]: TipDate(l.date_distribution, l.date_mean, l.date_sd, l.date_offset)
@@ -138,8 +140,8 @@ def _nearest_neighbor_candidates(
 ) -> list[tuple[int, int]]:
     """Each tip paired with its nearest geographic neighbor, capped to max_edges.
 
-    Uses squared-degree distance (cheap and monotone with great-circle at these
-    scales) and deduplicates symmetric pairs so (a,b) and (b,a) count once.
+    Deduplicates unordered pairs and includes both directions for each pair
+    during inference. Modern proximity is a hypothetical screen.
     """
     taxa = sorted(tip_coords)
     seen: set[tuple[int, int]] = set()
@@ -152,7 +154,7 @@ def _nearest_neighbor_candidates(
             if b == a:
                 continue
             lat_b, lon_b = tip_coords[b]
-            d = (lat_a - lat_b) ** 2 + (lon_a - lon_b) ** 2
+            d = _core.haversine_km(lat_a, lon_a, lat_b, lon_b)
             if d < best_d:
                 best_d = d
                 best = b
@@ -169,7 +171,9 @@ def build_model(study: StudyData, config: ModelConfig) -> PosteriorModel:
     """Assemble a PosteriorModel for one configuration from prepared study data."""
     # Calibrations and coordinates are only attached when the config uses them,
     # but the model stores them regardless and the config flags gate their use.
-    candidates = study.borrow_candidates or []
+    candidates = [
+        directed for a, b in (study.borrow_candidates or ()) for directed in ((a, b), (b, a))
+    ]
     return PosteriorModel(
         config=config,
         columns=study.columns,
@@ -210,7 +214,7 @@ def run_campaign(
             thin=thin,
         )
         borrow_init = (
-            [0.02] * len(study.borrow_candidates)
+            [0.02] * len(model.borrow_candidates)
             if config.use_borrowing and study.borrow_candidates
             else []
         )

@@ -98,7 +98,7 @@ def _parse_newick_to_tree(newick: str, tip_labels: list[str]) -> PhyloTree:
     return PhyloTree(parent=nodes_parent, heights=heights, taxon=nodes_taxon, tip_labels=labels)
 
 
-def _replicate(tree, gain, loss, rates, observed, minimum, rng):
+def _replicate(tree, gain, loss, rates, observed, minimum, rng, contacts=(), intensities=()):
     """Rejection sample by observed mask and the same rule used for fitting."""
     n_characters, n_tips = observed.shape
     remaining = np.arange(n_characters)
@@ -125,6 +125,12 @@ def _replicate(tree, gain, loss, rates, observed, minimum, rng):
                 values[node] = rng.random(remaining.size) < probability
             if tree.is_tip(node):
                 leaves[:, tree.taxon[node]] = values[node]
+        if contacts:
+            weights = np.array([1.0, *intensities])
+            active = rng.choice(len(weights), size=remaining.size, p=weights / weights.sum())
+            for edge, (donor, recipient) in enumerate(contacts, start=1):
+                sites = active == edge
+                leaves[sites, recipient] = leaves[sites, donor]
         mask = observed[remaining]
         if minimum:
             present = ((leaves == 1) & mask).sum(axis=1)
@@ -189,7 +195,7 @@ def run_posterior_predictive(bundle_dir: str, n_draws: int = 40, seed: int = 0) 
         tree = PhyloTree(draw["parent"], draw["heights"], draw["taxon"])
         replicate = _replicate(
             tree, draw["gain"] * draw["clock_rate"], draw["loss"] * draw["clock_rate"],
-            rates, mask, minimum, rng,
+            rates, mask, minimum, rng, model["borrow_candidates"], draw["borrow_rates"],
         )
         summary = stats.all_statistics(replicate)
         if spatial:

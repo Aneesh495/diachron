@@ -79,9 +79,9 @@ def _predictive_log_scores(chains, patterns, conditioning):
             draw = draws[index]
             tree = PhyloTree(draw.parent, draw.heights, draw.taxon)
             params = (draw.gain, draw.loss, draw.clock_rate)
-            scores = np.asarray(model.character_scores(tree, *params, patterns))
+            scores = np.asarray(model.character_scores(tree, *params, patterns, draw.borrow_rates))
             if conditioning is not None:
-                scores -= model.character_scores(tree, *params, conditioning)
+                scores -= model.character_scores(tree, *params, conditioning, draw.borrow_rates)
             results.append(scores)
     if not results or not patterns:
         raise ValueError("predictive scoring requires saved draws and held-out patterns")
