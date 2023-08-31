@@ -143,3 +143,16 @@ def test_contact_mixture_matches_enumeration_with_missing_donor():
         assert np.exp(observed) == pytest.approx(
             [outcomes[column] / selected_mass for column in columns], abs=1e-12,
         )
+
+
+def test_region_likelihood_matches_matrix_exponential():
+    from scipy.linalg import expm
+
+    from diachron.models.tree import PhyloTree
+
+    tree = PhyloTree([2, 2, -1], [0.0, 0.0, 200.0], [0, 1, -1])
+    model = RegionModel(["A", "B", "C"], [(43, 8), (43, 10), (43, 55)])
+    transition = expm(np.asarray(model.rate_matrix()) * 200.0)
+    expected = np.log(np.dot(model.stationary(), transition[:, 0] * transition[:, 1]))
+    got = region_log_likelihood(tree, model, {0: 0, 1: 1}, 2)
+    assert abs(got - expected) < 1e-10

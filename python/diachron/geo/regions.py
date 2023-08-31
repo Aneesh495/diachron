@@ -20,8 +20,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import numpy as np
-
 from diachron import _core
 
 
@@ -68,12 +66,7 @@ class RegionModel:
         return q
 
     def stationary(self) -> list[float]:
-        """Approximate stationary distribution by uniform over regions.
-
-        For the symmetric-ish distance-decayed generator the stationary
-        distribution is close to uniform; we use uniform as the root prior, which
-        is the least-committal choice for an unknown ancestral region.
-        """
+        """The symmetric distance-decayed generator has uniform equilibrium."""
         n = self.n_regions()
         return [1.0 / n] * n
 
@@ -105,25 +98,15 @@ def region_log_likelihood(
     tip_regions: dict[int, int],
     n_tips: int,
 ) -> float:
-    """Pruning likelihood of the tip regions under the region CTMC.
-
-    Because the Rust binding's k-state model is F81-style (a single exchange
-    rate toward an equilibrium), we approximate the distance-decayed generator by
-    an F81 chain whose equilibrium is uniform and whose rate matches the mean
-    off-diagonal movement rate. This keeps the region likelihood on the same fast
-    pruning path as the cognate characters; the approximation is documented and
-    compared against the spherical model rather than asserted as exact.
-    """
+    """Prune under the exact distance-decayed generator, in years."""
     parent, bl, h, tax, root = tree.to_core_arrays()
     n = model.n_regions()
     q = model.rate_matrix()
-    # Mean off-diagonal rate as the F81 exchange rate.
-    off = [q[i][j] for i in range(n) for j in range(n) if i != j]
-    mean_rate = float(np.mean(off)) if off else model.base_rate
     pi = model.stationary()
-    # F81 params: [rate, pi0, pi1, ...]
-    params = [max(mean_rate, 1e-9)] + pi
+    mean_rate = sum(-p * q[i][i] for i, p in enumerate(pi))
+    exchange = [q[i][j] / pi[j] if i != j else 0.0 for i in range(n) for j in range(n)]
+    params = [float(n), mean_rate, *pi, *exchange]
     column = [tip_regions.get(t, -1) for t in range(n_tips)]
     return _core.char_log_likelihood(
-        parent, bl, h, tax, root, "f81", params, column, pi
+        parent, bl, h, tax, root, "gtr", params, column, pi
     )

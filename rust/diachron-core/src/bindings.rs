@@ -15,7 +15,7 @@ use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
 
 use crate::pruning::{log_likelihood, log_likelihood_block, TipStates};
-use crate::subst::{BinaryGainLoss, F81, SubstModel};
+use crate::subst::{BinaryGainLoss, F81, Gtr, SubstModel};
 use crate::tree::Tree;
 use crate::rng::Rng;
 use crate::geo;
@@ -90,6 +90,18 @@ fn make_model(kind: &str, params: &[f64]) -> PyResult<Box<dyn SubstModel>> {
             let rate = params[0];
             let pi = params[1..].to_vec();
             Ok(Box::new(F81::new(pi, rate)))
+        }
+        "gtr" => {
+            let Some((header, rest)) = params.split_at_checked(2) else {
+                return Err(PyValueError::new_err("GTR requires [n_states, rate, pi..., exchange...]"));
+            };
+            let n = header[0] as usize;
+            if !(2..=32).contains(&n) || header[0] != n as f64 || rest.len() != n + n * n {
+                return Err(PyValueError::new_err("invalid GTR dimensions"));
+            }
+            let model = Gtr::new(rest[..n].to_vec(), &rest[n..], header[1])
+                .ok_or_else(|| PyValueError::new_err("invalid GTR frequencies or exchangeabilities"))?;
+            Ok(Box::new(model))
         }
         _ => Err(PyValueError::new_err(format!("unknown model kind {kind}"))),
     }
