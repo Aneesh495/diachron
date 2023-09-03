@@ -98,7 +98,9 @@ def _parse_newick_to_tree(newick: str, tip_labels: list[str]) -> PhyloTree:
     return PhyloTree(parent=nodes_parent, heights=heights, taxon=nodes_taxon, tip_labels=labels)
 
 
-def _replicate(tree, gain, loss, rates, observed, minimum, rng, contacts=(), intensities=()):
+def _replicate(
+    tree, gain, loss, rates, observed, minimum, rng, contacts=(), intensities=(), clock=(),
+):
     """Rejection sample by observed mask and the same rule used for fitting."""
     n_characters, n_tips = observed.shape
     remaining = np.arange(n_characters)
@@ -109,6 +111,8 @@ def _replicate(tree, gain, loss, rates, observed, minimum, rng, contacts=(), int
     for node in order:
         order.extend(children[node])
     branches = tree.branch_lengths()
+    if clock:
+        branches = [length * multiplier for length, multiplier in zip(branches, clock)]
     pi = gain / (gain + loss)
     for _ in range(512):
         if not remaining.size:
@@ -196,6 +200,7 @@ def run_posterior_predictive(bundle_dir: str, n_draws: int = 40, seed: int = 0) 
         replicate = _replicate(
             tree, draw["gain"] * draw["clock_rate"], draw["loss"] * draw["clock_rate"],
             rates, mask, minimum, rng, model["borrow_candidates"], draw["borrow_rates"],
+            draw.get("clock_multipliers", ()),
         )
         summary = stats.all_statistics(replicate)
         if spatial:

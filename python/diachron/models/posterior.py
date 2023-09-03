@@ -59,6 +59,7 @@ class ModelConfig:
     diffusion_prior_median: float = 0.004  # degree squared / year
     diffusion_prior_log_sd: float = 2.0
     borrowing_prior_rate: float = 10.0
+    relaxed_clock_sigma: float = 0.0
 
     @staticmethod
     def tree_only() -> "ModelConfig":
@@ -67,6 +68,10 @@ class ModelConfig:
     @staticmethod
     def dated() -> "ModelConfig":
         return ModelConfig(name="dated", use_calibration=True)
+
+    @staticmethod
+    def relaxed() -> "ModelConfig":
+        return ModelConfig(name="relaxed", use_calibration=True, relaxed_clock_sigma=0.25)
 
     @staticmethod
     def geography() -> "ModelConfig":
@@ -106,6 +111,8 @@ class PosteriorModel:
     tip_dates: dict[int, TipDate] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        if not math.isfinite(self.config.relaxed_clock_sigma) or self.config.relaxed_clock_sigma < 0.0:
+            raise ValueError("clock dispersion must be finite and nonnegative")
         alpha = self.config.rate_alpha
         if alpha is not None and (
             not np.isfinite(alpha) or alpha <= 0 or not 1 <= self.config.rate_categories <= 32
@@ -120,6 +127,7 @@ class PosteriorModel:
         self, tree, gain: float, loss: float, clock_rate: float,
         columns: list[list[int]] | None = None,
         borrow_rates: list[float] | None = None,
+        clock_multipliers: list[float] | None = None,
     ) -> list[float]:
         """Per-character likelihood under the observed-mask selection process."""
         contacts = []
@@ -131,8 +139,11 @@ class PosteriorModel:
                 for (donor, recipient), intensity in zip(self.borrow_candidates, borrow_rates)
                 if intensity > 0.0
             ]
+        parent, lengths, heights, taxa, root = tree.to_core_arrays()
+        if clock_multipliers:
+            lengths = [t * multiplier for t, multiplier in zip(lengths, clock_multipliers)]
         return _core.binary_character_scores(
-            *tree.to_core_arrays(), gain * clock_rate, loss * clock_rate,
+            parent, lengths, heights, taxa, root, gain * clock_rate, loss * clock_rate,
             self.columns if columns is None else columns, self._site_rates,
             self.minimum_present if self.config.ascertainment else 0, contacts,
         )
@@ -215,7 +226,8 @@ class PosteriorModel:
         loss: float,
         clock_rate: float,
         geo_sigma2: float = 0.004,
-        borrow_rates: np.ndarray | None = None,
+        borrow_rates: list[float] | None = None,
+        clock_multipliers: list[float] | None = None,
     ) -> float:
         if not tree.times_valid():
             return float("-inf")
@@ -230,7 +242,20 @@ class PosteriorModel:
                 return float("-inf")
             if any(not math.isfinite(b) or b < 0 for b in borrow_rates):
                 return float("-inf")
-        lp = sum(self.character_scores(tree, gain, loss, clock_rate, borrow_rates=borrow_rates))
+        sigma = self.config.relaxed_clock_sigma
+        if sigma > 0:
+            if (
+                clock_multipliers is None or len(clock_multipliers) != tree.n_nodes
+                or any(not math.isfinite(m) or m <= 0 for m in clock_multipliers)
+                or clock_multipliers[tree.root] != 1.0
+            ):
+                return float("-inf")
+        elif clock_multipliers:
+            return float("-inf")
+        lp = sum(self.character_scores(
+            tree, gain, loss, clock_rate, borrow_rates=borrow_rates,
+            clock_multipliers=clock_multipliers,
+        ))
         if not np.isfinite(lp):
             return float("-inf")
         lp += self.calibration_log_density(tree)
@@ -245,6 +270,11 @@ class PosteriorModel:
         lp += lognormal_logpdf(gain, rate_center, rate_width)
         lp += lognormal_logpdf(loss, rate_center, rate_width)
         lp += lognormal_logpdf(clock_rate, 0.0, self.config.clock_prior_log_sd)
+        if sigma > 0:
+            lp += sum(
+                lognormal_logpdf(multiplier, -sigma * sigma / 2, sigma)
+                for node, multiplier in enumerate(clock_multipliers) if node != tree.root
+            )
         if self.config.use_geography:
             lp += lognormal_logpdf(
                 geo_sigma2, math.log(self.config.diffusion_prior_median),

@@ -21,6 +21,7 @@ from ..util.gitmeta import source_commit
 _MODEL_CONFIGS = {
     "tree_only": ModelConfig.tree_only,
     "dated": ModelConfig.dated,
+    "relaxed": ModelConfig.relaxed,
     "geography": ModelConfig.geography,
     "borrowing": ModelConfig.borrowing,
 }
