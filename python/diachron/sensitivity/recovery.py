@@ -18,7 +18,7 @@ chains; the count and per-dataset budget are arguments so a pilot and the full
 from __future__ import annotations
 
 import json
-import os
+from pathlib import Path
 
 import numpy as np
 
@@ -27,12 +27,13 @@ from ..infer.campaign import prepare_study, run_campaign, campaign_bundle
 from ..models.posterior import ModelConfig
 from ..diagnostics import topology as tp
 from ..models.tree import tree_from_truth
+from ..util.gitmeta import source_commit
 
 
 def _true_clades(truth) -> set:
     tree = tree_from_truth(truth)
     nw = tree.newick()
-    return tp._clade_signature(nw)
+    return {clade for clade in tp._clade_signature(nw) if len(clade) < len(truth.tip_language_ids)}
 
 
 def _regime(i: int) -> dict:
@@ -51,55 +52,70 @@ def _regime(i: int) -> dict:
 
 def run_recovery_study(n_datasets: int = 200, out_dir: str = "runs/recovery",
                        warmup: int = 400, iterations: int = 1200) -> dict:
-    os.makedirs(out_dir, exist_ok=True)
-    clade_recoveries = []
-    coverage_hits = 0
-    coverage_total = 0
+    if not 1 <= n_datasets <= 5000:
+        raise ValueError("recovery study requires between 1 and 5000 datasets")
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=False)
     per_dataset = []
+    commit = source_commit()
+    with (out / "rows.jsonl").open("w", encoding="utf-8") as raw:
+        for i in range(n_datasets):
+            reg = _regime(i)
+            data_seed = 20000 + i
+            chain_seed = 30000 + i
+            row = {"i": i, "regime": reg, "data_seed": data_seed, "chain_seed": chain_seed}
+            try:
+                dataset, truth = simulate_dataset(seed=data_seed, name=f"rec{i}", **reg)
+                attestations = simulate_attestations(
+                    dataset, truth, n_records=(12, 20, 32)[i % 3], seed=data_seed,
+                )
+                study = prepare_study(dataset, attestations)
+                calibration = study.calibrations[0]
+                initial = (calibration.age_low + calibration.age_high) / 2.0
+                config = ModelConfig.dated()
+                chains = run_campaign(
+                    study, config, n_chains=2, warmup=warmup, iterations=iterations, thin=10,
+                    root_age_init=initial, base_seed=chain_seed,
+                )
+                bundle = campaign_bundle(chains, study, config, source_commit=commit)
+                newicks = [nw for c in range(bundle.n_chains) for nw in bundle.chain_newicks(c)]
+                post_clades = tp.clade_posteriors(newicks)
+                truth_clades = _true_clades(truth)
+                masses = [
+                    post_clades.get(clade, 0.0) for clade in sorted(
+                        truth_clades, key=lambda taxa: tuple(sorted(taxa)),
+                    )
+                ]
+                root_samples = [d for ch in bundle.scalar("root_age") for d in ch]
+                lo, hi = np.quantile(root_samples, [0.05, 0.95])
+                row.update({
+                    "status": "complete", "n_attestations": len(attestations),
+                    "root_true": truth.root_age, "root_ci": [float(lo), float(hi)],
+                    "root_in_90ci": bool(lo <= truth.root_age <= hi),
+                    "clade_recovery": float(np.mean(np.array(masses) > 0.5)),
+                    "root_samples": root_samples, "true_clade_masses": masses,
+                })
+            except (ValueError, ArithmeticError) as exc:
+                row.update({"status": "failed", "error": str(exc)})
+            raw.write(json.dumps(row, allow_nan=False) + "\n")
+            raw.flush()
+            per_dataset.append(row)
 
-    for i in range(n_datasets):
-        reg = _regime(i)
-        dataset, truth = simulate_dataset(seed=20000 + i, name=f"rec{i}", **reg)
-        attestations = simulate_attestations(dataset, truth, n_records=20, seed=20000 + i)
-        study = prepare_study(dataset, attestations)
-
-        chains = run_campaign(
-            study, ModelConfig.dated(), n_chains=2,
-            warmup=warmup, iterations=iterations, thin=10,
-            root_age_init=truth.root_age, base_seed=30000 + i,
-        )
-        bundle = campaign_bundle(chains, study, ModelConfig.dated())
-
-        # Clade recovery: MAP clades vs true clades.
-        newicks = [nw for c in range(bundle.n_chains) for nw in bundle.chain_newicks(c)]
-        post_clades = tp.clade_posteriors(newicks)
-        true_clades = _true_clades(truth)
-        if true_clades:
-            recovered = sum(1 for cl in true_clades if post_clades.get(cl, 0) > 0.5)
-            clade_recoveries.append(recovered / len(true_clades))
-
-        # Root-age credible interval coverage (dated model).
-        root_samples = np.array([d for ch in bundle.scalar("root_age") for d in ch])
-        lo, hi = np.quantile(root_samples, [0.05, 0.95])
-        coverage_total += 1
-        if lo <= truth.root_age <= hi:
-            coverage_hits += 1
-        per_dataset.append({
-            "i": i, "regime": reg,
-            "clade_recovery": clade_recoveries[-1] if clade_recoveries else None,
-            "root_in_90ci": bool(lo <= truth.root_age <= hi),
-            "root_true": truth.root_age,
-            "root_ci": [float(lo), float(hi)],
-        })
-
+    completed = [row for row in per_dataset if row["status"] == "complete"]
     result = {
-        "gate": "G05",
-        "n_datasets": n_datasets,
-        "mean_clade_recovery": float(np.mean(clade_recoveries)) if clade_recoveries else None,
-        "root_age_90ci_coverage": coverage_hits / coverage_total if coverage_total else None,
+        "gate": "G05", "source_commit": commit,
+        "profile": "known-truth recovery, protocol 2",
+        "n_datasets": n_datasets, "completed": len(completed),
+        "failed": n_datasets - len(completed),
+        "iterations": iterations, "warmup": warmup, "chains": 2, "thin": 10,
+        "mean_clade_recovery": float(np.mean([r["clade_recovery"] for r in completed]))
+        if completed else None,
+        "root_age_90ci_coverage": float(np.mean([r["root_in_90ci"] for r in completed]))
+        if completed else None,
         "coverage_target": 0.90,
-        "note": "All datasets labeled synthetic known-truth.",
     }
-    with open(os.path.join(out_dir, "recovery.json"), "w", encoding="utf-8") as f:
-        json.dump({"summary": result, "per_dataset": per_dataset}, f, indent=2)
+    (out / "recovery.json").write_text(
+        json.dumps({"summary": result, "per_dataset": per_dataset}, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
     return result

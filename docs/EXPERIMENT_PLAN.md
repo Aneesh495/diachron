@@ -69,3 +69,22 @@ protocol change requires a new version.
   feedback; cannot set the acceptance flag.
 - Full acceptance: 4 chains, 3000 warmup, 12000 iterations, thin 10, into a
   sealed evidence directory, verified independently.
+
+## Protocol 2
+
+The original synthetic profiles remain available as diagnostics. The observed
+diagnostic uses frozen IE-CoR v1.2.1 and ABVD v0.3 input bytes, four independently
+initialized chains per model, 400 warmup iterations, 1200 sampling iterations,
+and thinning by ten. IE-CoR dates are published terminal-tip distributions.
+ABVD has a tree-only baseline with no borrowed calibrations. Reports preserve
+failed convergence and identify the executable source separately from later
+diagnostic recomputation.
+
+The revised known-truth campaign still uses 200 datasets, the original lexical
+regimes and fixed seeds. It uses two chains, 400 warmup iterations, 1200 sampling
+iterations and thinning by ten per dataset. The dating evidence cycles through
+12, 20 and 32 source observations. Starts use the derived calibration midpoint
+and have independently sampled topologies. Root coverage uses the 5th and 95th
+sample quantiles and clade recovery excludes the all-tip clade. Per-dataset root
+samples and true-clade masses support independent recomputation. Failures stay
+in the denominator for completion accounting.
