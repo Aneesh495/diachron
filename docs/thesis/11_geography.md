@@ -1,38 +1,27 @@
-# Chapter 11: Geography
+# Chapter 11: Location evidence and inference
 
-## Observation model
+Diachron uses three distinct inputs or outputs. Contemporary lexical varieties
+can carry catalog reference points. Independently sourced inscriptions carry
+reported historical localities and dating uncertainty. The geographic model
+produces latent samples conditional on its tree, rates, and modern reference
+points. The workbench shows the categories separately. An ancient object may
+have traveled before deposition, and its origin is not a boundary of a speech
+community.
 
-A catalog coordinate is a present-day reference location, not a historical
-homeland or boundary. An ancient attestation may be an isolated inscription,
-elite writing, or a trade document rather than a whole-population distribution.
-Diachron encodes the observation type and treats tip coordinates as uncertain
-observations with their own error, so the geographic likelihood never assumes a
-modern point marks an ancient boundary.
+The planar contrasts model integrates internal locations by Gaussian message
+passing and conditions on measured modern reference points. Missing tips
+supply no geographic contrast. This approximation measures squared degrees
+and is sensitive to the extent of the region. The region model instead uses a
+symmetric distance-decayed transition generator and exact discrete pruning.
+Unresolved region assignments can be marginalized.
 
-## Two models compared
+The workbench's planar root cloud is drawn offline from the conditional root
+distribution for each retained geographic tree and diffusion rate. It shows
+points in a ±250-year band around the timeline position. Observations retain
+their full date ranges. Root-only sampling is an explicit scope limit of the
+current map export. A fitted regional model still needs its own offline root
+state sampler.
 
-The region CTMC moves a lineage among coarse named regions; it is appropriate
-when the evidence cannot resolve coordinates and avoids over-claiming precision.
-The Brownian-on-tree model diffuses coordinates continuously and integrates out
-internal locations exactly by Gaussian pruning. Rather than declare one map
-historically correct because it looks coherent, the platform compares their
-posterior predictions; the region model is preferred where the data are coarse,
-the diffusion model where attestations constrain continuous movement.
-
-## Posterior clouds, not pins
-
-A latent location is reported as a posterior cloud or credible region. When the
-posterior is broad or multimodal, it stays a cloud; the platform refuses to
-collapse it to a single homeland pin. The workbench draws the inferred location
-as a density of sampled points whose spread grows with inferred temporal depth,
-and the map legend keeps modern reference points, dated attestations, and
-inferred latent locations visually distinct at every time step (gate G09).
-
-## Sensitivity and influence
-
-The geographic prior (diffusion variance, region granularity) is one of the
-predeclared sensitivity levers; a location posterior driven more by the prior than
-the data is reported as such. The influence of a single language or attestation is
-tested by removal: an apparently stable homeland estimate that moves when one
-influential observation is dropped is not a stable finding. This directly serves
-Q6 and Q8.
+None of the geographic diagnostics establish a homeland. Coordinate spread,
+between-chain agreement, and stability to the reference-point model remain
+empirical checks.
