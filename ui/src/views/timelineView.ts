@@ -59,7 +59,7 @@ export class TimelineView {
     const root = this.store.summary.scalarSummary("root_age");
     readout.textContent =
       `time: ${Math.round(this.store.selection.timeYbp)} years before present  |  ` +
-      `root age posterior: ${root.q50.toFixed(0)} ` +
-      `[${root.q05.toFixed(0)}, ${root.q95.toFixed(0)}] (90% credible)`;
+      `sampled root age: ${root.q50.toFixed(0)} ` +
+      `[${root.q05.toFixed(0)}, ${root.q95.toFixed(0)}] (central 90% of shown draws)`;
   }
 }

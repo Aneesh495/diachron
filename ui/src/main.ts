@@ -50,6 +50,20 @@ export function mount(root: HTMLElement, data: WorkbenchData): void {
     ? "synthetic known-truth corpus (not observed history)"
     : "observed-data study";
   header.appendChild(syntheticFlag);
+  const mixing = document.createElement("span");
+  mixing.className = "wb-mixing";
+  mixing.setAttribute("role", "status");
+  const renderMixing = () => {
+    const { converged, rootAgeDiagnostic } = store.bundle;
+    if (converged) {
+      mixing.textContent = "Recorded scalar checks passed";
+      return;
+    }
+    const rhat = rootAgeDiagnostic.split_rhat?.toFixed(2) ?? "unavailable";
+    mixing.textContent = `Diagnostic draws · root R̂ ${rhat} · bulk ESS ${rootAgeDiagnostic.bulk_ess.toFixed(0)}`;
+  };
+  renderMixing();
+  header.appendChild(mixing);
 
   const select = document.createElement("select");
   select.setAttribute("aria-label", "Posterior model");
@@ -96,6 +110,7 @@ export function mount(root: HTMLElement, data: WorkbenchData): void {
     syntheticFlag.textContent = store.bundle.is_synthetic
       ? "synthetic known-truth corpus (not observed history)"
       : "observed-data study";
+    renderMixing();
     build();
   });
 }

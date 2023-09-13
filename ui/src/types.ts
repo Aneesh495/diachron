@@ -27,6 +27,8 @@ export interface PosteriorBundle {
   source_commit: string;
   notes: string;
   rootLocations: RootLocation[];
+  converged: boolean;
+  rootAgeDiagnostic: { split_rhat: number | null; bulk_ess: number };
 }
 
 // A parsed phylogenetic tree node. `provenance` records whether a node's

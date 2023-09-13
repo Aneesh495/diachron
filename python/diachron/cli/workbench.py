@@ -10,6 +10,7 @@ import numpy as np
 from ..infer.artifacts import PosteriorBundle
 from ..models.posterior import planar_geography
 from ..models.tree import PhyloTree
+from .sampling import run_diagnose
 
 _MAX_DRAWS = 120
 _MAX_MODELS = 8
@@ -69,6 +70,7 @@ def export_workbench(bundle_dirs: dict[str, str], out_path: str) -> dict:
             raise ValueError("workbench model bundles must share the same study observations")
 
         retained = _retained_subset(bundle)
+        diagnostic = run_diagnose(directory)
         bundles[name] = {
             "model_name": bundle.model_name,
             "dataset_name": bundle.dataset_name,
@@ -79,6 +81,8 @@ def export_workbench(bundle_dirs: dict[str, str], out_path: str) -> dict:
             "tip_labels": bundle.tip_labels,
             "source_commit": bundle.source_commit,
             "notes": bundle.notes,
+            "converged": diagnostic["converged"],
+            "rootAgeDiagnostic": diagnostic["scalars"]["root_age"],
             "chains": [
                 [{k: d[k] for k in ("iteration", "root_age", "gain", "loss", "clock_rate",
                                      "log_posterior", "newick")} for d in chain]
