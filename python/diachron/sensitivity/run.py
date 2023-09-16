@@ -18,13 +18,14 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, replace
 
 import numpy as np
 
 from ..io.corpus import build_primary_corpus
 from ..infer.campaign import prepare_study, run_campaign, campaign_bundle
 from ..models.posterior import ModelConfig
+from ..util.gitmeta import source_commit
 
 
 @dataclass
@@ -62,20 +63,25 @@ def _declared_configs() -> list[SensitivityConfig]:
     # 8: no calibration (tree_only).
     configs.append(SensitivityConfig(
         "no_calibration", "calibration", ModelConfig.tree_only))
-    # 9-12: the four observation models at the default prior.
-    for name, builder in [
-        ("model_tree_only", ModelConfig.tree_only),
-        ("model_dated", ModelConfig.dated),
-        ("model_geography", ModelConfig.geography),
-        ("model_borrowing", ModelConfig.borrowing),
-    ]:
-        configs.append(SensitivityConfig(name, "model", builder))
+    configs.extend([
+        SensitivityConfig("gamma_rate_heterogeneity", "clock",
+                          lambda: replace(dated(), rate_alpha=0.7)),
+        SensitivityConfig("relaxed_clock", "clock", ModelConfig.relaxed),
+        SensitivityConfig("planar_geography", "geography", ModelConfig.geography),
+        SensitivityConfig("regional_geography_3", "geography",
+                          lambda: replace(ModelConfig.geography(), geo_region_count=3)),
+        SensitivityConfig("regional_geography_6", "geography",
+                          lambda: replace(ModelConfig.geography(), geo_region_count=6)),
+        SensitivityConfig("borrowing_default", "contact", ModelConfig.borrowing),
+        SensitivityConfig("borrowing_tighter_prior", "contact",
+                          lambda: replace(ModelConfig.borrowing(), borrowing_prior_rate=30.0)),
+    ])
     return configs
 
 
 def run_sensitivity(out_dir: str = "runs/sensitivity",
                     warmup: int = 500, iterations: int = 1500) -> dict:
-    os.makedirs(out_dir, exist_ok=True)
+    os.makedirs(out_dir, exist_ok=False)
     corpus = build_primary_corpus()
 
     rows = []
@@ -83,18 +89,23 @@ def run_sensitivity(out_dir: str = "runs/sensitivity",
         # Data levers change how the study is prepared.
         drop_singletons = sc.name != "include_singletons"
         include_loans = sc.name != "remove_loans"
+        attestations = corpus.attestations
+        if sc.name == "half_calibrations":
+            attestations = sorted(attestations, key=lambda att: att.id)[::2]
         study = prepare_study(
-            corpus.dataset, corpus.attestations,
+            corpus.dataset, attestations,
             drop_singletons=drop_singletons,
             include_loans_as_present=include_loans,
         )
-        if sc.name == "half_calibrations":
-            study.calibrations = study.calibrations[: len(study.calibrations) // 2]
-
         config = sc.build()
+        if config.use_calibration and study.calibrations:
+            cal = study.calibrations[0]
+            start_age = (cal.age_low + cal.age_high) / 2.0
+        else:
+            start_age = 6000.0
         chains = run_campaign(
             study, config, n_chains=2, warmup=warmup, iterations=iterations, thin=10,
-            root_age_init=corpus.truth.root_age, base_seed=40000,
+            root_age_init=start_age, base_seed=40000,
         )
         bundle = campaign_bundle(chains, study, config)
         root = np.array([d for ch in bundle.scalar("root_age") for d in ch])
@@ -104,10 +115,15 @@ def run_sensitivity(out_dir: str = "runs/sensitivity",
             "root_age_mean": float(root.mean()),
             "root_age_sd": float(root.std()),
             "n_chars": len(study.columns),
+            "n_attestations": len(attestations),
+            "model": asdict(config),
+            "root_quantiles_05_50_95": np.quantile(root, [0.05, 0.5, 0.95]).tolist(),
         })
+        with open(os.path.join(out_dir, "configurations.jsonl"), "a", encoding="utf-8") as raw:
+            raw.write(json.dumps(rows[-1], allow_nan=False) + "\n")
 
     # Stability verdict: which levers move the root-age estimate materially.
-    baseline = next(r for r in rows if r["config"] == "model_dated")
+    baseline = next(r for r in rows if r["config"] == "pop_size_3000")
     for r in rows:
         r["root_shift_vs_baseline"] = abs(r["root_age_mean"] - baseline["root_age_mean"])
     sensitive = [r["config"] for r in rows
@@ -115,11 +131,14 @@ def run_sensitivity(out_dir: str = "runs/sensitivity",
 
     result = {
         "gate": "G08",
+        "source_commit": source_commit(),
+        "is_synthetic": True,
+        "profile": "two-chain sensitivity diagnostic",
         "n_configs": len(rows),
         "configs": rows,
-        "baseline": "model_dated",
+        "baseline": "pop_size_3000",
         "levers_that_shift_root_age": sensitive,
-        "note": "Predeclared configurations; stable vs prior/calibration-dependent findings separated.",
+        "note": "Shifts are descriptive for short chains. Small shifts do not establish robustness.",
     }
     with open(os.path.join(out_dir, "sensitivity.json"), "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)

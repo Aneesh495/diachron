@@ -174,12 +174,31 @@ def build_model(study: StudyData, config: ModelConfig) -> PosteriorModel:
     candidates = [
         directed for a, b in (study.borrow_candidates or ()) for directed in ((a, b), (b, a))
     ]
+    region_model = None
+    tip_regions = {}
+    if config.use_geography and config.geo_region_count:
+        from ..geo.regions import RegionModel, assign_regions
+
+        # Fixed European/West Asian anchors for synthetic sensitivity runs.
+        fine = [
+            ("Atlantic", (50.0, -5.0)), ("Central Europe", (48.0, 16.0)),
+            ("Balkans", (42.0, 23.0)), ("Steppe", (48.0, 35.0)),
+            ("Anatolia", (39.0, 35.0)), ("Caucasus", (43.0, 45.0)),
+        ]
+        if config.geo_region_count not in (3, 6):
+            raise ValueError("regional sensitivity supports three or six fixed anchors")
+        anchors = fine if config.geo_region_count == 6 else fine[::2]
+        region_model = RegionModel([name for name, _ in anchors], [point for _, point in anchors])
+        tip_regions = assign_regions(study.tip_coords, region_model)
     return PosteriorModel(
         config=config,
         columns=study.columns,
         n_states=2,
         minimum_present=study.minimum_present,
         tip_dates=study.tip_dates if config.use_calibration else {},
+        region_model=region_model,
+        tip_regions=tip_regions,
+        n_tips=len(study.tip_labels),
         calibrations=study.calibrations,
         tip_coords=study.tip_coords,
         borrow_candidates=candidates if config.use_borrowing else [],
