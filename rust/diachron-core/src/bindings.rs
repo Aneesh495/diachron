@@ -78,14 +78,19 @@ fn build_tree(
 fn make_model(kind: &str, params: &[f64]) -> PyResult<Box<dyn SubstModel>> {
     match kind {
         "binary" => {
-            if params.len() != 2 {
-                return Err(PyValueError::new_err("binary model needs [gain, loss]"));
+            if params.len() != 2 || params.iter().any(|r| !r.is_finite() || *r <= 0.0)
+                || !(params[0] + params[1]).is_finite()
+            {
+                return Err(PyValueError::new_err("binary model needs two positive, finite rates"));
             }
             Ok(Box::new(BinaryGainLoss::new(params[0], params[1])))
         }
         "f81" => {
-            if params.len() < 2 {
-                return Err(PyValueError::new_err("f81 needs [rate, pi0, pi1, ...]"));
+            if !(2..=33).contains(&params.len())
+                || params.iter().any(|p| !p.is_finite() || *p <= 0.0)
+                || (params[1..].iter().sum::<f64>() - 1.0).abs() > 1e-9
+            {
+                return Err(PyValueError::new_err("invalid F81 rate or equilibrium frequencies"));
             }
             let rate = params[0];
             let pi = params[1..].to_vec();
@@ -107,6 +112,24 @@ fn make_model(kind: &str, params: &[f64]) -> PyResult<Box<dyn SubstModel>> {
     }
 }
 
+fn validate_character(
+    column: &[i64], n_tips: usize, n_states: usize,
+) -> PyResult<()> {
+    if column.len() != n_tips || column.iter().any(|&s| s >= n_states as i64) {
+        return Err(PyValueError::new_err("character width or state disagrees with tree and model"));
+    }
+    Ok(())
+}
+
+fn validate_root_prior(prior: &[f64], n_states: usize) -> PyResult<()> {
+    if prior.len() != n_states || prior.iter().any(|p| !p.is_finite() || *p < 0.0)
+        || (prior.iter().sum::<f64>() - 1.0).abs() > 1e-9
+    {
+        return Err(PyValueError::new_err("invalid root probability vector"));
+    }
+    Ok(())
+}
+
 /// Log-likelihood of a single character column.
 #[pyfunction]
 #[allow(clippy::too_many_arguments)]
@@ -123,6 +146,8 @@ fn char_log_likelihood(
 ) -> PyResult<f64> {
     let tree = build_tree(&parent, &branch_len, &height, &taxon, root)?;
     let model = make_model(&model_kind, &model_params)?;
+    validate_character(&column, tree.n_tips(), model.n_states())?;
+    validate_root_prior(&root_prior, model.n_states())?;
     let states: Vec<Option<usize>> = column
         .iter()
         .map(|&s| if s < 0 { None } else { Some(s as usize) })
@@ -147,6 +172,15 @@ fn block_log_likelihood(
 ) -> PyResult<f64> {
     let tree = build_tree(&parent, &branch_len, &height, &taxon, root)?;
     let model = make_model(&model_kind, &model_params)?;
+    let n_tips = tree.n_tips();
+    let n_states = model.n_states();
+    validate_root_prior(&root_prior, n_states)?;
+    if columns.len().saturating_mul(n_tips) > 8_000_000 {
+        return Err(PyValueError::new_err("character block exceeds 8,000,000 cells"));
+    }
+    for column in &columns {
+        validate_character(column, n_tips, n_states)?;
+    }
     let cols: Vec<Vec<Option<usize>>> = columns
         .iter()
         .map(|col| {
@@ -179,7 +213,8 @@ fn binary_character_scores(
     let tree = build_tree(&parent, &branch_len, &height, &taxon, root)?;
     let n_tips = tree.n_tips();
     let contacts = contacts.unwrap_or_default();
-    if contacts.len() > 16
+    if columns.len().saturating_mul(n_tips) > 8_000_000
+        || contacts.len() > 16
         || contacts.iter().any(|&(donor, recipient, intensity)| {
             donor >= n_tips || recipient >= n_tips || donor == recipient
                 || !intensity.is_finite() || intensity < 0.0

@@ -53,3 +53,15 @@ def test_native_chain_different_seeds_differ():
     a = _core.run_native_chain(parent, height, taxon, 6, 5e-4, 1e-3, cols, 3000.0, 1, 200, 400, 5)
     b = _core.run_native_chain(parent, height, taxon, 6, 5e-4, 1e-3, cols, 3000.0, 2, 200, 400, 5)
     assert a != b
+
+
+def test_invalid_pruning_inputs_raise_value_error():
+    import pytest
+
+    tree = ([-1, 0, 0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0], [-1, 0, 1], 0)
+    with pytest.raises(ValueError, match="character width or state"):
+        _core.char_log_likelihood(*tree, "binary", [0.4, 0.4], [1], [0.5, 0.5])
+    with pytest.raises(ValueError, match="root probability"):
+        _core.block_log_likelihood(*tree, "binary", [0.4, 0.4], [[0, 1]], [0.9, 0.9])
+    with pytest.raises(ValueError, match="equilibrium frequencies"):
+        _core.block_log_likelihood(*tree, "f81", [0.1, 0.2, 0.7], [[0, 1]], [0.5, 0.5])
