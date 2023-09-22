@@ -122,7 +122,7 @@ acceptance:
 
 .PHONY: verify
 verify:
-	$(PY) -m diachron.cli.main verify --evidence $(EVIDENCE)
+	$(PY) -m diachron.cli.main verify --evidence "$(EVIDENCE)" $(VERIFY_ARGS)
 
 .PHONY: release
 release:
