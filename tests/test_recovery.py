@@ -96,3 +96,15 @@ def test_checkpoint_rejects_missingness_change(tmp_path):
     altered[0][0] = -1 if altered[0][0] >= 0 else 0
     with pytest.raises(ValueError, match="model inputs differ"):
         Chain.resume(replace(model, columns=altered), path)
+
+
+def test_parallel_chain_order_and_draws_match_serial(tmp_path):
+    from diachron.infer.campaign import prepare_study, run_campaign
+
+    dataset, truth = simulate_dataset(n_languages=6, n_concepts=12, seed=15, root_age=6000)
+    study = prepare_study(dataset)
+    args = dict(n_chains=2, warmup=10, iterations=40, thin=5, base_seed=32)
+    config = ModelConfig.tree_only()
+    serial = run_campaign(study, config, **args)
+    parallel = run_campaign(study, config, **args, jobs=2, checkpoint_dir=str(tmp_path))
+    assert [chain.draws for chain in serial] == [chain.draws for chain in parallel]

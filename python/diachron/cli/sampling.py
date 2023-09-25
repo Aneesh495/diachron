@@ -50,6 +50,7 @@ def run_sample(
     out_dir: str,
     profile: str = "cpu",
     resume: bool = False,
+    jobs: int = 1,
     observed_study: str | None = None,
     observed_source: Path | None = None,
     catalog: Path | None = None,
@@ -99,6 +100,7 @@ def run_sample(
         root_age_init=root_age_init,
         checkpoint_dir=os.path.join(out_dir, "checkpoints"),
         resume=resume,
+        jobs=jobs,
     )
     bundle = campaign_bundle(chains, study, config, source_commit=source_commit())
     if observed_study:
@@ -115,6 +117,7 @@ def run_sample(
         "is_synthetic": study.dataset.is_synthetic,
         "dated_tips": len(chains[0].model.tip_dates),
         "chains": n_chains,
+        "workers": min(n_chains, jobs),
         "warmup": warmup,
         "iterations": iterations,
         "draws_per_chain": bundle.draws_per_chain,
