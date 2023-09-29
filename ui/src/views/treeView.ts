@@ -12,10 +12,32 @@ import { descendantTaxa } from "../newick";
 
 export class TreeView {
   private el: SVGSVGElement;
+  private tree: ParsedTree;
+  private fitted: boolean = true;
   constructor(private store: Store, container: HTMLElement) {
+    this.tree = store.summary.maxCredibilityTree();
+    const controls = document.createElement("div");
+    controls.className = "tree-controls";
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.textContent = "Show tip labels";
+    toggle.setAttribute("aria-pressed", "false");
+    toggle.addEventListener("click", () => {
+      this.fitted = !this.fitted;
+      toggle.textContent = this.fitted ? "Show tip labels" : "Fit full tree";
+      toggle.setAttribute("aria-pressed", String(!this.fitted));
+      container.scrollTop = 0;
+      this.render();
+    });
+    const select = document.createElement("button");
+    select.type = "button";
+    select.textContent = "Select family";
+    select.addEventListener("click", () => store.selectClade(descendantTaxa(this.tree, this.tree.root)));
+    controls.append(toggle, select);
+    container.appendChild(controls);
+
     this.el = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     this.el.setAttribute("width", "100%");
-    this.el.setAttribute("height", "100%");
     this.el.setAttribute("class", "tree-view");
     container.appendChild(this.el);
     this.store.subscribe(() => this.render());
@@ -23,12 +45,12 @@ export class TreeView {
   }
 
   private render(): void {
-    const tree = this.store.summary.maxCredibilityTree();
+    const tree = this.tree;
     while (this.el.firstChild) this.el.removeChild(this.el.firstChild);
 
-    const width = this.el.clientWidth || 600;
-    const height = this.el.clientHeight || 500;
-    const margin = 40;
+    const width = this.el.parentElement?.clientWidth || 600;
+    const viewport = Math.max(220, (this.el.parentElement?.clientHeight ?? 300) - 34);
+    const margin = 24;
     const rootAge = tree.nodes[tree.root].height || 1;
 
     // Assign a y position to each tip in traversal order, x by node age.
@@ -42,6 +64,11 @@ export class TreeView {
       }
     };
     collectTips(tree.root);
+
+    const height = this.fitted ? viewport : Math.max(viewport, tipOrder.length * 16 + 2 * margin);
+    this.el.setAttribute("height", String(height));
+    const showLabels = !this.fitted || tipOrder.length * 12 < height;
+    const right = showLabels ? Math.min(width / 2, 175) : margin;
 
     const yOf = new Map<number, number>();
     tipOrder.forEach((n, i) => {
@@ -58,7 +85,7 @@ export class TreeView {
     }
 
     const xOf = (age: number) =>
-      width - margin - (age / rootAge) * (width - 2 * margin);
+      width - right - (age / rootAge) * (width - right - margin);
 
     const sel = this.store.selection;
 
@@ -71,7 +98,7 @@ export class TreeView {
       const y1 = yOf.get(node.id)!;
       const yParent = yOf.get(p.id)!;
       const inClade =
-        sel.clade && node.taxon !== null && sel.clade.has(node.taxon);
+        node.taxon !== null && sel.taxa.has(node.taxon);
       const line = this.svg("path");
       line.setAttribute(
         "d",
@@ -100,19 +127,19 @@ export class TreeView {
         dot.style.cursor = "pointer";
         dot.addEventListener("click", () => this.store.selectClade(taxa));
         const title = this.svg("title");
-        title.textContent = `clade support ${(support * 100).toFixed(0)}%, age ${node.height.toFixed(0)} ybp`;
+        title.textContent = `clade frequency ${(support * 100).toFixed(0)}%, age ${node.height.toFixed(0)} ybp`;
         dot.appendChild(title);
         this.el.appendChild(dot);
-      } else {
+      } else if (showLabels) {
         const label = this.svg("text");
         label.setAttribute("x", String(x + 6));
         label.setAttribute("y", String(y + 3));
-        label.setAttribute("font-size", "9");
+        label.setAttribute("font-size", "11");
         label.setAttribute(
           "fill",
           sel.taxa.has(node.taxon!) ? "#d6604d" : "#222"
         );
-        label.textContent = node.label ?? `t${node.taxon}`;
+        label.textContent = this.store.bundle.tip_names[node.label ?? ""] ?? node.label ?? `t${node.taxon}`;
         label.style.cursor = "pointer";
         label.addEventListener("click", () => this.store.toggleTaxon(node.taxon!));
         this.el.appendChild(label);

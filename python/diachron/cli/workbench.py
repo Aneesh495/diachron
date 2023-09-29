@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
 
@@ -47,7 +48,9 @@ def _root_locations(bundle: PosteriorBundle, chains: list[list[dict]]) -> list[d
     return cloud
 
 
-def export_workbench(bundle_dirs: dict[str, str], out_path: str) -> dict:
+def export_workbench(
+    bundle_dirs: dict[str, str], out_path: str, source: Path | None = None,
+) -> dict:
     """Export saved draws and linked data without initiating an inference chain."""
     if not 1 <= len(bundle_dirs) <= _MAX_MODELS:
         raise ValueError("workbench requires one to eight saved bundles")
@@ -91,6 +94,19 @@ def export_workbench(bundle_dirs: dict[str, str], out_path: str) -> dict:
             "rootLocations": _root_locations(bundle, retained),
         }
 
+    names = first.context.get("language_names", {})
+    if source is not None:
+        from ..io.freeze import verify_inputs
+
+        inputs = first.context["frozen_study"]["source"]["files"]
+        filename = "cldf/languages.csv"
+        verify_inputs(source, {filename: inputs[filename]})
+        with (source / filename).open(newline="", encoding="utf-8") as raw:
+            names = {r["ID"]: r["Name"] for r in csv.DictReader(raw)}
+    names = {tip: names.get(tip, tip) for tip in first.tip_labels}
+    for bundle in bundles.values():
+        bundle["tip_names"] = names
+
     coordinates = first.context["model"]["tip_coords"]
     modern_points = [
         {"lat": lat, "lon": lon, "kind": "modern-reference", "label": first.tip_labels[int(t)]}
@@ -108,7 +124,7 @@ def export_workbench(bundle_dirs: dict[str, str], out_path: str) -> dict:
         for a in first.context["attestations"] if a["language_id"] in first.tip_labels
     ]
     matrix = {
-        "languageLabels": first.tip_labels,
+        "languageLabels": [names[tip] for tip in first.tip_labels],
         "columns": first.context["model"]["columns"][:400],
     }
     payload = {

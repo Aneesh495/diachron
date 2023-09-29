@@ -317,5 +317,6 @@ def campaign_bundle(
         "model": asdict(chains[0].model),
         "attestations": [asdict(a) for a in study.attestations],
         "dataset_url": study.dataset.source_url,
+        "language_names": {language.id: language.name for language in study.dataset.languages},
     }
     return bundle

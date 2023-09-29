@@ -23,6 +23,7 @@ export interface PosteriorBundle {
   n_chains: number;
   draws_per_chain: number;
   tip_labels: string[];
+  tip_names: Record<string, string>;
   chains: Draw[][];
   source_commit: string;
   notes: string;

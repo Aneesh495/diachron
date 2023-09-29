@@ -60,7 +60,7 @@ export class AttestationView {
       select.replaceChildren(...filtered.map((item) => {
         const option = document.createElement("option");
         option.value = item.id;
-        option.textContent = `${item.id} · ${item.label}`;
+        option.textContent = `${item.id} · ${store.bundle.tip_names[item.label] ?? item.label}`;
         return option;
       }));
       if (filtered.some((a) => a.id === previous)) select.value = previous;
