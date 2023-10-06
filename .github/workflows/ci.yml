@@ -57,8 +57,20 @@ jobs:
       - name: Likelihood oracle (G02)
         run: . .venv/bin/activate && python -m diachron.cli.main likelihood-check --cases 1000
 
-      - name: Bounded integration demo
-        run: . .venv/bin/activate && python -m diachron.cli.main demo
+      - name: Bounded integration demo and saved-draw replay
+        run: |
+          . .venv/bin/activate
+          python -m diachron.cli.main demo
+          python -m diachron.cli.main verify --evidence runs/demo --expected-commit "$GITHUB_SHA"
+
+      - name: Check diagrams and render thesis
+        run: |
+          . .venv/bin/activate
+          python -m diachron.cli.main docs check
+          python -m diachron.cli.main thesis build
+
+      - name: Build a wheel
+        run: . .venv/bin/activate && maturin build --locked --release --out runs/wheels
 
   ui:
     runs-on: ubuntu-latest

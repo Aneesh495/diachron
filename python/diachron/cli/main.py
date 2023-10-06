@@ -266,8 +266,9 @@ def cmd_stress(args) -> int:
 def cmd_docs(args) -> int:
     from .docs import render_docs
 
-    _print(render_docs())
-    return 0
+    result = render_docs(render=args.action == "render")
+    _print(result)
+    return 0 if result["ok"] else 1
 
 
 def cmd_acceptance(args) -> int:
@@ -388,7 +389,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("stress").set_defaults(func=cmd_stress)
 
     dc = sub.add_parser("docs")
-    dc.add_argument("action", nargs="?", default="render")
+    dc.add_argument("action", nargs="?", choices=("render", "check"), default="render")
     dc.set_defaults(func=cmd_docs)
 
     acp = sub.add_parser("acceptance")
