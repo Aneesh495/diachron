@@ -1,50 +1,33 @@
 # Build status
 
-Updated as the project progresses. Each gate resolves to `passed`, `failed`,
-`blocked`, or `unverified` with a pointer to the evidence that justifies it.
+The code, observed data pipeline, and diagnostic workflows are runnable.
+Full acceptance remains blocked. The reported sampling frequencies are from
+diagnostic budgets, and the observed chains missed the convergence criteria.
 
-## Active phase
+| Gate | Status | Evidence and open work |
+| --- | --- | --- |
+| G01 Evidence | unverified | The observed dimensions and 175 individual records are documented in [Observed data](OBSERVED_DATA.md). Broader independent attestation coverage and adjudication of conflicting alternatives remain open. |
+| G02 Likelihood | passed | The tiny-tree oracle tests cover 1,200 independently enumerated cases. Rust tests also check large-tree scaling and a wide polytomy. |
+| G03 Sampler | unverified | Finite-target, scale Jacobian, and reversible topology move tests pass. Complete validation of the composed dated, geographic, and contact samplers remains open. |
+| G04 Ascertainment | passed | Exact selection on observed masks with and without singleton filtering is checked against enumeration. Contact copies and rate mixtures are included in the selection normalization. |
+| G05 Recovery | failed | All 200 revised datasets ran. Nominal 90% root intervals covered 72% of true ages. Mean nontrivial clade recovery was 41%. See [Recovery](results/recovery_200.md). |
+| G06 Inference | failed | The observed diagnostic chains missed the split R-hat and ESS thresholds. Full converged model comparisons remain open. See [diagnostic data](results/observed-diagnostic.json). |
+| G07 Prediction | unverified | The lexical split precedes character construction, and the language split fixes its evaluation vocabulary from training data. The observed comparisons and decision-grade estimates remain open. |
+| G08 Robustness | unverified | Fifteen distinct sensitivity levers include calibration subsets, strict and relaxed clocks, site rate variation, two region resolutions and contact priors. Full observed sensitivity remains open. |
+| G09 Geographic provenance | passed | Map marks distinguish modern points, sourced historical localities and model-sampled root locations. Unknown locations are kept off the map. |
+| G10 Borrowing | unverified | Contact scoring matches independent enumeration with missing donors and two candidate edges. A reviewed annotated-loan case and comparative recovery remain open. |
+| G11 Workbench | unverified | The saved-draw workbench passed [desktop and mobile checks](results/workbench-browser.json). The full research tour, taxonomic comparisons and general ancestral location views remain open. |
+| G12 Resume | passed | Checkpoints reject mismatched source and model identities. Exact resume and equality of serial and parallel draws have regression tests. |
+| G13 Verifier | unverified | Four rehashed semantic edits are rejected. The observed verifier can rebuild lexical columns, dates and inscriptions from pinned inputs. A complete campaign verifier remains open. |
+| G14 Thesis | unverified | Fifteen Markdown chapters and a standalone HTML renderer are available. The empirical argument depends on the unfinished model comparisons. |
+| G15 Release | blocked | The public source and bounded demonstration can be verified from a clean checkout. The release command remains gated on independently verified full acceptance. |
 
-Phase 1-2: repository foundation, Rust likelihood core, and tiny-state
-correctness oracles.
+## Continue
 
-## Gate table
-
-| Gate | Description | Status | Evidence |
-|---|---|---|---|
-| G01 | Evidence profile (dimensions, licenses, attestations) | unverified | pending ingestion + synthetic corpus |
-| G02 | Pruning matches enumeration on 1000+ tiny cases | passed | `tests/test_likelihood_oracle.py`: 1200 cases agree < 1e-9 |
-| G03 | Sampler agrees with exact finite posteriors | passed | `tests/test_mcmc_exact.py`: discrete + Gamma + Jacobian control |
-| G04 | Ascertainment correction validated | passed | `tests/test_ascertainment.py`: p(variable) matches sim, missing!=absent |
-| G05 | 200+ known-truth recovery datasets | passed | `runs/recovery_full`: 200 datasets, 90% root-age CI coverage 0.94 (calibrated), mean clade recovery 0.33 (short chains, honestly reported) |
-| G06 | Four-chain inference with convergence | unverified | `make sample` + `make diagnose` |
-| G07 | Held-out concept/language prediction | path verified | `make predict` + ppc; p-values show tree fits sharing, model misses missingness |
-| G08 | 12+ sensitivity configurations | path verified | `make sensitivity`: 12 configs; root age is calibration-dependent, stable to tree prior/ascertainment |
-| G09 | Geographic honesty in UI/exports/thesis | passed (UI/export) | map view 3-kind legend (modern/attestation/inferred), exporter tags kinds; thesis pending |
-| G10 | Borrowing recoverability limits | passed | `tests/test_geo_borrowing.py`: intensity stays low without signal, rises with real co-presence |
-| G11 | Interactive workbench on real artifacts | passed | `ui/` renders 4 linked views on saved bundles; headless screenshot in docs/screenshots |
-| G12 | Exact-state recovery, stale schema rejection | passed (resume) | `tests/test_recovery.py`: exact resume + corrupt-checkpoint reject |
-| G13 | Semantic verifier negative controls | passed | `tests/test_verifier_controls.py`: 5 controls (fabricated likelihood, negative age, synthetic-as-observed, modern-as-ancient, corrupt digest) rejected by subprocess verifier for correct reason |
-| G14 | Thesis claim-to-evidence closure | passed | `docs/thesis/`: 15 chapters + claims.json (9 claims, all resolve to evidence) |
-| G15 | Clean-checkout release + hosted publication | unverified | release pipeline |
-
-## Toolchain (verified this session)
-
-- macOS arm64, 8 cores, 16 GB RAM
-- Python 3.14.2 (venv), numpy 2.5, scipy 1.18, pandas 3.1, pyarrow 26, matplotlib 3.11
-- Rust 1.88, cargo 1.88, maturin 1.16 (PyO3 bindings)
-- Node 24.21, npm 11.19
-- gh 2.101 authenticated as Aneesh495
-
-## Last verified push
-
-Repository: https://github.com/Aneesh495/diachron
-Remote main tip verified at commit 30bcffd (Rust core + bindings).
-
-## Progress log
-
-- Phase 1-2 foundation: Rust core (expm, CTMC models, Felsenstein pruning,
-  independent enumerator, serializable RNG, MCMC moves, geo kernels) compiles,
-  21 unit tests pass, and builds as a CPython 3.14 extension. The pruning vs
-  enumeration agreement is the start of G02; the Python oracle campaign will
-  scale it to 1000+ cases.
+- Use [Observed data](OBSERVED_DATA.md) to reconstruct source inputs and
+  diagnostic runs from the pinned files.
+- Run `make test`, `make likelihood-check` and `make demo` for the bounded
+  regression suite.
+- Preserve the existing observed runs before changing initialization or
+  convergence protocol. Compare a revised sampler against the original
+  protocol and record failures at chain level.
