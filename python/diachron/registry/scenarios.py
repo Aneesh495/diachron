@@ -17,11 +17,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, asdict
 import json
+import math
 import os
 from typing import Callable
 
 from ..infer.artifacts import PosteriorBundle
-from ..models.posterior import ModelConfig
 from ..diagnostics import topology as tp
 from ..newick_support import clade_support_for  # local helper, see below
 
@@ -52,6 +52,8 @@ class ScenarioRegistry:
     def add(self, scenario: Scenario) -> None:
         if not scenario.model_name:
             raise ValueError("a scenario must name the model it was evaluated under")
+        if not math.isfinite(scenario.support) or not 0.0 <= scenario.support <= 1.0:
+            raise ValueError("scenario support must be a finite sampling frequency")
         if scenario.support_kind not in {
             "clade_frequency",
             "scalar_interval",
@@ -75,7 +77,10 @@ class ScenarioRegistry:
             nw for c in range(bundle.n_chains) for nw in bundle.chain_newicks(c)
         ]
         posteriors = tp.clade_posteriors(newicks)
-        support = clade_support_for(posteriors, taxa)
+        if not newicks or len(taxa) < 2 or any(not 0 <= t < len(bundle.tip_labels) for t in taxa):
+            raise ValueError("clade scenario requires draws and at least two known taxa")
+        labels = {bundle.tip_labels[t] for t in taxa}
+        support = clade_support_for(posteriors, labels)
         sc = Scenario(
             name=name,
             description=description,
@@ -84,7 +89,7 @@ class ScenarioRegistry:
             evidence_refs=evidence_refs,
             support=support,
             support_kind="clade_frequency",
-            detail={"taxa": sorted(taxa), "n_draws": len(newicks)},
+            detail={"taxa": sorted(labels), **_identity(bundle)},
         )
         self.add(sc)
         return sc
@@ -101,9 +106,9 @@ class ScenarioRegistry:
     ) -> Scenario:
         """A chronology claim: posterior probability the root age exceeds/precedes a threshold."""
         ages = [d["root_age"] for chain in bundle.chains for d in chain]
-        if not ages:
-            support = 0.0
-        elif direction == "older_than":
+        if not ages or not math.isfinite(threshold_years) or threshold_years < 0:
+            raise ValueError("age scenario requires draws and a finite nonnegative age")
+        if direction == "older_than":
             support = sum(1 for a in ages if a > threshold_years) / len(ages)
         elif direction == "younger_than":
             support = sum(1 for a in ages if a < threshold_years) / len(ages)
@@ -117,7 +122,7 @@ class ScenarioRegistry:
             evidence_refs=evidence_refs,
             support=support,
             support_kind="scalar_interval",
-            detail={"threshold_years": threshold_years, "direction": direction},
+            detail={"threshold_years": threshold_years, "direction": direction, **_identity(bundle)},
         )
         self.add(sc)
         return sc
@@ -140,6 +145,7 @@ class ScenarioRegistry:
             evidence_refs=evidence_refs,
             support=float(support_fn(bundle)),
             support_kind=support_kind,
+            detail=_identity(bundle),
         )
         self.add(sc)
         return sc
@@ -159,3 +165,13 @@ class ScenarioRegistry:
             }
             for s in self.scenarios
         ]
+
+
+def _identity(bundle: PosteriorBundle) -> dict:
+    return {
+        "dataset": bundle.dataset_name, "dataset_version": bundle.dataset_version,
+        "is_synthetic": bundle.is_synthetic, "source_commit": bundle.source_commit,
+        "draw_digest": bundle.draw_digest(), "n_draws": sum(len(c) for c in bundle.chains),
+        "config": bundle.context.get("model", {}).get("config"),
+        "scope": "Sampling frequency in the named bundle.",
+    }

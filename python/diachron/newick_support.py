@@ -9,7 +9,7 @@ exact bipartition or zero if it never appears in the posterior.
 from __future__ import annotations
 
 
-def clade_support_for(posteriors: dict, taxa: set[int]) -> float:
+def clade_support_for(posteriors: dict, taxa: set[str]) -> float:
     """Posterior probability of the clade defined by exactly `taxa`."""
     target = frozenset(taxa)
     return float(posteriors.get(target, 0.0))
