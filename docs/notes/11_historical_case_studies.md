@@ -29,3 +29,31 @@ with wide uncertainty rather than being confidently but wrongly resolved.
 Incompatible catalog classifications. Where the posterior tree disagrees with a
 catalog classification, the comparison view surfaces the disagreement rather than
 hiding it, so a catalog grouping that the data do not support is visible as such.
+
+## Audited annotation: Brittonic fruit terms
+
+The pinned IE-CoR release records the Brittonic group in cognate class 4364
+as loan-related to class 227 for the same meaning. The class entry attributes
+this analysis to a borrowing from Latin and points to Albert Deshayes,
+*Dictionnaire étymologique du breton* (2003), p. 258, alongside the Welsh
+dictionary entry. The donor class serves as a reference lineage in the
+wordlist. This audit follows the published judgment and does not date the
+transfer. [IE-CoR class 4364](https://iecor.clld.org/cognatesets/4364),
+[IE-CoR class 227](https://iecor.clld.org/cognatesets/227).
+
+The frozen sample has seven eligible recipient-class varieties and twenty
+eligible varieties with the source class. The two classes enter as separate
+binary characters. Removing loan-tagged forms removes the recipient class
+and changes some absences to missing data where only loan-tagged
+classification had justified an absence. The source class retains its
+twenty presences. The original lexeme-to-class records and the directed
+loan-source annotation remain independently inspectable.
+
+The proximity screen proposes no directed edge between these source and
+recipient sets. This is a concrete limit of that contact network. Moreover,
+a copy of one binary state can only connect observations under a shared
+class. Directly testing this historical annotation requires an explicit
+cross-class borrowing observation model. The current campaign leaves that
+comparison open.
+
+The numeric audit is in [iecor-loan-fruit.json](../results/iecor-loan-fruit.json).
