@@ -8,6 +8,7 @@
 
 import type { AttestationPoint, PosteriorBundle, GeoPoint } from "./types";
 import { Store } from "./store";
+import { modelComparison } from "./views/modelComparison";
 import { AttestationView } from "./views/attestationView";
 import { TreeView } from "./views/treeView";
 import { MapView } from "./views/mapView";
@@ -100,13 +101,19 @@ export function mount(root: HTMLElement, data: WorkbenchData): void {
     new MapView(store, panels[1], data.modernPoints, data.attestations);
     new TimelineView(store, panels[2]);
     new AttestationView(store, panels[2], data.attestations);
+    if (modelNames.length > 1) panels[2].appendChild(modelComparison(data.bundles));
     new MatrixView(store, panels[3], data.matrix);
   };
   build();
 
   select.addEventListener("change", () => {
+    const previous = store.selection;
     current = select.value;
     store = new Store(data.bundles[current]);
+    store.selection = {
+      taxa: new Set(previous.taxa), clade: previous.clade && new Set(previous.clade),
+      timeYbp: previous.timeYbp,
+    };
     syntheticFlag.textContent = store.bundle.is_synthetic
       ? "synthetic known-truth corpus (not observed history)"
       : "observed-data study";

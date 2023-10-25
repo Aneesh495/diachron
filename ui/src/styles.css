@@ -112,3 +112,12 @@ body {
 
 .map-controls { display: flex; align-items: center; gap: 8px; padding: 4px 8px; }
 .map-controls button { margin-left: 3px; min-width: 27px; }
+
+.model-comparison { margin: 0 16px 10px; font-size: 13px; overflow-x: auto; }
+.model-comparison table { margin-top: 6px; border-collapse: collapse; min-width: 480px; }
+.model-comparison caption { text-align: left; color: #536577; }
+.model-comparison td, .model-comparison th {
+  padding: 5px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--panel-border);
+}

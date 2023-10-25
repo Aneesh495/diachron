@@ -18,7 +18,7 @@ export class TimelineView {
 
   private render(): void {
     const root = this.store.summary.scalarSummary("root_age");
-    const maxAge = Math.ceil(root.q95 * 1.1);
+    const maxAge = Math.max(1, Math.ceil(root.q95 * 1.1), Math.ceil(this.store.selection.timeYbp));
 
     this.el.innerHTML = "";
     const band = document.createElement("div");
