@@ -22,7 +22,8 @@ export class AttestationView {
       }
       const details = document.createElement("p");
       details.textContent = [
-        `${item.region || "Unspecified locality"}, ${item.ageLow}–${item.ageHigh} years BP.`,
+        `${item.region || "Unspecified locality"}, ${item.sourceAgeLow}–${item.sourceAgeHigh} ` +
+          (item.sourceEpoch ? `years before ${item.sourceEpoch} CE.` : "model years."),
         item.locationNote || "", item.languageNote || "",
         item.conflicts.length ? `Alternatives: ${item.conflicts.join(", ")}.` : "",
       ].filter(Boolean).join(" ");
