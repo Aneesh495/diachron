@@ -30,7 +30,7 @@ algorithm is correct.
 
 ## Log-space scaling
 
-Products of many small probabilities underflow. At each internal node the
+Products of many small probabilities underflow. After each child contribution the
 conditional vector is divided by its maximum entry, and the log of that maximum is
 accumulated into a per-node log scale; the final log likelihood adds the
 accumulated scales to `log sum_s pi(s) L_root(s)`. This keeps the stored vector
@@ -42,23 +42,29 @@ without scaling, returns a finite log likelihood with it
 
 A missing tip marginalizes over its state; an absent tip pins the state to 0.
 Because marginalizing sums the two indicator cases, the missing likelihood is
-strictly larger than either pinned case. The Rust and Python tests both confirm
+at least as large as either pinned case. Equality is possible if the other state has zero mass. The Rust and Python tests both confirm
 `L(missing) > L(absent)` for a fixed surrounding pattern (gate G04). This is the
 mechanism by which "we have no data here" and "the class is absent here" produce
 different likelihoods, as the evidence contract requires.
 
 ## Ascertainment conditioning
 
-Only variable characters are kept. Conditioning each kept character on being
-variable divides its likelihood by `p(variable) = 1 - p(constant)`, where
-`p(constant)` is the summed probability of the all-absent and all-present patterns
-under the same tree and model. We compute `p(constant)` by running the pruning
-likelihood on the two constant patterns and summing. Validation: the analytic
-`p(variable)` matches the empirical fraction of forward simulations that come out
-variable, to within 0.005 over 400000 simulations (gate G04,
-`tests/test_ascertainment.py`). The correction matches the selection process
-actually applied; a correction for a different scheme would not reproduce the
-simulated fraction.
+Condition on retention given the observed mask. The default rule needs
+at least two observed presences and at least one observed absence.
+When singletons are allowed, the positive threshold is one. Unobserved
+tips contribute zero to both counts.
+
+For each ancestral state, the normalization pass tracks six probabilities.
+A bucket records the presence count saturated at two and a flag for any
+absence. The transition step propagates child buckets through the CTMC.
+The merge convolves saturated counts and takes the logical union of
+absence flags. At the root the stationary-weighted mass of acceptable
+buckets is the retention probability. For an observed recipient in a
+contact copy, count the donor twice if both tips are observed, and once
+if only the recipient is observed. The recipient's inherited state then
+contributes no count. Rate and contact probabilities are averaged before
+taking the ratio. The tests enumerate retained patterns with both
+thresholds, varied masks, and contact components.
 
 ## Geographic Gaussian pruning
 
@@ -66,6 +72,6 @@ The Brownian-on-tree likelihood uses independent contrasts: at each internal nod
 the children's location estimates are combined by precision weighting, the added
 variance is the harmonic combination of the child branch variances, and each
 child-pair contrast contributes a Gaussian density. This integrates out all
-internal locations in closed form and gives the exact marginal likelihood of the
-tip coordinates under Brownian motion, the continuous counterpart of the discrete
+internal locations in closed form and gives the exact likelihood of contrasts under the stated planar
+Gaussian model, the continuous counterpart of the discrete
 pruning recursion.

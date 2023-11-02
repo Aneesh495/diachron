@@ -186,108 +186,63 @@ coverage.
 
 # Chapter 4: Generative models
 
-This chapter writes the complete generative model and its posterior, and shows
-the limiting cases in which the full model reduces to a simpler one.
+## Character and rate model
 
-## Unit of inheritance
+The unit is the membership of a language variety in a cognate class for a
+particular concept. One source judgment can make the character present.
+Absence requires full classification of the recorded forms in the cell.
+A missing lexical cell or a cell with inadequate classification contributes
+an unknown state. Loan judgments and multiple or partial classifications
+remain in the evidence tables. They do not define mutually exclusive
+states for a single meaning.
 
-An observation attaches to a (language, concept) cell. The transform in
-`diachron.io.characters` maps cognate judgments to binary presence/absence
-characters: one character per cognate class within a concept. For language L and
-class K the state is present (L has a lexeme judged in K), absent (L has lexical
-data for the concept but no form in K), or missing (L has no lexical data for the
-concept). Singletons (present in one language) are excluded as carrying no
-internal-structure signal and counted in the ascertainment accounting. Loans are
-annotated, not folded silently into inheritance; partial cognates are their own
-classes.
+Let g and l be the gain and loss rates, and c the positive clock
+multiplier. The two-state generator has off-diagonals g and l and
+stationary distribution (l, g)/(g+l). Branch v has elapsed time
+d_v = h_parent - h_v. The transition is exp(Q c d_v r_v a), where r_v
+is one for the strict clock and a is one for the homogeneous site model.
+Under the relaxed clock, log(r_v) follows a Normal with mean -s²/2 and
+standard deviation s for fixed model dispersion s. Under the site
+mixture, a is integrated over equal-probability discrete-gamma categories
+scaled to arithmetic mean one. The clock multiplier and g and l enter
+the likelihood as products. Proper priors regularize that redundancy.
 
-## Character evolution
+## Observation and posterior
 
-Each class evolves along the tree as a two-state continuous-time Markov chain with
-instantaneous rate matrix
+For character j, let x_j be its observed pattern and m_j its
+observed-tip mask. Let A_j be the event of at least one observed absence
+and either one or two observed presences, depending on the singleton
+policy. For a fixed tree, define P_j as the mixture over rate categories
+and possible contact edges. A contact component copies one donor's
+latent terminal state to the recipient. It is averaged with the inherited
+component before dividing by selection probability.
 
-    Q = [ -gain   gain ]
-        [  loss  -loss ]
+    log target = sum_j [log P_j(x_j | m_j) - log P_j(A_j | m_j)]
+               + log p(ordered labeled tree | observed tip ages, N)
+               + sum of dated tip and node calibration log densities
+               + geographic log contrast or region likelihood
+               + log p(g, l, c, r, geographic rate, contact intensities).
 
-so a lineage gains the class at rate `gain` and loses it at rate `loss`. The
-stationary distribution is proportional to `(loss, gain)`. The transition matrix
-over a branch of length t has the closed form
+The denominator is omitted in the declared uncorrected sensitivity run.
+Lognormal priors on g and l have median 0.001 and log standard deviation
+1.5. The clock multiplier has median one and log standard deviation 0.5.
+The planar geographic diffusion variance has median 0.004 squared degrees
+per year and log standard deviation two. Contact weights have independent
+exponential priors, with default rate ten. Each prior applies in the model
+where its parameter is sampled.
 
-    P(t) = [ pi0 + pi1 e   pi1 - pi1 e ]
-           [ pi0 - pi0 e   pi1 + pi0 e ],   e = exp(-(gain+loss) t),
+For each waiting interval with k extant backward lineages, the constant-size
+coalescent contributes survival under total hazard k(k-1)/(2N). Each labeled
+merge contributes its own hazard 1/N. Historical tip dates introduce lineage
+sampling events. The IE-CoR model uses terminal-tip densities in years before
+2000 CE. The synthetic model can use an aggregate root-age calibration.
+The ABVD tree-only analysis does not assign independent historical dates.
 
-with `pi0 = loss/(gain+loss)`, `pi1 = gain/(gain+loss)`. This is validated
-against the matrix exponential of Q in the Rust test suite.
-
-## Pruning likelihood
-
-For one character the probability of the observed tip states, marginalized over
-internal node states, is the Felsenstein pruning likelihood. Define the
-conditional likelihood vector `L_v(s) = P(data below v | v in state s)`. Tips are
-indicators of the observed state, or the all-ones vector when missing (which is
-why missing and absent differ). At an internal node v with children c,
-
-    L_v(s) = prod_c ( sum_j P_sj(t_c) L_c(j) ).
-
-The character log likelihood is `log sum_s pi(s) L_root(s)`. Chapter 5 gives the
-log-space scaling that keeps this stable on deep trees and the ascertainment
-conditioning.
-
-## Clock and calibration
-
-A strict clock scales branch durations in years to expected substitutions by a
-single rate; a relaxed uncorrelated-lognormal clock gives each branch its own
-rate from a lognormal with shared mean and log-standard-deviation sigma. As sigma
-goes to zero the relaxed clock reduces exactly to the strict clock. Calibrations
-place densities on node ages: an aggregate root-age interval derived from the
-oldest reliable attestation, which is the minimal structure that makes the strict
-clock's time scale identifiable.
-
-## Tree prior
-
-Node times follow a constant-size coalescent: with k lineages the pairwise
-coalescent rate is `k(k-1)/(2N)` and the waiting time to the next coalescence is
-exponential with that rate. The density is written out in
-`diachron.models.priors.coalescent_log_prior`.
-
-## Geography
-
-Lineage location is a latent state. Two models are compared rather than assumed. A
-region CTMC moves a lineage among a small set of named regions. A Brownian-on-tree
-model diffuses latitude and longitude with variance sigma^2 per year; its marginal
-likelihood of the tip coordinates, integrating out internal locations, is the
-Gaussian independent-contrasts pruning, the continuous analogue of the character
-recursion. Tip coordinates enter as uncertain observations with their own error;
-they are modern reference points, never historical boundaries.
-
-## Borrowing
-
-A bounded contact model places a borrowing intensity on each edge of a fixed
-candidate network, with an exponential prior pulling intensities toward zero so
-the model prefers no borrowing unless the data support it. This is a finite,
-identifiable alternative to unrestricted reticulation, which the platform
-deliberately does not claim.
-
-## The full posterior
-
-    log p(tree, times, rates, geo, borrow | data)
-      = sum_characters log p(character | tree, times, rates)  [pruning]
-        - n_variable * log p(variable | model)                 [ascertainment]
-      + log p(node ages | calibrations)                        [calibration]
-      + log p(tip coords | tree, times, sigma^2)               [geography]
-      + log p(borrow intensities)                              [borrowing prior]
-      + log p(tree)                                            [coalescent]
-      + log p(rates)                                           [clock prior]
-      + const.
-
-## Limiting cases
-
-- Borrowing intensities to zero: the borrowing model reduces to the dated model.
-- Geographic sigma to infinity: locations become uninformative and the geography
-  term is constant, recovering the dated model.
-- Relaxed-clock sigma to zero: the relaxed clock reduces to the strict clock.
-- No calibration: the calibration term drops and the time scale is identified only
-  up to the clock-rate/time trade-off, which Chapter 12 shows empirically.
+The dated baseline omits geography and contact. The geographic variant adds
+planar contrasts or a symmetric region CTMC. The borrowing variant includes
+contact copying. The contact likelihood approaches the dated lexical
+likelihood as intensities approach zero. The relaxed clock approaches the
+strict clock as its dispersion approaches zero.
 
 
 # Chapter 5: Likelihood derivations and numerical stability
@@ -322,7 +277,7 @@ algorithm is correct.
 
 ## Log-space scaling
 
-Products of many small probabilities underflow. At each internal node the
+Products of many small probabilities underflow. After each child contribution the
 conditional vector is divided by its maximum entry, and the log of that maximum is
 accumulated into a per-node log scale; the final log likelihood adds the
 accumulated scales to `log sum_s pi(s) L_root(s)`. This keeps the stored vector
@@ -334,23 +289,29 @@ without scaling, returns a finite log likelihood with it
 
 A missing tip marginalizes over its state; an absent tip pins the state to 0.
 Because marginalizing sums the two indicator cases, the missing likelihood is
-strictly larger than either pinned case. The Rust and Python tests both confirm
+at least as large as either pinned case. Equality is possible if the other state has zero mass. The Rust and Python tests both confirm
 `L(missing) > L(absent)` for a fixed surrounding pattern (gate G04). This is the
 mechanism by which "we have no data here" and "the class is absent here" produce
 different likelihoods, as the evidence contract requires.
 
 ## Ascertainment conditioning
 
-Only variable characters are kept. Conditioning each kept character on being
-variable divides its likelihood by `p(variable) = 1 - p(constant)`, where
-`p(constant)` is the summed probability of the all-absent and all-present patterns
-under the same tree and model. We compute `p(constant)` by running the pruning
-likelihood on the two constant patterns and summing. Validation: the analytic
-`p(variable)` matches the empirical fraction of forward simulations that come out
-variable, to within 0.005 over 400000 simulations (gate G04,
-`tests/test_ascertainment.py`). The correction matches the selection process
-actually applied; a correction for a different scheme would not reproduce the
-simulated fraction.
+Condition on retention given the observed mask. The default rule needs
+at least two observed presences and at least one observed absence.
+When singletons are allowed, the positive threshold is one. Unobserved
+tips contribute zero to both counts.
+
+For each ancestral state, the normalization pass tracks six probabilities.
+A bucket records the presence count saturated at two and a flag for any
+absence. The transition step propagates child buckets through the CTMC.
+The merge convolves saturated counts and takes the logical union of
+absence flags. At the root the stationary-weighted mass of acceptable
+buckets is the retention probability. For an observed recipient in a
+contact copy, count the donor twice if both tips are observed, and once
+if only the recipient is observed. The recipient's inherited state then
+contributes no count. Rate and contact probabilities are averaged before
+taking the ratio. The tests enumerate retained patterns with both
+thresholds, varied masks, and contact components.
 
 ## Geographic Gaussian pruning
 
@@ -358,8 +319,8 @@ The Brownian-on-tree likelihood uses independent contrasts: at each internal nod
 the children's location estimates are combined by precision weighting, the added
 variance is the harmonic combination of the child branch variances, and each
 child-pair contrast contributes a Gaussian density. This integrates out all
-internal locations in closed form and gives the exact marginal likelihood of the
-tip coordinates under Brownian motion, the continuous counterpart of the discrete
+internal locations in closed form and gives the exact likelihood of contrasts under the stated planar
+Gaussian model, the continuous counterpart of the discrete
 pruning recursion.
 
 
@@ -394,11 +355,12 @@ is not vacuous.
 
 ## Node-time slide
 
-An internal node's age is moved by a uniform step within a window, reflected to
-stay strictly between its oldest child and its parent. Because the window is
-recomputed consistently and out-of-window proposals are rejected, the move is
-symmetric and the Hastings term is zero. Branch lengths are derived from node
-ages, so time ordering is maintained automatically.
+Each move proposes a uniform increment. For an internal non-root node,
+the window is a fraction of the current root age, which the move leaves
+fixed. For the root, the window depends on its oldest child. A dated tip
+uses a fixed window from its date density. A proposal that crosses a child
+or parent age is rejected. Because the window is unchanged by an accepted
+move, the reverse increment has the same density.
 
 ## Root scale move
 
@@ -413,14 +375,18 @@ and rejected.
 symmetric selection the move is its own inverse, so the Hastings term is zero. The
 move is rejected if it would make a child older than its parent.
 
-**Bounded SPR.** A node and its parent edge are pruned; the collapsed parent is
-reinserted on a target edge whose time interval spans the pruned node's crown age.
-Targets are restricted to edges outside the pruned subtree and excluding the
-collapsed node and the sibling edge, which is what prevents cycles; the Hastings
-ratio is the ratio of valid-target counts before and after. An earlier version
-omitted these exclusions and could create a cycle, which made likelihood traversal
-blow up; the fix and a 3000-move integrity test that checks for cycles, a single
-root, a stable node count, and valid times are in `tests/test_moves.py`.
+**Time-preserving SPR.** Choose a prunable child. Detach it and collapse
+its parent, keeping the parent's age as a fixed proposal coordinate.
+Choose uniformly among edges of the detached backbone crossing that age.
+The original sibling edge remains available as a self-transition. In the
+reverse direction the same child produces the same detached backbone and
+age, so the target-edge sets and selection probabilities agree. The move
+preserves the number of prunable children and has no height Jacobian.
+
+The ranked-tree test enumerates all 18 four-tip states at three fixed
+event ages. Production NNI and SPR proposals with the exact lexical
+target visit all 18 states and meet a fixed frequency tolerance.
+This conditional test does not establish mixing at full study scale.
 
 ## Checkpointing and exact resumption
 
@@ -428,8 +394,8 @@ The chain's RNG is a serializable xoshiro256** with a four-word state. A
 checkpoint writes the RNG words, tree, parameters, frozen step sizes, iteration
 counters, and retained draws atomically via a temp-file rename. Resuming
 reconstructs an identical chain. A chain interrupted and resumed partway produces
-a trajectory bit-identical to an uninterrupted run: same final log posterior to
-1e-9, same topology, same draw count, and no duplicated retained draw (gate G12,
+a trajectory bit-identical to an uninterrupted run: same final log posterior,
+same topology, identical retained draws, and no duplicated retained draw (gate G12,
 `tests/test_recovery.py`). Adaptation of step sizes runs only during warmup and is
 frozen before any retained sample, so the retained chain targets the stationary
 posterior.
@@ -601,46 +567,22 @@ empirical checks.
 
 # Chapter 12: Sensitivity and robustness
 
-Twelve predeclared configurations each change one lever and refit, so stable
-findings can be separated from prior- and calibration-dependent ones. The levers
-are: coalescent population size at three values (tree-prior strength),
-ascertainment on versus off, singleton inclusion, loan removal, a half-calibration
-subset, no calibration, and the four observation models.
+The synthetic sensitivity diagnostic defines fifteen settings before
+examining their results. It varies coalescent size, ascertainment, singleton
+eligibility, loan filtering, an attestation subset and removal of calibration.
+It also compares rate heterogeneity, a relaxed clock, planar geography,
+two region grids and two contact priors.
 
-## Headline result: chronology is calibration-dependent
+Every configuration keeps its model definition, attestation count and
+root quantiles. The half-attestation lever removes source records before
+deriving the calibration. The subset can retain the oldest observation, so
+a small shift would not imply robustness to different calendar evidence.
 
-The root-age estimate shifts materially under the calibration-related levers
-(halving the calibrations, removing calibration, and the tree-only model) and
-under the geography model, while it is stable to the tree-prior strength and to
-the ascertainment correction. This confirms hypothesis H4: without calibration the
-time scale is not identifiable and the chronology is driven by the prior. The
-practical consequence is that any dated conclusion from this platform must be
-reported together with its calibration, and a chronology presented without stating
-its calibration dependence would be misleading.
-
-## Ascertainment and tree-prior stability
-
-That the root age is stable to turning ascertainment off and to a factor-of-nine
-change in the coalescent population size is itself a finding: the character
-likelihood, not those priors, is driving the age estimate given a fixed
-calibration. Stability here does not mean the ascertainment correction is
-unnecessary, only that it does not dominate the dated age; it does change
-likelihood values and the relative fit of constant-heavy versus variable-heavy
-regimes, which matters for model comparison.
-
-## Deliberate misspecification
-
-Beyond the twelve levers, recovery includes datasets generated with borrowing and
-missingness regimes the fitted model does not match, so the study tests whether a
-confidently narrow posterior survives model violation. A posterior that narrows
-below its honest width under misspecification is reported as over-confident.
-
-## Reporting rule
-
-A conclusion appears in the summary as stable only if it holds across the relevant
-levers. Calibration-dependent and geography-dependent conclusions are labeled as
-such. The full configuration table is written to
-`runs/sensitivity/sensitivity.json`.
+These are two-chain diagnostics on a known-truth corpus. Differences
+between short-chain distributions can reflect initial conditions and
+mixing. Decision-grade sensitivity needs an observed campaign with a
+declared topology agreement check and convergence on each endpoint.
+The current study leaves that inference open.
 
 
 # Chapter 13: Counterarguments
@@ -687,49 +629,29 @@ to assume the answer. The honest default, absent that evidence, is the
 counterargument.
 
 
-# Chapter 14: Limitations and what the evidence cannot identify
+# Chapter 14: Limitations
 
-## Modeling limitations
+The binary transformation discards some dependence among synonyms and
+partial judgments. Conditioning on observed masks removes missingness from
+the predictive target. Lexical coverage can still be informative about source
+sampling and model mismatch. Comparing selected binary patterns also leaves
+prediction of wholly new cognate classes outside the held-out language
+design.
 
-The borrowing model uses a fixed candidate network; it cannot discover arbitrary
-reticulation and does not try to. The geographic observation model treats tip
-coordinates as noisy present-day references; it cannot turn modern points into
-ancient boundaries, and a geographic gain in predictive density may reflect areal
-rather than historical structure. The character model collapses a concept's forms
-into binary presence/absence classes under a stated transform; polymorphism,
-partial cognacy, and synonymy are represented but not fully modeled as a joint
-process.
+The contact model considers a finite candidate set and one terminal copy
+per character. It can miss documented transfers between distinct classes.
+The geographic model conditions on modern reference positions and does
+not infer a population boundary. A planar approximation measures degrees
+rather than physical distance. The discrete model depends on its chosen
+regions and currently uses hard assignments for scored tips.
 
-## Inference limitations
+The dated model uses historical varieties as terminal observations and can
+neither infer sampled ancestors nor adjudicate their historical status.
+The tree prior and substitution-rate priors help determine time scale.
+The independently sourced Latin inscriptions are useful historical
+observations with strong geographic and register bias. They do not
+calibrate the fitted IE-CoR models.
 
-Topology mixing on large trees is the binding constraint. The diagnostic runs
-here did not converge, and convergence on 100-plus-tip trees requires long chains
-and careful proposal tuning. More samples do not rescue a stuck topology chain;
-the platform reports non-convergence rather than presenting unconverged draws.
-
-## Identifiability limits
-
-The chronology is not identifiable without calibration. The clock-rate and
-time-scale trade off, and the data fix only relative times until a calibration
-anchors them. A broad or multimodal location posterior is a genuine limit of the
-evidence, not a rendering artifact. Marginal-likelihood model comparison is
-offered only where the estimator is validated; raw likelihoods from different
-observation models are never compared as if they were Bayes factors.
-
-## Data limitations
-
-The headline corpora are labeled synthetic known-truth, which is ideal for
-recovery and coverage but is not a substitute for observed data; the real-data
-path depends on CLDF collections the user acquires under their own licenses.
-Attestation records are sparse and biased by design, and the inference reflects
-that sparsity rather than smoothing it away.
-
-## What a reader should not conclude
-
-A reader should not conclude from this work that any particular family's tree,
-date, or homeland is established. The established results are mathematical: the
-likelihood is correct against independent enumeration, the sampler targets exact
-finite posteriors, the ascertainment correction matches its selection process,
-and interrupted chains resume exactly. The historical results are posteriors with
-stated uncertainty, counterevidence, and the explicit calibration and mixing
-caveats above.
+The observed chains missed convergence, and nominal intervals undercovered
+in synthetic recovery. These failures leave historical tree, time and
+location comparisons open.
