@@ -39,10 +39,10 @@ def _honest_bundle(tmp_path):
     return src
 
 
-def _run_verifier(evidence_dir: str) -> dict:
+def _run_verifier(evidence_dir: str, *args: str) -> dict:
     """Invoke the real verifier as a subprocess and return its JSON result."""
     proc = subprocess.run(
-        [sys.executable, "-m", "diachron.cli.main", "verify", "--evidence", evidence_dir],
+        [sys.executable, "-m", "diachron.cli.main", "verify", "--evidence", evidence_dir, *args],
         capture_output=True, text=True, check=False, timeout=30,
     )
     result = json.loads(proc.stdout)
@@ -80,3 +80,18 @@ def test_control_rejected_for_semantic_reason(tmp_path, control_fn, expected_sub
     assert any(expected_substring in c["check"] for c in failing), (
         f"expected a {expected_substring} rejection, got {failing}"
     )
+
+
+def test_source_identity_comes_from_caller(tmp_path):
+    src = _honest_bundle(tmp_path)
+    result = _run_verifier(src, "--expected-commit", "trusted-source")
+    assert not result["ok"]
+    assert any(c["check"].endswith("source_commit") and not c["ok"] for c in result["checks"])
+
+
+def test_missing_manifest_fails_through_cli(tmp_path):
+    src = _honest_bundle(tmp_path)
+    os.remove(os.path.join(src, "MANIFEST.json"))
+    result = _run_verifier(src)
+    assert not result["ok"]
+    assert any(c["check"].endswith("artifact_error") for c in result["checks"])
