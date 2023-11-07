@@ -9,7 +9,8 @@ from pathlib import Path
 import numpy as np
 
 from ..infer.artifacts import PosteriorBundle
-from ..models.posterior import planar_geography
+from ..models.posterior import planar_location_marginals
+from collections import Counter
 from ..models.tree import PhyloTree
 from .sampling import run_diagnose
 
@@ -27,25 +28,58 @@ def _retained_subset(bundle: PosteriorBundle) -> list[list[dict]]:
     ]
 
 
-def _root_locations(bundle: PosteriorBundle, chains: list[list[dict]]) -> list[dict]:
+def _clade_locations(bundle: PosteriorBundle, chains: list[list[dict]]) -> tuple[list, dict]:
     model = bundle.context["model"]
     if not model["config"]["use_geography"] or model["region_model"] is not None:
-        return []
+        return [], {}
     coords = {int(taxon): tuple(point) for taxon, point in model["tip_coords"].items()}
     if len(coords) < 2:
-        return []
-    rng = np.random.default_rng(20261104)
-    cloud = []
+        return [], {}
+
+    frequency = Counter()
+    samples = []
     for chain in chains:
         for draw in chain:
             tree = PhyloTree(draw["parent"], draw["heights"], draw["taxon"])
-            _, root = planar_geography(tree, coords, draw["geo_sigma2"])
-            if root is None:
-                continue
-            lat, lon, variance = root
+            children = tree.children()
+            order = [tree.root]
+            for node in order:
+                order.extend(children[node])
+            descendants: dict[int, list[int]] = {}
+            clades = {}
+            for node in reversed(order):
+                if tree.is_tip(node):
+                    descendants[node] = [tree.taxon[node]]
+                    continue
+                members = sorted(t for child in children[node] for t in descendants[child])
+                descendants[node] = members
+                if node != tree.root:
+                    key = ",".join(map(str, members))
+                    clades[key] = node
+                    frequency[key] += 1
+            samples.append((tree, draw["geo_sigma2"], clades))
+
+    # Preserve multimodal mixtures over saved topologies. Cap the number of
+    # clades and draw budget so UI interactions stay independent of inference.
+    selected = sorted(frequency, key=lambda key: (-frequency[key], key))[:24]
+    root_samples = []
+    clade_samples = {key: [] for key in selected}
+    rng = np.random.default_rng(20261104)
+    for tree, diffusion, clades in samples:
+        marginals = planar_location_marginals(tree, coords, diffusion)
+        if not marginals:
+            continue
+
+        def point(node):
+            lat, lon, variance = marginals[node]
             sample = rng.normal((lat, lon), np.sqrt(variance))
-            cloud.append({"lat": float(sample[0]), "lon": float(sample[1]), "age": draw["root_age"]})
-    return cloud
+            return {"lat": float(sample[0]), "lon": float(sample[1]), "age": tree.heights[node]}
+
+        root_samples.append(point(tree.root))
+        for key in clade_samples:
+            if key in clades:
+                clade_samples[key].append(point(clades[key]))
+    return root_samples, clade_samples
 
 
 def export_workbench(
@@ -78,6 +112,7 @@ def export_workbench(
 
         retained = _retained_subset(bundle)
         diagnostic = run_diagnose(directory)
+        roots, clades = _clade_locations(bundle, retained)
         bundles[name] = {
             "model_name": bundle.model_name,
             "dataset_name": bundle.dataset_name,
@@ -95,7 +130,8 @@ def export_workbench(
                                      "log_posterior", "newick")} for d in chain]
                 for chain in retained
             ],
-            "rootLocations": _root_locations(bundle, retained),
+            "rootLocations": roots,
+            "cladeLocations": clades,
             "calendarEpoch": calendar_epoch,
         }
 

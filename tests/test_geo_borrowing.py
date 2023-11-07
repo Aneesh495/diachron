@@ -156,3 +156,30 @@ def test_region_likelihood_matches_matrix_exponential():
     expected = np.log(np.dot(model.stationary(), transition[:, 0] * transition[:, 1]))
     got = region_log_likelihood(tree, model, {0: 0, 1: 1}, 2)
     assert abs(got - expected) < 1e-10
+
+
+def test_location_marginals_match_independent_gaussian_precision_system():
+    from diachron.models.posterior import planar_location_marginals
+    from diachron.models.tree import PhyloTree
+
+    tree = PhyloTree(
+        [4, 4, 5, 5, 6, 6, -1], [0.0, 0.0, 0.0, 0.0, 2.0, 3.0, 7.0],
+        [0, 1, 2, 3, -1, -1, -1],
+    )
+    observed = {0: (12.0, 2.0), 1: (17.0, 3.0), 3: (1.0, 5.0)}
+    sigma2 = 0.5
+    Q = np.zeros((tree.n_nodes, tree.n_nodes))
+    for i, p in enumerate(tree.parent):
+        if p >= 0:
+            weight = 1.0 / (sigma2 * (tree.heights[p] - tree.heights[i]))
+            Q[i, i] += weight
+            Q[p, p] += weight
+            Q[p, i] -= weight
+            Q[i, p] -= weight
+    scored = list(observed)
+    latent = sorted(set(range(tree.n_nodes)) - set(scored))
+    covariance = np.linalg.inv(Q[np.ix_(latent, latent)])
+    mean = -covariance @ Q[np.ix_(latent, scored)] @ np.array(list(observed.values()))
+    result = planar_location_marginals(tree, observed, sigma2)
+    assert np.allclose([result[i][:2] for i in latent], mean, atol=1e-12)
+    assert np.allclose([result[i][2] for i in latent], covariance.diagonal(), atol=1e-12)

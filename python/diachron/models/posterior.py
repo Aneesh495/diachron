@@ -311,12 +311,12 @@ def _mrca(tree, taxa: tuple[int, ...], taxon_to_node: dict[int, int]) -> int | N
 
 
 def _brownian_tree_loglik(tree, tip_coords: dict[int, tuple[float, float]], sigma2: float) -> float:
-    return planar_geography(tree, tip_coords, sigma2)[0]
+    return _planar_messages(tree, tip_coords, sigma2)[0]
 
 
-def planar_geography(
+def _planar_messages(
     tree, tip_coords: dict[int, tuple[float, float]], sigma2: float,
-) -> tuple[float, tuple[float, float, float] | None]:
+) -> tuple[float, dict[int, tuple[float, float, float]]]:
     """Planar Gaussian contrasts over observed latitude and longitude pairs.
 
     A message is a conditional mean and its variance. Missing subtrees
@@ -348,7 +348,7 @@ def planar_geography(
             prev_lat, prev_lon, prev_var = combined
             contrast_var = prev_var + variance
             if contrast_var <= 0.0:
-                return float("-inf"), None
+                return float("-inf"), {}
             distance2 = (lat - prev_lat) ** 2 + (lon - prev_lon) ** 2
             loglik -= 0.5 * distance2 / contrast_var + math.log(2 * math.pi * contrast_var)
             weight = prev_var / contrast_var
@@ -360,7 +360,41 @@ def planar_geography(
         if combined is not None:
             messages[node] = combined
 
-    return loglik, messages.get(tree.root)
+    return loglik, messages
+
+
+def planar_location_marginals(
+    tree, tip_coords: dict[int, tuple[float, float]], sigma2: float,
+) -> dict[int, tuple[float, float, float]]:
+    """Condition every node's location on the complete set of scored tips."""
+    _, upward = _planar_messages(tree, tip_coords, sigma2)
+    if tree.root not in upward:
+        return {}
+    posterior = {tree.root: upward[tree.root]}
+    durations = tree.branch_lengths()
+    children = tree.children()
+    order = [tree.root]
+    for parent in order:
+        order.extend(children[parent])
+        parent_lat, parent_lon, parent_var = posterior[parent]
+        for node in children[parent]:
+            edge_var = sigma2 * durations[node]
+            if node not in upward:
+                posterior[node] = (parent_lat, parent_lon, parent_var + edge_var)
+                continue
+            local_lat, local_lon, local_var = upward[node]
+            combined = local_var + edge_var
+            if combined == 0:
+                posterior[node] = upward[node]
+                continue
+            parent_weight = local_var / combined
+            local_weight = edge_var / combined
+            posterior[node] = (
+                parent_weight * parent_lat + local_weight * local_lat,
+                parent_weight * parent_lon + local_weight * local_lon,
+                parent_weight * (edge_var + parent_weight * parent_var),
+            )
+    return posterior
 
 
 def _postorder(tree) -> list[int]:

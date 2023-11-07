@@ -35,7 +35,8 @@ export class Store {
     for (const fn of this.listeners) fn();
   }
 
-  selectClade(taxa: Set<number>): void {
+  selectClade(taxa: Set<number>, age?: number): void {
+    if (age !== undefined) this.selection.timeYbp = age;
     this.selection.clade = taxa;
     this.selection.taxa = new Set(taxa);
     this.emit();
