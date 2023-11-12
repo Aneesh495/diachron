@@ -33,6 +33,7 @@ from .types import (
     Language,
     Lexeme,
     CognateJudgment,
+    CognateClassRecord,
     Dataset,
     DataError,
 )
@@ -243,6 +244,19 @@ def load_cldf_wordlist(
                 )
             )
 
+    classes = []
+    if profile == "iecor":
+        for row in _read_csv(base_dir, "cognatesets.csv"):
+            scale = row.get("proposedAsCognateToScale")
+            classes.append(CognateClassRecord(
+                id=row["ID"], root_form=row.get("Root_Form") or None,
+                root_language=row.get("Root_Language") or None,
+                source_ref=row.get("Source") or None,
+                proposed_cognate_id=row.get("proposedAsCognateTo_pk") or None,
+                proposed_scale=int(scale) if scale else None,
+                superset_id=row.get("supersetid") or None,
+                parallel_derivation=_flag(row.get("parallelDerivation")),
+            ))
     dataset = Dataset(
         name=name,
         version=version,
@@ -254,6 +268,7 @@ def load_cldf_wordlist(
         judgments=judgments,
         is_synthetic=False,
         source_url=metadata_path,
+        cognate_classes=classes,
     )
     dataset.validate()
     return dataset

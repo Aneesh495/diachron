@@ -145,10 +145,13 @@ def select_languages(dataset: Dataset, rules: dict) -> tuple[Dataset, Counter]:
     forms = [form for form in dataset.lexemes if form.language_id in selected_ids]
     form_ids = {form.id for form in forms}
     concept_ids = {form.concept_id for form in forms}
+    judgments = [j for j in dataset.judgments if j.lexeme_id in form_ids]
+    used_classes = {j.cognate_class for j in judgments}
     selected = replace(
         dataset, languages=candidates, lexemes=forms,
         concepts=[c for c in dataset.concepts if c.id in concept_ids],
-        judgments=[j for j in dataset.judgments if j.lexeme_id in form_ids],
+        judgments=judgments,
+        cognate_classes=[c for c in dataset.cognate_classes if c.id in used_classes],
     )
     selected.validate()
     return selected, exclusions
@@ -158,7 +161,7 @@ def select_languages(dataset: Dataset, rules: dict) -> tuple[Dataset, Counter]:
 def _schema(fields):
     import pyarrow as pa
 
-    kinds = {"s": pa.string(), "b": pa.bool_(), "f": pa.float64()}
+    kinds = {"s": pa.string(), "b": pa.bool_(), "f": pa.float64(), "i": pa.int32()}
     return pa.schema([(name, kinds[kind]) for name, kind in fields.items()])
 
 
@@ -194,6 +197,11 @@ def write_study(out: Path, dataset: Dataset, crosswalk: list[dict], report: dict
             "is_loan": "b", "is_partial": "b", "annotator": "s", "source_ref": "s",
             "id": "s", "doubtful": "b", "segment_slice": "s", "detection_method": "s",
             "loan_event": "s", "loan_source": "s",
+        }),
+        "cognate_classes": (dataset.cognate_classes, {
+            "id": "s", "root_form": "s", "root_language": "s", "source_ref": "s",
+            "proposed_cognate_id": "s", "proposed_scale": "i", "superset_id": "s",
+            "parallel_derivation": "b",
         }),
         "taxonomy": (crosswalk, {
             "language_id": "s", "glottocode": "s", "catalog_version": "s", "catalog_name": "s",
