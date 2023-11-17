@@ -75,14 +75,19 @@ td, th { padding: 0.3rem 0.5rem; border-bottom: 1px solid #b9c3ce; }
 
     # Claim-to-evidence ledger check.
     claims_path = os.path.join(thesis_dir, "claims.json")
-    ledger = {"claims": 0, "incomplete": []}
+    ledger = {"claims": 0, "incomplete": [], "unresolved_evidence": []}
     if os.path.exists(claims_path):
         with open(claims_path, encoding="utf-8") as f:
             claims = json.load(f)
         ledger["claims"] = len(claims)
         for c in claims:
-            if not all(k in c and c[k] for k in ("claim", "hypothesis", "evidence", "status")):
+            fields = ("claim", "hypothesis", "evidence", "counterevidence", "status", "scope")
+            if not all(isinstance(c.get(k), str) and c[k].strip() for k in fields):
                 ledger["incomplete"].append(c.get("claim", "<unnamed>"))
+                continue
+            evidence = Path(c["evidence"].split(":", 1)[0])
+            if evidence.is_absolute() or ".." in evidence.parts or not evidence.is_file():
+                ledger["unresolved_evidence"].append(c["evidence"])
 
     return {
         "gate": "G14",
@@ -91,5 +96,7 @@ td, th { padding: 0.3rem 0.5rem; border-bottom: 1px solid #b9c3ce; }
         "assembled": out_path if rendered else None,
         "rendered_html": str(rendered) if rendered else None,
         "claim_ledger": ledger,
-        "ledger_ok": ledger["claims"] > 0 and not ledger["incomplete"],
+        "ledger_ok": bool(ledger["claims"]) and not (
+            ledger["incomplete"] or ledger["unresolved_evidence"]
+        ),
     }
