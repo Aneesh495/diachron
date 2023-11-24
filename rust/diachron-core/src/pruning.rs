@@ -139,6 +139,47 @@ impl<'a> PruningPlan<'a> {
         }
         site.ln() + logscale[tree.root]
     }
+
+    /// Binary workspaces are reused across columns and contact components.
+    fn score_binary(
+        &self,
+        states: &[Option<usize>],
+        prior: &[f64],
+        partials: &mut [[f64; 2]],
+    ) -> f64 {
+        let mut log_scale = 0.0;
+        for &node in &self.order {
+            if let Some(taxon) = self.tree.nodes[node].taxon {
+                partials[node] = match states[taxon] {
+                    Some(0) => [1.0, 0.0],
+                    Some(1) => [0.0, 1.0],
+                    None => [1.0, 1.0],
+                    _ => return f64::NEG_INFINITY,
+                };
+                continue;
+            }
+
+            let mut pair = [1.0, 1.0];
+            for &child in &self.tree.nodes[node].children {
+                let [absent, present] = partials[child];
+                let transition = &self.transitions[child];
+                pair[0] *= transition.at(0, 0) * absent + transition.at(0, 1) * present;
+                pair[1] *= transition.at(1, 0) * absent + transition.at(1, 1) * present;
+                let scale = pair[0].max(pair[1]);
+                if scale <= 0.0 {
+                    return f64::NEG_INFINITY;
+                }
+                pair = [pair[0] / scale, pair[1] / scale];
+                log_scale += scale.ln();
+            }
+            partials[node] = pair;
+        }
+
+        // Every child subtree is used once, so all rescaling factors can be
+        // accumulated globally rather than carried in a per-node buffer.
+        let [absent, present] = partials[self.tree.root];
+        (prior[0] * absent + prior[1] * present).ln() + log_scale
+    }
 }
 
 /// Log-likelihood of a block of characters that share the same tree and model,
@@ -150,6 +191,13 @@ pub fn log_likelihood_block(
     root_prior: &[f64],
 ) -> f64 {
     let plan = PruningPlan::new(tree, model, 1.0);
+    if model.n_states() == 2 {
+        let mut partials = vec![[0.0; 2]; tree.nodes.len()];
+        return columns
+            .iter()
+            .map(|col| plan.score_binary(col, root_prior, &mut partials))
+            .sum();
+    }
     columns.iter().map(|col| plan.score(col, root_prior)).sum()
 }
 
@@ -240,10 +288,11 @@ pub fn binary_mixture_scores(
     let mut mixtures = vec![0.0; plans.len()];
     let weight_sum = 1.0 + contacts.iter().map(|(_, _, w)| w).sum::<f64>();
     let mut working_column = vec![None; tree.n_tips()];
+    let mut partials = vec![[0.0; 2]; tree.nodes.len()];
     let mut components = vec![0.0; contacts.len() + 1];
-    let score = |column: &[Option<usize>], mixtures: &mut [f64]| {
+    let mut score = |column: &[Option<usize>], mixtures: &mut [f64]| {
         for (result, plan) in mixtures.iter_mut().zip(&plans) {
-            *result = plan.score(column, root_prior);
+            *result = plan.score_binary(column, root_prior, &mut partials);
         }
         log_mean_exp(mixtures)
     };
