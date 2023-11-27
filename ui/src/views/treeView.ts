@@ -46,6 +46,8 @@ export class TreeView {
 
   private render(): void {
     const tree = this.tree;
+    const active = document.activeElement;
+    const focused = active && this.el.contains(active) ? active.getAttribute("data-node") : null;
     while (this.el.firstChild) this.el.removeChild(this.el.firstChild);
 
     const width = this.el.parentElement?.clientWidth || 600;
@@ -125,7 +127,11 @@ export class TreeView {
         dot.setAttribute("fill", "#333");
         dot.setAttribute("fill-opacity", String(0.15 + 0.85 * support));
         dot.style.cursor = "pointer";
-        dot.addEventListener("click", () => this.store.selectClade(taxa, node.height));
+        dot.setAttribute("data-taxa", [...taxa].sort((a, b) => a - b).join(","));
+        this.activate(
+          dot, node.id, `Select clade of ${taxa.size} varieties`,
+          () => this.store.selectClade(taxa, node.height),
+        );
         const title = this.svg("title");
         title.textContent = `clade frequency ${(support * 100).toFixed(0)}%, age ${node.height.toFixed(0)} ybp`;
         dot.appendChild(title);
@@ -141,7 +147,7 @@ export class TreeView {
         );
         label.textContent = this.store.bundle.tip_names[node.label ?? ""] ?? node.label ?? `t${node.taxon}`;
         label.style.cursor = "pointer";
-        label.addEventListener("click", () => this.store.toggleTaxon(node.taxon!));
+        this.activate(label, node.id, `Select ${label.textContent}`, () => this.store.toggleTaxon(node.taxon!));
         this.el.appendChild(label);
       }
     }
@@ -156,6 +162,23 @@ export class TreeView {
       this.store.bundle.is_synthetic ? " (synthetic known-truth corpus)" : ""
     }`;
     this.el.appendChild(caption);
+    if (focused !== null) {
+      this.el.querySelector<SVGElement>(`[data-node="${focused}"]`)?.focus({ preventScroll: true });
+    }
+  }
+
+  private activate(element: SVGElement, node: number, label: string, action: () => void): void {
+    element.setAttribute("tabindex", "0");
+    element.setAttribute("role", "button");
+    element.setAttribute("aria-label", label);
+    element.setAttribute("data-node", String(node));
+    element.addEventListener("click", action);
+    element.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        action();
+      }
+    });
   }
 
   private postorder(tree: ParsedTree): number[] {
