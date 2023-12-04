@@ -181,6 +181,7 @@ def cmd_sample(args) -> int:
             profile=args.profile,
             resume=args.resume,
             jobs=args.jobs,
+            initialization=args.initialization,
             geography_error=args.geography_error,
             observed_study=args.study,
             observed_source=args.source,
@@ -368,6 +369,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--profile", choices=("cpu", "full"), default="cpu")
     sp.add_argument("--resume", action="store_true")
     sp.add_argument("--jobs", type=int, default=1)
+    sp.add_argument("--initialization", choices=("random", "distance"), default="distance")
     sp.add_argument("--geography-error", type=float, help="fixed planar reference error in degrees")
     sp.add_argument("--study", choices=("iecor", "abvd"))
     sp.add_argument("--source", type=Path, help="root of pinned CLDF source checkout")

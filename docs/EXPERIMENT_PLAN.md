@@ -88,3 +88,24 @@ and have independently sampled topologies. Root coverage uses the 5th and 95th
 sample quantiles and clade recovery excludes the all-tip clade. Per-dataset root
 samples and true-clade masses support independent recomputation. Failures stay
 in the denominator for completion accounting.
+
+## Protocol 3 sampler pilot
+
+The retained target and observed input bytes stay as in protocol 2. The
+sampler pilot compares random starts with starts from bootstrapped lexical
+Jaccard distances and average linkage. Those distances initialize topology
+and do not enter the posterior. Internal time-slide windows depend on the
+interval between a node's oldest child and its parent. Additional proposals
+move gain, loss and clock together along constant effective rates, and
+couple an internal-age scale move to the inverse clock multiplier. The
+Jacobian for each proposal is stated in the sampler note and tested
+independently.
+
+Use four chains, 400 warmup iterations, 1200 sampling iterations and thinning
+by ten for both initializers on dated IE-CoR. Keep base seeds and the root
+start at 8000 years. Select the initializer before the full campaign from
+these training diagnostics. All scalar endpoints, topology summaries, move
+acceptance counts, runtime and source identity remain visible. The full
+campaign retains at least four chains, 3000 warmup iterations and 12000
+sampling iterations per posterior model. Pilot diagnostics do not satisfy
+the full inference gate.

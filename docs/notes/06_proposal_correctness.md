@@ -24,3 +24,18 @@ sampler; it made the likelihood traversal loop, turning a two-second chain into 
 ninety-second one, which is how the bug was found. The lesson recorded here is
 that a structure-changing move needs an integrity test (no cycles, one root,
 stable node count) in addition to its ratio derivation.
+
+## Coupled rate and clock proposals
+
+For log step d symmetric about zero, transform
+(g, l, c) to (g exp(-d), l exp(-d), c exp(d)). The two effective
+substitution rates g c and l c are invariant. In original coordinates the
+auxiliary-variable transform has absolute Jacobian exp(-d). The log
+Hastings term is -d. An independent test conditions three lognormal priors
+on fixed g c and l c, derives the analytic normal law for log(c), and
+checks the production proposal against it.
+
+The joint age and clock move multiplies k internal ages by exp(d) and
+divides c by exp(d), with log Jacobian (k-1)d. Contemporary tip branches
+preserve their substitution lengths. Historical tip branches change, and
+the full posterior evaluates those changes. Invalid time order is rejected.

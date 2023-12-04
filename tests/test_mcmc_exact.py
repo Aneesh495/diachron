@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import math
 import numpy as np
+import pytest
 
 from diachron import _core
 
@@ -185,3 +186,41 @@ def test_production_topology_proposals_recover_exact_ranked_tree_posterior():
             counts[state] += 1
     assert len(counts) == len(exact)
     assert max(abs(counts[key] / 60_000 - p) for key, p in probabilities.items()) < 0.015
+
+
+def test_rate_clock_move_targets_analytic_conditional_lognormal():
+    from diachron import _core
+    from diachron.infer.moves import MoveSet
+    from diachron.models.priors import lognormal_logpdf
+
+    rng = _core.PyRng(3279)
+    moves = MoveSet()
+    moves.scale_lambda = 2.5
+    means = np.array([-1.0, -0.2, 0.3])
+    widths = np.array([0.7, 0.9, 0.5])
+    effective_gain, effective_loss = 0.6, 1.2
+    precision = 1 / widths ** 2
+    expected_mean = np.dot(
+        [np.log(effective_gain) - means[0], np.log(effective_loss) - means[1], means[2]],
+        precision,
+    ) / precision.sum()
+    expected_variance = 1 / precision.sum()
+
+    def target(state):
+        return sum(lognormal_logpdf(value, mean, width)
+                   for value, mean, width in zip(state, means, widths))
+
+    state = (effective_gain, effective_loss, 1.0)
+    logp = target(state)
+    logs = []
+    for iteration in range(31_000):
+        proposed, result = moves.rate_clock_ridge(*state, rng)
+        score = target(proposed)
+        if np.log(max(rng.uniform(), 1e-300)) < score - logp + result.log_hastings:
+            state, logp = proposed, score
+        if iteration >= 1000:
+            logs.append(np.log(state[2]))
+    assert abs(np.mean(logs) - expected_mean) < 0.02
+    assert abs(np.var(logs) - expected_variance) < 0.02
+    assert state[0] * state[2] == pytest.approx(effective_gain, rel=1e-12)
+    assert state[1] * state[2] == pytest.approx(effective_loss, rel=1e-12)

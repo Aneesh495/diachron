@@ -28,6 +28,7 @@ from diachron import _core
 from ..io.types import Dataset, Attestation
 from ..io.characters import build_character_matrix
 from ..models.tree import random_starting_tree
+from .initial import distance_starting_tree
 from ..models.tip_dates import TipDate
 from ..models.posterior import PosteriorModel, ModelConfig, Calibration
 from .chain import Chain, ChainConfig, ChainState
@@ -212,13 +213,17 @@ def build_model(study: StudyData, config: ModelConfig) -> PosteriorModel:
 def _run_chain(
     c: int, *, model: PosteriorModel, tip_labels: list[str], warmup: int,
     iterations: int, thin: int, root_age_init: float, base_seed: int,
-    checkpoint_dir: str | None, resume: bool,
+    checkpoint_dir: str | None, resume: bool, initialization: str,
 ) -> Chain:
     rng = np.random.default_rng(base_seed + c)
     dates = {taxon: date.center() for taxon, date in model.tip_dates.items()}
-    start = random_starting_tree(tip_labels, root_age_init, rng, dates)
+    if initialization == "distance":
+        start = distance_starting_tree(tip_labels, model.columns, root_age_init, rng, dates)
+    else:
+        start = random_starting_tree(tip_labels, root_age_init, rng, dates)
     cfg = ChainConfig(
         seed=base_seed + 7919 * (c + 1), warmup=warmup, iterations=iterations, thin=thin,
+        initialization=initialization,
     )
     state = ChainState(
         gain=0.0005, loss=0.001, clock_rate=1.0,
@@ -271,8 +276,11 @@ def run_campaign(
     progress=None,
     resume: bool = False,
     jobs: int = 1,
+    initialization: str = "distance",
 ) -> list[Chain]:
     """Run independent chains in a bounded pool, returning fixed index order."""
+    if initialization not in {"random", "distance"}:
+        raise ValueError("initialization must be random or distance")
     if not 1 <= jobs <= 4 or not 1 <= n_chains <= 8:
         raise ValueError("campaign requires 1 to 8 chains and 1 to 4 workers")
     if jobs > 1 and checkpoint_dir is None:
@@ -282,6 +290,7 @@ def run_campaign(
         _run_chain, model=model, tip_labels=study.tip_labels, warmup=warmup,
         iterations=iterations, thin=thin, root_age_init=root_age_init,
         base_seed=base_seed, checkpoint_dir=checkpoint_dir, resume=resume,
+        initialization=initialization,
     )
     if jobs == 1:
         chains = [worker(c) for c in range(n_chains)]
@@ -314,7 +323,10 @@ def campaign_bundle(
     )
     bundle.context = {
         "schema_version": 2,
-        "model": asdict(chains[0].model),
+        "chain_configurations": [asdict(chain.config) for chain in chains],
+        "move_statistics": [
+            {"proposed": chain.move_proposals, "accepted": chain.move_accepts} for chain in chains
+        ],        "model": asdict(chains[0].model),
         "attestations": [asdict(a) for a in study.attestations],
         "dataset_url": study.dataset.source_url,
         "calendar_epoch": 2000 if study.dataset.name == "iecor" else None,

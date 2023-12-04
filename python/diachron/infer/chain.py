@@ -33,7 +33,7 @@ from ..models.posterior import PosteriorModel
 from ..util.gitmeta import source_commit
 from .moves import MoveSet
 
-CHECKPOINT_SCHEMA = 2
+CHECKPOINT_SCHEMA = 3
 
 
 @dataclass
@@ -43,6 +43,7 @@ class ChainConfig:
     iterations: int = 8000
     thin: int = 10
     target_accept: float = 0.3
+    initialization: str = "random"
 
 
 @dataclass
@@ -94,6 +95,8 @@ class Chain:
         self.draws: list[Draw] = []
         self._accepts = 0
         self._proposals = 0
+        self.move_proposals: dict[str, int] = {}
+        self.move_accepts: dict[str, int] = {}
         self._log_post = self._eval()
         if not math.isfinite(self._log_post):
             raise ValueError("chain initial state has nonfinite posterior")
@@ -119,7 +122,15 @@ class Chain:
 
     def _step(self, adapt: bool) -> None:
         """One Metropolis-within-Gibbs step: pick a move and accept/reject."""
-        move_kind = self.rng.below(7 if self.model.tip_dates else 6)
+        move_names = (
+            "gain", "loss", "clock", "node_time", "root_scale", "topology",
+            "rate_clock_ridge", "time_clock_scale",
+        )
+        if self.model.tip_dates:
+            move_names += ("tip_date",)
+        move_kind = self.rng.below(len(move_names))
+        move_name = move_names[move_kind]
+        self.move_proposals[move_name] = self.move_proposals.get(move_name, 0) + 1
         self._proposals += 1
         accepted = False
 
@@ -178,7 +189,31 @@ class Chain:
                     accepted = True
                 else:
                     self.tree.heights = snapshot
-        elif move_kind == 6:  # additive dated-tip move
+        elif move_kind == 6:
+            old = (self.state.gain, self.state.loss, self.state.clock_rate)
+            proposed, res = self.moves.rate_clock_ridge(*old, self.rng)
+            if res.valid:
+                self.state.gain, self.state.loss, self.state.clock_rate = proposed
+                lp = self._eval()
+                if self._accept(lp, res.log_hastings):
+                    self._log_post = lp
+                    accepted = True
+                else:
+                    self.state.gain, self.state.loss, self.state.clock_rate = old
+        elif move_kind == 7:
+            old_heights = list(self.tree.heights)
+            old_clock = self.state.clock_rate
+            proposed, res = self.moves.time_clock_scale(self.tree, old_clock, self.rng)
+            if res.valid:
+                self.state.clock_rate = proposed
+                lp = self._eval()
+                if self._accept(lp, res.log_hastings):
+                    self._log_post = lp
+                    accepted = True
+                else:
+                    self.state.clock_rate = old_clock
+                    self.tree.heights = old_heights
+        elif move_kind == 8:  # additive dated-tip move
             taxon = sorted(self.model.tip_dates)[self.rng.below(len(self.model.tip_dates))]
             node = self.tree.taxon.index(taxon)
             date = self.model.tip_dates[taxon]
@@ -213,6 +248,7 @@ class Chain:
 
         if accepted:
             self._accepts += 1
+            self.move_accepts[move_name] = self.move_accepts.get(move_name, 0) + 1
 
         # Hyperparameter moves for the active model's extra variables. These run
         # occasionally alongside the main move so the geographic diffusion rate
@@ -340,6 +376,8 @@ class Chain:
             "log_post": self._log_post,
             "accepts": self._accepts,
             "proposals": self._proposals,
+            "move_proposals": self.move_proposals,
+            "move_accepts": self.move_accepts,
             "n_draws": len(self.draws),
             "config": asdict(self.config),
             "draws": [asdict(d) for d in self.draws],
@@ -396,6 +434,10 @@ class Chain:
         chain._log_post = payload["log_post"]
         chain._accepts = payload["accepts"]
         chain._proposals = payload["proposals"]
+        chain.move_proposals = payload["move_proposals"]
+        chain.move_accepts = payload["move_accepts"]
+        if sum(chain.move_proposals.values()) != chain._proposals:
+            raise ValueError("checkpoint move counts disagree")
         chain.draws = [Draw(**d) for d in payload["draws"]]
         return chain
 
