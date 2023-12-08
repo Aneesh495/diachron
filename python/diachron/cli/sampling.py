@@ -159,6 +159,12 @@ def run_diagnose(bundle_dir: str) -> dict:
     for c in range(bundle.n_chains):
         topo.append(tp.topology_mixing_summary(bundle.chain_newicks(c)))
     out["topology_per_chain"] = topo
+    agreement = tp.between_chain_clades([
+        bundle.chain_newicks(chain) for chain in range(bundle.n_chains)
+    ])
+    out["between_chain_clades"] = agreement
+    out["move_statistics"] = bundle.context.get("move_statistics")
+
     out["clade_agreement"] = [
         {"chains": [a, b], "score": round(
             tp.clade_agreement(bundle.chain_newicks(a), bundle.chain_newicks(b)), 4,
@@ -175,6 +181,16 @@ def run_diagnose(bundle_dir: str) -> dict:
         scalars[e]["bulk_ess"] > 400 and scalars[e]["tail_ess"] > 400 for e in endpoints
     )
     topology_moves = all(chain["distinct"] > 1 for chain in topo)
-    out["converged"] = bool(bundle.n_chains >= 4 and rhat_ok and ess_ok and topology_moves)
-    out["thresholds"] = {"split_rhat_below": 1.01, "ess_above": 400}
+    clades_agree = (
+        agreement["mean_frequency_sd"] is not None
+        and agreement["mean_frequency_sd"] < 0.01
+        and agreement["maximum_chain_delta"] < 0.1
+    )
+    out["converged"] = bool(
+        bundle.n_chains >= 4 and rhat_ok and ess_ok and topology_moves and clades_agree
+    )
+    out["thresholds"] = {
+        "split_rhat_below": 1.01, "ess_above": 400,
+        "mean_clade_frequency_sd_below": 0.01, "maximum_chain_clade_delta_below": 0.1,
+    }
     return out

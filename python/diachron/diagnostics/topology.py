@@ -116,3 +116,32 @@ def clade_agreement(newicks_a: list[str], newicks_b: list[str]) -> float:
         return 1.0
     diff = sum(abs(pa.get(c, 0.0) - pb.get(c, 0.0)) for c in clades) / len(clades)
     return 1.0 - diff
+
+
+def between_chain_clades(
+    chains: list[list[str]], minimum_pooled_frequency: float = 0.1,
+) -> dict:
+    """Compare nontrivial clade frequencies without dilution by rare splits."""
+    import numpy as np
+
+    if len(chains) < 2 or any(not chain for chain in chains):
+        return {"clades_compared": 0, "mean_frequency_sd": None, "maximum_chain_delta": None}
+    posterior = [clade_posteriors(chain) for chain in chains]
+    all_clades = set().union(*(set(frequencies) for frequencies in posterior))
+    n_tips = max((len(clade) for clade in all_clades), default=0)
+    values = [
+        [frequencies.get(clade, 0.0) for frequencies in posterior]
+        for clade in all_clades if 1 < len(clade) < n_tips
+    ]
+    selected = np.asarray([
+        frequencies for frequencies in values
+        if np.mean(frequencies) >= minimum_pooled_frequency
+    ])
+    if not selected.size:
+        return {"clades_compared": 0, "mean_frequency_sd": None, "maximum_chain_delta": None}
+    return {
+        "clades_compared": int(selected.shape[0]),
+        "minimum_pooled_frequency": minimum_pooled_frequency,
+        "mean_frequency_sd": float(selected.std(axis=1, ddof=1).mean()),
+        "maximum_chain_delta": float(np.ptp(selected, axis=1).max()),
+    }
