@@ -116,3 +116,12 @@ standard deviation below 0.01 and maximum frequency difference below
 0.1, in addition to the declared scalar criteria and topology movement.
 This guards against a large collection of rarely seen splits diluting
 between-chain disagreement.
+
+The first protocol 3 pilot showed that a global scale proposal moved the
+root rarely. Add a dedicated multiplier on the root's positive gap above
+its oldest child, with log Hastings term equal to the log multiplier.
+Keep the other proposals, target and diagnostic thresholds unchanged.
+Use the distance initializer for the full campaign because its pilot
+reached much higher lexical posterior density in every chain. Preserve
+the random-start pilot and its nonconvergence. Run a second dated pilot
+with the root-gap move before recording the full campaign source.
