@@ -1,0 +1,166 @@
+"""Independent checks of held-out score arrays and fixed-probe predictive replay."""
+
+from __future__ import annotations
+
+from collections import defaultdict
+from dataclasses import replace
+import json
+import math
+from pathlib import Path
+
+import numpy as np
+
+from ..io.characters import build_character_matrix
+from ..models.tree import PhyloTree
+
+_MODELS = ("tree_only", "dated", "geography", "borrowing")
+
+
+def _read(path: Path):
+    if path.stat().st_size > 128 * 1024 * 1024:
+        raise ValueError(f"oversized predictive artifact: {path.name}")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _test_patterns(dataset, partition):
+    """Build evaluation outcomes independently from the saved score producer."""
+    kind = partition["kind"]
+    held = set(partition["identifiers"])
+    if kind == "concept":
+        forms = [form for form in dataset.lexemes if form.concept_id in held]
+        form_ids = {form.id for form in forms}
+        evidence = replace(
+            dataset, lexemes=forms,
+            judgments=[j for j in dataset.judgments if j.lexeme_id in form_ids],
+        )
+        matrix = build_character_matrix(evidence, include_unobserved_languages=True)
+        chars = matrix.variable_characters()
+        return {(char.concept_id, char.cognate_class): char.states for char in chars}
+
+    matrix = build_character_matrix(
+        dataset, drop_singletons=False, include_unobserved_languages=True,
+    )
+    return {(char.concept_id, char.cognate_class): char.states for char in matrix.characters}
+
+
+def _replay_scores(bundle, indices, character_ids, test_lookup, partition):
+    # The engine and model contract are shared with saved-posterior replay.
+    # Score aggregation, conditioning and probe selection are implemented here.
+    from .verifier import _model
+
+    model = _model(bundle["context"]["model"])
+    original_columns = model.columns
+    training_ids = {
+        tuple(identifier): index
+        for index, identifier in enumerate(partition["character_ids"])
+    }
+    outcomes = [test_lookup[tuple(character_ids[index])] for index in indices]
+    conditioning = None
+    if partition["kind"] == "language":
+        training = [original_columns[training_ids[tuple(character_ids[index])]] for index in indices]
+        held_positions = {
+            index for index, label in enumerate(bundle["tip_labels"])
+            if label in partition["identifiers"]
+        }
+        outcomes = [
+            [test[taxon] if taxon in held_positions else train[taxon]
+             for taxon in range(len(train))]
+            for train, test in zip(training, outcomes)
+        ]
+        conditioning = training
+        model = replace(model, config=replace(model.config, ascertainment=False))
+
+    samples = []
+    for chain in bundle["chains"]:
+        for index in np.linspace(0, len(chain) - 1, min(20, len(chain)), dtype=int):
+            draw = chain[index]
+            tree = PhyloTree(draw["parent"], draw["heights"], draw["taxon"])
+            parameters = (
+                tree, draw["gain"], draw["loss"], draw["clock_rate"],
+            )
+            loglikelihoods = model.character_scores(
+                *parameters, outcomes, draw["borrow_rates"], draw.get("clock_multipliers"),
+            )
+            if conditioning is not None:
+                normalizers = model.character_scores(
+                    *parameters, conditioning, draw["borrow_rates"], draw.get("clock_multipliers"),
+                )
+                loglikelihoods = [a - b for a, b in zip(loglikelihoods, normalizers)]
+            samples.append(loglikelihoods)
+    per_character = np.array(samples).T
+    scores = []
+    for values in per_character:
+        largest = max(values)
+        scores.append(largest + math.log(sum(math.exp(v - largest) for v in values) / len(values)))
+    return scores
+
+
+def verify_prediction(directory: Path, dataset, probe_characters: int = 16) -> list[dict]:
+    checks = []
+
+    def record(name, ok, detail=None):
+        checks.append({"check": name, "ok": bool(ok), "detail": detail})
+
+    report = _read(directory / "heldout.json")
+    if report["study"] != dataset.name or report["is_synthetic"] != dataset.is_synthetic:
+        record("prediction:study", False)
+        return checks
+    rng = np.random.default_rng(report["split_seed"])
+    expected = {}
+    for kind, choices in (
+        ("concept", sorted(c.id for c in dataset.concepts)),
+        ("language", sorted(language.id for language in dataset.languages)),
+    ):
+        expected[kind] = sorted(rng.choice(
+            choices, size=max(1, len(choices) // 5), replace=False,
+        ).tolist())
+
+    for kind in ("concept", "language"):
+        split = directory / kind
+        partition_manifest = _read(split / "partition.json")
+        ids = partition_manifest["test_character_ids"]
+        record(f"prediction:{kind}:partition",
+               partition_manifest["held_out_ids"] == expected[kind]
+               and report["experiments"][kind]["held_out_ids"] == expected[kind])
+        record(f"prediction:{kind}:character_count",
+               len(ids) == report["experiments"][kind]["n_scored_characters"]
+               and len({tuple(key) for key in ids}) == len(ids))
+        baseline = _read(split / "tree_only.json")["log_scores"]
+        if len(baseline) != len(ids):
+            record(f"prediction:{kind}:baseline_count", False)
+            continue
+        partition = {
+            "kind": kind, "identifiers": expected[kind],
+            "character_ids": partition_manifest["train_character_ids"],
+        }
+        lookup = _test_patterns(dataset, partition)
+        probes = np.linspace(0, len(ids) - 1, min(probe_characters, len(ids)), dtype=int)
+        for model_name in _MODELS:
+            raw = _read(split / f"{model_name}.json")
+            values = raw["log_scores"]
+            valid = len(values) == len(ids) and all(math.isfinite(value) for value in values)
+            record(f"prediction:{kind}:{model_name}:finite_scores", valid)
+            if not valid:
+                continue
+
+            summary = report["experiments"][kind]["models"][model_name]
+            by_concept = defaultdict(list)
+            for (concept, _), value, base in zip(ids, values, baseline):
+                by_concept[concept].append(value - base)
+            deltas = np.array([sum(group) / len(group) for group in by_concept.values()])
+            bootstrap_indices = rng.integers(0, len(deltas), size=(1000, len(deltas)))
+            quantiles = np.quantile(deltas[bootstrap_indices].mean(axis=1), [0.025, 0.975])
+            record(
+                f"prediction:{kind}:{model_name}:summary",
+                abs(sum(values) / len(values) - summary["mean_log_score_per_character"]) < 1e-10
+                and abs(float(deltas.mean()) - summary["mean_concept_delta_vs_tree"]) < 1e-10
+                and np.allclose(quantiles, summary["concept_bootstrap_interval_95"], atol=1e-10, rtol=0),
+            )
+            bundle = _read(split / model_name / "bundle.json")
+            record(f"prediction:{kind}:{model_name}:source",
+                   bundle["source_commit"] == report["source_commit"] == raw["source_commit"])
+            reproduced = _replay_scores(bundle, probes, ids, lookup, partition)
+            record(f"prediction:{kind}:{model_name}:predictive_replay",
+                   np.allclose(reproduced, np.array(values)[probes], atol=1e-9, rtol=0),
+                   {"characters": len(probes), "draws_per_chain_at_most": 20})
+    return checks
