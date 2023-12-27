@@ -196,6 +196,19 @@ def cmd_sample(args) -> int:
     return 0
 
 
+def cmd_inference_campaign(args) -> int:
+    from .campaign import run_inference_campaign
+
+    try:
+        return run_inference_campaign(
+            args.out, args.source, args.catalog, args.edh_source, args.edh_geography,
+            args.jobs, args.resume,
+        )
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+
 def cmd_diagnose(args) -> int:
     """Compute convergence and mixing diagnostics for a saved bundle."""
     from .sampling import run_diagnose
@@ -402,6 +415,16 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--edh-source", type=Path, help="directory containing pinned EDH XML files")
     sp.add_argument("--edh-geography", type=Path, help="pinned EDH gazetteer")
     sp.set_defaults(func=cmd_sample)
+
+    ic = sub.add_parser("inference-campaign")
+    ic.add_argument("--out", type=Path, required=True)
+    ic.add_argument("--source", type=Path, required=True)
+    ic.add_argument("--catalog", type=Path, required=True)
+    ic.add_argument("--edh-source", type=Path)
+    ic.add_argument("--edh-geography", type=Path)
+    ic.add_argument("--jobs", type=int, default=4)
+    ic.add_argument("--resume", action="store_true")
+    ic.set_defaults(func=cmd_inference_campaign)
 
     gp = sub.add_parser("diagnose")
     gp.add_argument("--bundle", default="runs/sample/dated")
