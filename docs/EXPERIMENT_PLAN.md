@@ -125,3 +125,22 @@ Use the distance initializer for the full campaign because its pilot
 reached much higher lexical posterior density in every chain. Preserve
 the random-start pilot and its nonconvergence. Run a second dated pilot
 with the root-gap move before recording the full campaign source.
+
+## Observed held-out campaign
+
+Freeze the observed predictive source before execution. Use the same four
+observation models, four independent chains per fit, 3000 warmup iterations,
+12000 retained-phase iterations and thinning by ten. Split seed zero holds
+out one fifth of complete concept identifiers and one fifth of language
+identifiers. Construct characters after removing held-out lexical forms.
+Keep external terminal dates and modern reference locations available to all
+prediction models that use them. This evaluates lexical prediction conditional
+on those external covariates, not prediction of an unknown language's location.
+
+Score each held-out character by the log of the posterior mean probability,
+using at most twenty evenly spaced saved draws from each chain. Group paired
+score differences by concept and report a 1000-resample concept bootstrap
+interval. The interval describes concept variation. Unconverged fits remain
+unconverged, regardless of the score interval. Save complete model bundles,
+partitions, per-character scores and exact checkpoints. Resume requires the
+same source, input digest, partition seed, chain budget and initializer.

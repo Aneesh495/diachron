@@ -266,7 +266,7 @@ def cmd_predict(args) -> int:
         result = run_heldout_prediction(
             out_dir=args.out, dataset=dataset, attestations=attestations,
             n_chains=args.chains, warmup=args.warmup, iterations=args.iterations,
-            jobs=args.jobs, frozen_study=frozen,
+            jobs=args.jobs, frozen_study=frozen, resume=args.resume,
         )
     except (DataError, OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
@@ -454,6 +454,7 @@ def build_parser() -> argparse.ArgumentParser:
     pr.add_argument("--warmup", type=int, default=600)
     pr.add_argument("--iterations", type=int, default=1800)
     pr.add_argument("--jobs", type=int, default=1)
+    pr.add_argument("--resume", action="store_true")
     pr.set_defaults(func=cmd_predict)
 
     tp = sub.add_parser("thesis")

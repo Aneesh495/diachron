@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import subprocess
 from pathlib import Path
 
 from ..models.posterior import Calibration, ModelConfig, PosteriorModel
@@ -268,6 +269,17 @@ def verify_evidence(
                 checks.extend(verify_prediction(root, dataset))
         except (DataError, OSError, KeyError, IndexError, TypeError, ValueError) as exc:
             record("prediction:artifact_error", False, str(exc))
+
+    if (root / "RUN_PLAN.json").is_file():
+        try:
+            from .campaign import verify_inference_campaign
+
+            plan = _read_json(root / "RUN_PLAN.json", 1024 * 1024)
+            if plan.get("component") == "observed_inference":
+                record("inference:pinned_inputs", observed_source is not None)
+                checks.extend(verify_inference_campaign(root, expected_commit))
+        except (OSError, KeyError, IndexError, TypeError, ValueError, subprocess.SubprocessError) as exc:
+            record("inference:artifact_error", False, str(exc))
 
     acceptance_path = root / "ACCEPTANCE.json"
     if acceptance_path.is_file():
