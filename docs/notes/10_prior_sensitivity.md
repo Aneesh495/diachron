@@ -1,27 +1,33 @@
 # Note 10: Prior sensitivity
 
-The sensitivity study exists to separate what the data say from what the priors
-say, and its headline result is that the inferred chronology belongs mostly to the
-calibration.
+Fifteen configurations completed the protocol 2 synthetic diagnostic at
+`11fe5e485071f3984dec09090525354d89a0e4da`. Each used two chains, 500 warmup
+iterations and 1500 sampling iterations. The exact configurations, root
+samples' quantiles and descriptive shifts are in
+[the saved report](../results/sensitivity-v2.json).
 
-Twelve predeclared configurations each change one lever: coalescent population
-size at three values, ascertainment on or off, singleton inclusion, loan removal,
-a half-calibration subset, no calibration, and the four observation models. The
-root-age estimate shifts materially under the calibration-related levers (halving
-the calibrations, removing calibration, the tree-only model) and under the
-geography model, while it is stable to a factor-of-nine change in population size
-and to turning ascertainment off.
+This diagnostic does not establish robustness. In particular, the
+coalescent-size settings produced substantially different root means. Short
+chains, distinct topology modes and changes to the prior can all cause those
+shifts. The experiment does not isolate their contributions. An earlier
+version of this note claimed that the estimate was stable across these tree
+priors. The saved result does not support that claim.
 
-The reading is twofold. The stable levers tell us the character likelihood, not
-the tree prior or the ascertainment correction, drives the age estimate given a
-fixed calibration. The sensitive levers tell us the absolute chronology is
-calibration-dependent: a dated claim from this platform is only as strong as the
-calibration behind it, and reporting a date without its calibration dependence
-would mislead.
+The calibration subset removes alternate synthetic attestation records before
+deriving a root constraint. It can preserve the oldest attestation, so it does
+not guarantee a weaker root constraint. For observed IE-CoR, dating evidence
+is attached to terminal varieties. EDH inscriptions have no resolved mapping
+to these tips and do not calibrate the posterior. Halving the EDH list would
+not test sensitivity to IE-CoR dates.
 
-This is a genuinely informative negative result for anyone hoping to read a
-confident date off the cognate data alone. The data constrain relative structure
-and, given a calibration, the age; they do not independently fix the calendar.
-The right practice, recorded here and enforced in the thesis claim ledger, is to
-report every chronology together with the calibration and the sensitivity that
-produced it.
+An observed calibration intervention must state which terminal densities
+change and which replacement prior keeps a historical tip's age latent. Loan
+removal must propagate uncertain absences to missing observations. Alternative
+cognacy assignments require an explicit transformation of source judgments.
+Every intervention needs its own saved model and source reconstruction.
+
+The decision rule remains: a historical conclusion is stable only if relevant
+fits converge and their changes remain within the declared comparison scope.
+Small differences between unconverged fits are insufficient evidence of
+robustness. Large differences are a reason to investigate the prior, data
+transformation and mixing separately.
