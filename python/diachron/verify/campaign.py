@@ -74,7 +74,8 @@ def _checkpoint_matches(checkpoint: dict, raw: dict, index: int, plan: dict) -> 
     total = config["warmup"] + config["iterations"]
     final = raw["chains"][index][-1]
     model = _model(raw["context"]["model"])
-    canonical = json.dumps(asdict(model), sort_keys=True, separators=(",", ":"), allow_nan=False)
+    canonical = json.dumps(
+        {key: value for key, value in asdict(model).items() if key in raw["context"]["model"]}, sort_keys=True, separators=(",", ":"), allow_nan=False)
     for name in ("parent", "heights", "taxon"):
         if checkpoint[name] != final[name]:
             return False

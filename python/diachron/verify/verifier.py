@@ -130,7 +130,7 @@ def _observed_context_matches(
 
     import numpy as np
 
-    from ..infer.campaign import prepare_study
+    from ..infer.campaign import prepare_study, build_model
     from ..io.epidoc import load_edh
     from ..io.freeze import load_study
     from ..io.types import Attestation
@@ -169,24 +169,41 @@ def _observed_context_matches(
             dataset, lexemes=forms,
             judgments=[judgment for judgment in dataset.judgments if judgment.lexeme_id in form_ids],
         )
-    rebuilt = prepare_study(
-        dataset, [Attestation(**att) for att in observations],
-        drop_singletons=model["minimum_present"] == 2,
-        include_unobserved_languages=partition is not None,
-    )
+    sensitivity = bundle["context"].get("sensitivity")
+    if sensitivity is not None:
+        if partition is not None:
+            return False
+        from ..sensitivity.interventions import prepare_sensitivity_study
+        from ..sensitivity.run import _declared_configs
+
+        settings = {setting.name: setting for setting in _declared_configs()}
+        setting = settings[sensitivity["name"]]
+        if model["config"] != asdict(setting.build()):
+            return False
+        rebuilt, changes = prepare_sensitivity_study(
+            dataset, [Attestation(**att) for att in observations], setting.name,
+        )
+        if sensitivity != json.loads(json.dumps(changes)):
+            return False
+        observations = [asdict(att) for att in rebuilt.attestations]
+    else:
+        rebuilt = prepare_study(
+            dataset, [Attestation(**att) for att in observations],
+            drop_singletons=model["minimum_present"] == 2,
+            include_unobserved_languages=partition is not None,
+        )
     if partition is not None and partition["character_ids"] != [
         list(identifier) for identifier in rebuilt.character_ids
     ]:
         return False
-    dates = {str(t): asdict(date) for t, date in rebuilt.tip_dates.items()}
-    if not model["config"]["use_calibration"]:
-        dates = {}
+    expected_model = json.loads(json.dumps(asdict(build_model(rebuilt, ModelConfig(**model["config"])))))
+    # Older bundles omit subsequently added optional fields. Compare all stored
+    # model inputs and let dataclass defaults apply to omitted optional inputs.
     return (
         not bundle["is_synthetic"] and bundle["dataset_version"] == dataset.version
         and bundle["context"]["frozen_study"] == manifest
-        and bundle["tip_labels"] == rebuilt.tip_labels and model["columns"] == rebuilt.columns
-        and model["tip_dates"] == dates
-        and model["tip_coords"] == {str(t): list(point) for t, point in rebuilt.tip_coords.items()}
+        and bundle["tip_labels"] == rebuilt.tip_labels
+        and model == {key: expected_model[key] for key in model}
         and bundle["context"]["attestations"] == json.loads(json.dumps(observations))
     )
 
@@ -269,6 +286,14 @@ def verify_evidence(
                 checks.extend(verify_prediction(root, dataset))
         except (DataError, OSError, KeyError, IndexError, TypeError, ValueError) as exc:
             record("prediction:artifact_error", False, str(exc))
+
+    if (root / "sensitivity.json").is_file():
+        try:
+            from .sensitivity import verify_sensitivity
+
+            checks.extend(verify_sensitivity(root))
+        except (OSError, KeyError, IndexError, TypeError, ValueError) as exc:
+            record("sensitivity:artifact_error", False, str(exc))
 
     if (root / "RUN_PLAN.json").is_file():
         try:

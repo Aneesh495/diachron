@@ -25,6 +25,7 @@ import numpy as np
 
 from diachron import _core
 from .tip_dates import TipDate
+from .constraints import validate_clades, satisfies_clades
 from .priors import coalescent_log_prior, calibration_log_density, exponential_logpdf, lognormal_logpdf
 
 
@@ -111,8 +112,10 @@ class PosteriorModel:
     # Two when singleton positives were filtered, one for variable-only data.
     minimum_present: int = 1
     tip_dates: dict[int, TipDate] = field(default_factory=dict)
+    required_clades: list[list[int]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
+        self._clade_masks = validate_clades(self.required_clades, self.n_tips)
         if not math.isfinite(self.config.relaxed_clock_sigma) or self.config.relaxed_clock_sigma < 0.0:
             raise ValueError("clock dispersion must be finite and nonnegative")
         error = self.config.geography_error_degrees
@@ -239,7 +242,7 @@ class PosteriorModel:
         borrow_rates: list[float] | None = None,
         clock_multipliers: list[float] | None = None,
     ) -> float:
-        if not tree.times_valid():
+        if not tree.times_valid() or not satisfies_clades(tree, self._clade_masks):
             return float("-inf")
         parameters = (gain, loss, clock_rate, geo_sigma2)
         if any(not math.isfinite(p) or p <= 0 for p in parameters):

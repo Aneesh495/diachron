@@ -144,3 +144,38 @@ interval. The interval describes concept variation. Unconverged fits remain
 unconverged, regardless of the score interval. Save complete model bundles,
 partitions, per-character scores and exact checkpoints. Resume requires the
 same source, input digest, partition seed, chain budget and initializer.
+
+## Observed sensitivity protocol 1
+
+Run the twenty configurations declared in `sensitivity/run.py` on the pinned
+IE-CoR input, with four chains, 3000 warmup iterations, 12000 sampling
+iterations and thinning by ten. Retain each complete bundle, transformation
+record, diagnostics and checkpoint. The original fifteen-configuration
+synthetic result remains a distinct diagnostic.
+
+The observed half-calibration setting replaces every second terminal density
+in sorted taxon order with the same positive-truncated Normal(4000, 4000)
+prior in years before 2000 CE. The all-broad setting replaces all terminal
+densities with that prior. This does not reuse withheld means and does not
+make an ancient tip contemporary. The no-calibration setting is the explicitly
+undated tree-only baseline. EDH list size has no effect on these terminal
+densities, because EDH assignment to model tips remains unresolved.
+
+The alternative-cognacy setting merges all usable source-proposed links within
+a meaning concept. This is an extreme alternative analysis. The source ordinal
+scale is recorded but is not interpreted as a probability. Links between
+incompatible concepts or missing endpoints stay unused and are counted.
+
+The catalog setting conditions on monophyly of the first source-classification
+level in IE-CoR. This is a taxonomic assumption under test. It cannot be used
+as independent corroboration of those same groups. Constrained distance starts
+honor the groups, and proposals outside the support have zero density. Required
+four-model inference keeps no taxonomic constraints.
+
+The observed regional alternatives use fixed Atlantic, Central European,
+Caucasus, Iranian, North Indian and South Indian anchors. The three-anchor
+alternative uses entries one, three and five of that ordered list. These
+anchors are model states and do not represent ancient boundaries. Additional
+settings use five-degree tip reference error and diffusion prior log-SD three.
+Report predictive and posterior changes alongside chain disagreement. A setting
+that fails convergence cannot establish a stable historical conclusion.
