@@ -6,7 +6,7 @@ internal-node state assignments; the finite-target posterior here enumerates a
 small discrete space exactly. Agreement between these oracles and the production
 Rust/Python code is the evidence for gates G02 and G03.
 
-Keeping the oracle in Python (separate language, separate author path) makes the
+Keeping the oracle in Python with explicit state enumeration makes the
 differential test meaningful: a bug shared between the implementation and its
 check would have to be independently reproduced here, which a transcription of
 the same algorithm would not guarantee but an independent enumeration does.
