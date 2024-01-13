@@ -60,3 +60,37 @@ def test_saved_sensitivity_is_recomputable_and_resumable(tmp_path):
     report["configs"][0]["root_age_mean"] += 10
     (out / "sensitivity.json").write_text(json.dumps(report))
     assert any(not check["ok"] for check in verify_sensitivity(out))
+
+
+def test_observed_shards_require_complete_identical_protocol_before_merge(tmp_path, monkeypatch):
+    from diachron.sensitivity.run import _declared_configs, merge_sensitivity_shards
+    import diachron.sensitivity.run as runner
+    import pytest
+
+    dataset, _ = simulate_dataset(n_languages=6, n_concepts=12, seed=490, name="shard-fixture")
+    dataset = replace(dataset, is_synthetic=False)
+    monkeypatch.setattr(runner, 'working_tree_clean', lambda: True)
+    shards = []
+    for setting in _declared_configs():
+        out = tmp_path / setting.name
+        result = run_sensitivity(str(out), 2, 20, dataset=dataset, n_chains=1,
+                                 only_configuration=setting.name)
+        assert result['n_configs'] == 1
+        shards.append(out)
+    with pytest.raises(ValueError, match='every predeclared'):
+        merge_sensitivity_shards(shards[:-1], tmp_path / 'partial')
+    merged = tmp_path / 'complete'
+    result = merge_sensitivity_shards(shards, merged)
+    assert result['n_configs'] == 20
+    assert all(check['ok'] for check in verify_sensitivity(merged))
+    assert (shards[0] / 'pop_size_1000/dated/bundle.json').stat().st_ino == (
+        merged / 'pop_size_1000/dated/bundle.json'
+    ).stat().st_ino
+    with pytest.raises(ValueError, match='immutable'):
+        run_sensitivity(str(merged), 2, 20, dataset=dataset, n_chains=1, resume=True)
+    path = shards[-1] / 'SENSITIVITY_PLAN.json'
+    changed = json.loads(path.read_text())
+    changed['iterations'] = 30
+    path.write_text(json.dumps(changed))
+    with pytest.raises(ValueError, match='different source, input, or budgets'):
+        merge_sensitivity_shards(shards, tmp_path / 'different')

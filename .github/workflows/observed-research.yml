@@ -1,0 +1,102 @@
+name: observed-research
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'Observed campaign component'
+        type: choice
+        options: [all, prediction, sensitivity]
+        default: all
+
+permissions:
+  contents: write
+
+# Standard public runners only. No larger runners or persistent services.
+# A green run certifies execution and artifact checks, not convergence.
+env:
+  OPENBLAS_NUM_THREADS: '1'
+  OMP_NUM_THREADS: '1'
+  MKL_NUM_THREADS: '1'
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.protocol.outputs.tag }}
+      matrix: ${{ steps.protocol.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: protocol
+        name: Freeze protocol and create evidence prerelease
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = json.loads(Path('data/manifests/sensitivity-protocol.json').read_text())
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('matrix=' + json.dumps({'configuration': [r['name'] for r in p['configurations']]}) + '\n')
+              f.write('tag=research-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'] + '\n')
+          PY
+          tag="research-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          gh release create "$tag" --target "$GITHUB_SHA" --prerelease --title "Observed research evidence ${GITHUB_RUN_ID}" --notes-file docs/EVIDENCE_ARCHIVES.md
+
+  prediction:
+    needs: prepare
+    if: inputs.component == 'all' || inputs.component == 'prediction'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - name: Build exact source
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r requirements-dev.txt
+          .venv/bin/maturin develop --locked --release
+      - name: Execute and independently verify observed prediction
+        run: .venv/bin/python scripts/run_research_job.py prediction
+      - name: Publish raw execution evidence
+        if: always()
+        env:
+          EVIDENCE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          python scripts/package_research_job.py --name prediction
+          gh release upload "$EVIDENCE_TAG" runs/prediction.tar.gz runs/prediction.tar.gz.sha256
+
+  sensitivity:
+    needs: prepare
+    if: inputs.component == 'all' || inputs.component == 'sensitivity'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - name: Build exact source
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r requirements-dev.txt
+          .venv/bin/maturin develop --locked --release
+      - name: Execute and independently verify one observed setting
+        env:
+          CONFIGURATION: ${{ matrix.configuration }}
+        run: .venv/bin/python scripts/run_research_job.py sensitivity --configuration "$CONFIGURATION"
+      - name: Publish raw execution evidence
+        if: always()
+        env:
+          EVIDENCE_TAG: ${{ needs.prepare.outputs.tag }}
+          CONFIGURATION: ${{ matrix.configuration }}
+        run: |
+          python scripts/package_research_job.py --name "$CONFIGURATION"
+          gh release upload "$EVIDENCE_TAG" "runs/${CONFIGURATION}.tar.gz" "runs/${CONFIGURATION}.tar.gz.sha256"

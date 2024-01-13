@@ -113,6 +113,19 @@ def cmd_cldf(args) -> int:
     return 0
 
 
+def cmd_acquire(args) -> int:
+    from ..io.acquire import acquire_inputs
+    from ..io.types import DataError
+
+    try:
+        result = acquire_inputs(args.out, studies=args.study or ("iecor",), include_edh=not args.no_edh)
+    except (DataError, OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    _print(result)
+    return 0
+
+
 def cmd_attestations(args) -> int:
     """Summarize the attestation corpus (observation types, dating spread)."""
     if args.action == "edh":
@@ -262,9 +275,21 @@ def cmd_sensitivity(args) -> int:
         result = run_sensitivity(
             out_dir=args.out, dataset=dataset, attestations=attestations, frozen_study=frozen,
             n_chains=args.chains, warmup=args.warmup, iterations=args.iterations,
-            jobs=args.jobs, resume=args.resume,
+            jobs=args.jobs, resume=args.resume, only_configuration=args.configuration,
         )
     except (DataError, OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    _print(result)
+    return 0
+
+
+def cmd_merge_sensitivity(args) -> int:
+    from ..sensitivity.run import merge_sensitivity_shards
+
+    try:
+        result = merge_sensitivity_shards(args.shard, args.out)
+    except (OSError, KeyError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
     _print(result)
@@ -365,6 +390,19 @@ def cmd_verify(args) -> int:
     return 0 if result["ok"] else 1
 
 
+def cmd_restore_evidence(args) -> int:
+    from ..io.evidence_archive import restore_evidence
+    from ..io.types import DataError
+
+    try:
+        result = restore_evidence(args.archive, args.out, args.sha256)
+    except (DataError, OSError, KeyError, TypeError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    _print(result)
+    return 0
+
+
 def cmd_release(args) -> int:
     from .release import run_release
 
@@ -421,6 +459,12 @@ def build_parser() -> argparse.ArgumentParser:
     cp.add_argument("--catalog", help="pinned Glottolog languoid ZIP")
     cp.add_argument("--out", help="new directory for the frozen Arrow tables")
     cp.set_defaults(func=cmd_cldf)
+
+    acq = sub.add_parser("acquire")
+    acq.add_argument("--out", type=Path, required=True)
+    acq.add_argument("--study", action="append", choices=("iecor", "abvd"))
+    acq.add_argument("--no-edh", action="store_true")
+    acq.set_defaults(func=cmd_acquire)
 
     ap = sub.add_parser("attestations")
     ap.add_argument("action", nargs="?", choices=("build", "edh"), default="build")
@@ -488,7 +532,13 @@ def build_parser() -> argparse.ArgumentParser:
     sn.add_argument("--iterations", type=int, default=1500)
     sn.add_argument("--jobs", type=int, default=1)
     sn.add_argument("--resume", action="store_true")
+    sn.add_argument("--configuration", help="fit one predeclared observed sensitivity shard")
     sn.set_defaults(func=cmd_sensitivity)
+
+    ms = sub.add_parser("merge-sensitivity")
+    ms.add_argument("--shard", type=Path, action="append", required=True)
+    ms.add_argument("--out", type=Path, required=True)
+    ms.set_defaults(func=cmd_merge_sensitivity)
 
     rp = sub.add_parser("recovery")
     rp.add_argument("--datasets", type=int, default=200)
@@ -537,6 +587,12 @@ def build_parser() -> argparse.ArgumentParser:
     vp.add_argument("--edh-source", type=Path, help="trusted EDH XML inputs")
     vp.add_argument("--edh-geography", type=Path, help="trusted EDH gazetteer")
     vp.set_defaults(func=cmd_verify)
+
+    ra = sub.add_parser("restore-evidence")
+    ra.add_argument("--archive", type=Path, required=True)
+    ra.add_argument("--out", type=Path, required=True)
+    ra.add_argument("--sha256", required=True, help="trusted compressed archive SHA-256")
+    ra.set_defaults(func=cmd_restore_evidence)
 
     sub.add_parser("release").set_defaults(func=cmd_release)
 
