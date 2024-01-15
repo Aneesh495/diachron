@@ -12,9 +12,22 @@ on:
         description: "Evidence run id"
         required: true
         default: "manual"
+      profile:
+        description: "Full acceptance checks or observed research execution"
+        type: choice
+        options: [full, observed]
+        default: full
 
 jobs:
+  observed:
+    if: inputs.profile == 'observed'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/observed-research.yml
+    with:
+      component: all
   acceptance:
+    if: inputs.profile == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 300
     steps:
