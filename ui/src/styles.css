@@ -123,3 +123,35 @@ body {
 }
 
 .tree-view [role="button"]:focus-visible { outline: 2px solid #946100; }
+
+.research-tools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px 8px 0;
+}
+
+.research-tour, .taxonomy-comparison {
+  background: #fff;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.research-tools summary { font-weight: 600; cursor: pointer; }
+.research-tools h2 { font-size: 16px; margin: 8px 0 4px; }
+.research-tools p { margin: 6px 0; }
+.research-tools button, .research-tools select { min-height: 28px; max-width: 100%; }
+.research-tools button { cursor: pointer; }
+.research-tools a { color: #254f87; }
+.tour-navigation { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.taxonomy-comparison select { margin: 8px 0 4px; }
+.map-controls { flex-wrap: wrap; }
+.matrix-readout { margin: 0; padding: 6px 22px; color: #703222; font-size: 12px; }
+.matrix-readout:empty { display: none; }
+
+@media (max-width: 820px) {
+  .research-tools { grid-template-columns: minmax(0, 1fr); }
+}

@@ -6,6 +6,7 @@ import { equirectangular, orthographic, longitude180, type Projection } from "..
 export class MapView {
   private el: SVGSVGElement;
   private globe = false;
+  private locationChain: number | null = null;
   private centerLat = 35;
   private centerLon = 25;
   constructor(
@@ -47,6 +48,25 @@ export class MapView {
       this.render();
     });
     controls.append(projection, rotations);
+    const chains = [...new Set(store.bundle.rootLocations.map((point) => point.chain))]
+      .filter((chain): chain is number => chain !== undefined)
+      .sort((a, b) => a - b);
+    if (chains.length > 1) {
+      const select = document.createElement("select");
+      select.setAttribute("aria-label", "Location draw chain");
+      const choices = [["all", "All location draws"], ...chains.map((chain) => [String(chain), `Chain ${chain + 1}`])];
+      for (const [value, label] of choices) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        select.appendChild(option);
+      }
+      select.addEventListener("change", () => {
+        this.locationChain = select.value === "all" ? null : Number(select.value);
+        this.render();
+      });
+      controls.appendChild(select);
+    }
     container.appendChild(controls);
     this.el = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     this.el.setAttribute("width", "100%");
@@ -61,7 +81,8 @@ export class MapView {
   private render(): void {
     while (this.el.firstChild) this.el.removeChild(this.el.firstChild);
     const w = this.el.parentElement?.clientWidth || 600;
-    const h = Math.max(180, (this.el.parentElement?.clientHeight || 400) - 34);
+    const controlsHeight = this.el.previousElementSibling?.getBoundingClientRect().height ?? 0;
+    const h = Math.max(180, (this.el.parentElement?.clientHeight || 400) - controlsHeight);
     this.el.setAttribute("height", String(h));
     const globe = this.globe ? orthographic(w, h, this.centerLat, this.centerLon) : null;
     const project = globe?.project ?? equirectangular(w, h);
@@ -151,7 +172,8 @@ export class MapView {
 
   private renderLatentCloud(project: Projection): void {
     const selection = this.store.selection;
-    for (const { lat, lon, age } of this.selectedLocations()) {
+    for (const { lat, lon, age, chain } of this.selectedLocations()) {
+      if (this.locationChain !== null && chain !== this.locationChain) continue;
       if (Math.abs(age - selection.timeYbp) > 250 || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
       const location = project(lat, lon);
       if (!location) continue;
@@ -161,6 +183,7 @@ export class MapView {
       dot.setAttribute("cy", String(y));
       dot.setAttribute("r", "3");
       dot.setAttribute("fill", "#4a6fa5");
+      if (chain !== undefined) dot.setAttribute("data-chain", String(chain));
       dot.setAttribute("fill-opacity", "0.35");
       this.el.appendChild(dot);
     }

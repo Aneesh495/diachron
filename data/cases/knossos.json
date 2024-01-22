@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "id": "knossos-linear-b",
+  "language_id": "173",
+  "locality": "Knossos, Crete",
+  "scope": "Published dating interpretations of the archive. Calendar uncertainty is unquantified.",
+  "alternatives": [
+    {
+      "id": "knossos:evans-hood",
+      "label": "Earlier palace destruction",
+      "source_date": "approximately 1400 BCE",
+      "calendar_marker_bce": 1400,
+      "conflicts_with": "knossos:palmer",
+      "citation": "Sinclair Hood, The Knossos Tablets: A Complete View, Antiquity 36 (1962), 38–40.",
+      "url": "https://doi.org/10.1017/S0003598X00029550"
+    },
+    {
+      "id": "knossos:palmer",
+      "label": "Later archive placement",
+      "source_date": "approximately 1200 BCE or later",
+      "calendar_marker_bce": 1200,
+      "conflicts_with": "knossos:evans-hood",
+      "citation": "L. R. Palmer, The Find Places of the Knossos Tablets, Antiquity 35 (1961), 135–141. For the approximate calendar date, see Hood (1962), 38–40.",
+      "url": "https://doi.org/10.1017/S0003598X00036024"
+    }
+  ],
+  "context": "Later studies distinguish multiple deposits and re-evaluate the ceramic associations. These historical positions illustrate how competing archaeological assignments change a proposed calendar marker.",
+  "context_url": "https://pul.uclouvain.be/html/WYSIWYGfiles/files/109736-PUL-Deprez-AEGIS31-C1-INT-C4.pdf"
+}

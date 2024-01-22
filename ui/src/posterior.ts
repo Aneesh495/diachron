@@ -80,7 +80,7 @@ export class PosteriorSummary {
       supportByKey.set(key, cs.support);
     }
     let best = this.trees[0];
-    let bestScore = -1;
+    let bestScore = Number.NEGATIVE_INFINITY;
     for (const tree of this.trees) {
       let score = 0;
       for (const node of tree.nodes) {

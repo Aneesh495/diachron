@@ -97,6 +97,7 @@ export interface RootLocation {
   lat: number;
   lon: number;
   age: number;
+  chain?: number;
 }
 
 // The current selection, propagated across all linked views.
@@ -104,4 +105,29 @@ export interface Selection {
   taxa: Set<number>; // selected tip taxa
   clade: Set<number> | null; // a selected clade (set of taxa)
   timeYbp: number; // current timeline position, years before present
+}
+
+export interface MatrixCell {
+  taxon: number;
+  column: number;
+}
+
+export interface TourStep {
+  id: string;
+  title: string;
+  body: string;
+  cells?: MatrixCell[];
+  taxon?: number;
+  dates?: { id: string; label: string; source_date: string; citation: string; url: string; age: number }[];
+  model?: string;
+  links: { label: string; url: string }[];
+}
+
+export interface TaxonomyGroup {
+  id: string;
+  label: string;
+  taxonomy: string;
+  url: string;
+  taxa: number[];
+  models: Record<string, { clade_draws: number; total_draws: number }>;
 }

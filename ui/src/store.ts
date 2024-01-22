@@ -5,7 +5,7 @@
 // globe and in the matrix, and moving the timeline filters what every view
 // shows. The store is the single source of truth for cross-view linkage.
 
-import type { PosteriorBundle, Selection } from "./types";
+import type { MatrixCell, PosteriorBundle, Selection } from "./types";
 import { PosteriorSummary } from "./posterior";
 
 type Listener = () => void;
@@ -14,6 +14,7 @@ export class Store {
   bundle: PosteriorBundle;
   summary: PosteriorSummary;
   selection: Selection;
+  matrixFocus: MatrixCell[] = [];
   private listeners: Listener[] = [];
 
   constructor(bundle: PosteriorBundle) {
@@ -36,13 +37,15 @@ export class Store {
   }
 
   selectClade(taxa: Set<number>, age?: number): void {
+    this.matrixFocus = [];
     if (age !== undefined) this.selection.timeYbp = age;
-    this.selection.clade = taxa;
+    this.selection.clade = taxa.size ? taxa : null;
     this.selection.taxa = new Set(taxa);
     this.emit();
   }
 
   toggleTaxon(taxon: number): void {
+    this.matrixFocus = [];
     if (this.selection.taxa.has(taxon)) this.selection.taxa.delete(taxon);
     else this.selection.taxa.add(taxon);
     this.selection.clade = null;
@@ -50,7 +53,15 @@ export class Store {
   }
 
   clearSelection(): void {
+    this.matrixFocus = [];
     this.selection.taxa = new Set();
+    this.selection.clade = null;
+    this.emit();
+  }
+
+  focusMatrix(cells: MatrixCell[]): void {
+    this.matrixFocus = cells;
+    this.selection.taxa = new Set(cells.map((cell) => cell.taxon));
     this.selection.clade = null;
     this.emit();
   }
