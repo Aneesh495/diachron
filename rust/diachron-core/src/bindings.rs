@@ -273,6 +273,36 @@ impl PyRng {
         self.inner.next_f64()
     }
 
+    fn spr_with_height(
+        &mut self,
+        parent: Vec<i64>,
+        height: Vec<f64>,
+        taxon: Vec<i64>,
+        root: usize,
+    ) -> PyResult<Option<(Vec<i64>, Vec<f64>, f64)>> {
+        if height.len() != parent.len() {
+            return Err(PyValueError::new_err("tree arrays length mismatch"));
+        }
+        let mut lengths = Vec::with_capacity(parent.len());
+        for (node, &ancestor) in parent.iter().enumerate() {
+            if ancestor < 0 {
+                lengths.push(0.0);
+            } else {
+                let age = height.get(ancestor as usize)
+                    .ok_or_else(|| PyValueError::new_err("parent index out of range"))?;
+                lengths.push(age - height[node]);
+            }
+        }
+        let mut tree = build_tree(&parent, &lengths, &height, &taxon, root)?;
+        let result = crate::mcmc::spr_with_height(&mut tree, &mut self.inner);
+        if !result.valid {
+            return Ok(None);
+        }
+        let parents = tree.nodes.iter().map(|node| node.parent.map_or(-1, |id| id as i64)).collect();
+        let heights = tree.nodes.iter().map(|node| node.height).collect();
+        Ok(Some((parents, heights, result.log_hastings)))
+    }
+
     fn normal(&mut self) -> f64 {
         self.inner.next_normal()
     }

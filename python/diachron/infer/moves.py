@@ -159,16 +159,21 @@ class MoveSet:
         tree.parent[gc] = p
         return MoveResult(0.0, True)
 
-    def spr(self, tree: PhyloTree, rng) -> MoveResult:
-        """Time-preserving SPR with symmetric selection on the detached backbone.
+    def spr(self, tree: PhyloTree, rng, *, resample_height: bool = False) -> MoveResult:
+        """Use the native attachment-age move when requested.
 
-        Choose an ordered prunable child and preserve its parent's age. Suppress
-        the parent and draw uniformly from backbone edges crossing that age.
-        The original sibling edge is in the same set and is a self-transition.
-        Given the same child on reversal, both the backbone and age are
-        identical, so the proposal probabilities cancel. Binary node degrees
-        and the number of children beneath the root are invariant.
+        The original time-preserving proposal draws uniformly from backbone
+        edges crossing the fixed attachment age. Its reverse set is identical.
+        The height-resampled kernel also moves the attachment age, using the
+        ratio of the destination and original edge spans.
         """
+        if resample_height:
+            proposed = rng.spr_with_height(tree.parent, tree.heights, tree.taxon, tree.root)
+            if proposed is None:
+                return MoveResult(0.0, False)
+            tree.parent, tree.heights, log_hastings = proposed
+            return MoveResult(log_hastings, True)
+
         children = tree.children()
         prunable = [
             child for child, parent in enumerate(tree.parent)
@@ -176,7 +181,6 @@ class MoveSet:
         ]
         if not prunable:
             return MoveResult(0.0, False)
-
         child = prunable[rng.below(len(prunable))]
         parent = tree.parent[child]
         grandparent = tree.parent[parent]
@@ -196,12 +200,10 @@ class MoveSet:
         target, target_parent = targets[rng.below(len(targets))]
         if target == sibling:
             return MoveResult(0.0, False)
-
         tree.parent[sibling] = grandparent
         tree.parent[parent] = target_parent
         tree.parent[target] = parent
         return MoveResult(0.0, True)
-
 
 def _descendants(tree: PhyloTree, node: int) -> set[int]:
     ch = tree.children()

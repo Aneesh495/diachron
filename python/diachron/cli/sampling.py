@@ -52,6 +52,7 @@ def run_sample(
     resume: bool = False,
     jobs: int = 1,
     initialization: str = "distance",
+    height_resampled_spr: bool = False,
     geography_error: float | None = None,
     observed_study: str | None = None,
     observed_source: Path | None = None,
@@ -108,6 +109,7 @@ def run_sample(
         resume=resume,
         jobs=jobs,
         initialization=initialization,
+        height_resampled_spr=height_resampled_spr,
     )
     bundle = campaign_bundle(chains, study, config, source_commit=source_commit())
     if observed_study:
@@ -126,6 +128,7 @@ def run_sample(
         "chains": n_chains,
         "workers": min(n_chains, jobs),
         "initialization": initialization,
+        "height_resampled_spr": height_resampled_spr,
         "warmup": warmup,
         "iterations": iterations,
         "draws_per_chain": bundle.draws_per_chain,

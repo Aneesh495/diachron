@@ -179,3 +179,19 @@ anchors are model states and do not represent ancient boundaries. Additional
 settings use five-degree tip reference error and diffusion prior log-SD three.
 Report predictive and posterior changes alongside chain disagreement. A setting
 that fails convergence cannot establish a stable historical conclusion.
+
+## Attachment-age proposal pilot
+
+Compare the protocol 3 move set with the same moves plus a native SPR move
+that resamples attachment age. Both fits use dated IE-CoR, independent distance
+starts, the same four seeds, 1000 warmup steps, 3000 sampling steps and thinning
+by ten. The target and pinned observation bytes are shared. Run both from the
+same clean source. Preserve every chain and compare topology movement,
+between-chain clade differences, scalar traces and elapsed sampling time.
+
+The additional kernel samples an eligible backbone edge and a uniform date
+within its feasible span. The reverse uses the same detached backbone. Its
+log Hastings term is the log destination span minus the log original span.
+The four-tip continuous-volume test checks all 15 rooted labeled topologies
+against their analytically integrated probabilities. This pilot leaves the
+full-budget convergence criteria in force.
