@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import replace
+from dataclasses import asdict, replace
 import json
 import math
 from pathlib import Path
@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy as np
 
 from ..io.characters import build_character_matrix
+from ..models.posterior import ModelConfig
 from ..models.tree import PhyloTree
 
 _MODELS = ("tree_only", "dated", "geography", "borrowing")
@@ -22,25 +23,24 @@ def _read(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _masked_dataset(dataset, kind, held, keep_held):
+    forms = [form for form in dataset.lexemes
+             if (((form.concept_id if kind == "concept" else form.language_id) in held) == keep_held)]
+    form_ids = {form.id for form in forms}
+    return replace(dataset, lexemes=forms,
+                   judgments=[j for j in dataset.judgments if j.lexeme_id in form_ids])
+
+
 def _test_patterns(dataset, partition):
     """Build evaluation outcomes independently from the saved score producer."""
-    kind = partition["kind"]
-    held = set(partition["identifiers"])
-    if kind == "concept":
-        forms = [form for form in dataset.lexemes if form.concept_id in held]
-        form_ids = {form.id for form in forms}
-        evidence = replace(
-            dataset, lexemes=forms,
-            judgments=[j for j in dataset.judgments if j.lexeme_id in form_ids],
-        )
+    if partition["kind"] == "concept":
+        evidence = _masked_dataset(dataset, "concept", set(partition["identifiers"]), True)
         matrix = build_character_matrix(evidence, include_unobserved_languages=True)
         chars = matrix.variable_characters()
-        return {(char.concept_id, char.cognate_class): char.states for char in chars}
-
-    matrix = build_character_matrix(
-        dataset, drop_singletons=False, include_unobserved_languages=True,
-    )
-    return {(char.concept_id, char.cognate_class): char.states for char in matrix.characters}
+    else:
+        matrix = build_character_matrix(dataset, drop_singletons=False, include_unobserved_languages=True)
+        chars = matrix.characters
+    return {(char.concept_id, char.cognate_class): char.states for char in chars}
 
 
 def _replay_scores(bundle, indices, character_ids, test_lookup, partition):
@@ -105,6 +105,19 @@ def verify_prediction(directory: Path, dataset, probe_characters: int = 16) -> l
     if report["study"] != dataset.name or report["is_synthetic"] != dataset.is_synthetic:
         record("prediction:study", False)
         return checks
+    plan_path = directory / "PREDICTION_PLAN.json"
+    plan = _read(plan_path) if plan_path.is_file() else None
+    budget = report["budget"]
+    budget_ok = (all(type(budget[key]) is int for key in ("chains", "warmup", "iterations", "thin"))
+                 and 1 <= budget["chains"] <= 8 and budget["warmup"] >= 0
+                 and budget["iterations"] >= budget["thin"] == 10)
+    record("prediction:budget_shape", budget_ok)
+    if not budget_ok:
+        return checks
+    if plan is not None:
+        record("prediction:frozen_plan", plan["schema"] == 1 and plan["source_commit"] == report["source_commit"]
+               and plan["seed"] == report["split_seed"] and plan["study"] == dataset.name
+               and plan["models"] == list(_MODELS) and all(plan[key] == value for key, value in budget.items()))
     rng = np.random.default_rng(report["split_seed"])
     expected = {}
     for kind, choices in (
@@ -133,7 +146,25 @@ def verify_prediction(directory: Path, dataset, probe_characters: int = 16) -> l
             "kind": kind, "identifiers": expected[kind],
             "character_ids": partition_manifest["train_character_ids"],
         }
+        training = build_character_matrix(
+            _masked_dataset(dataset, kind, set(expected[kind]), False), include_unobserved_languages=True,
+        )
+        training_ids = [(character.concept_id, character.cognate_class)
+                        for character in training.variable_characters()]
+        training_columns = [character.states for character in training.variable_characters()]
+        record(f"prediction:{kind}:training_vocabulary",
+               partition_manifest["train_character_ids"] == [list(key) for key in training_ids]
+               and report["experiments"][kind]["n_train_characters"] == len(training_ids))
         lookup = _test_patterns(dataset, partition)
+        if kind == "concept":
+            scored_ids = list(lookup)
+        else:
+            positions = [index for index, label in enumerate(training.language_ids) if label in expected[kind]]
+            scored_ids = [key for key in training_ids if any(lookup[key][index] >= 0 for index in positions)]
+        exact_vocabulary = ids == [list(key) for key in scored_ids]
+        record(f"prediction:{kind}:evaluation_vocabulary", exact_vocabulary)
+        if not exact_vocabulary:
+            continue
         probes = np.linspace(0, len(ids) - 1, min(probe_characters, len(ids)), dtype=int)
         for model_name in _MODELS:
             raw = _read(split / f"{model_name}.json")
@@ -159,6 +190,23 @@ def verify_prediction(directory: Path, dataset, probe_characters: int = 16) -> l
             bundle = _read(split / model_name / "bundle.json")
             record(f"prediction:{kind}:{model_name}:source",
                    bundle["source_commit"] == report["source_commit"] == raw["source_commit"])
+            stored = bundle["context"]
+            record(f"prediction:{kind}:{model_name}:training_inputs",
+                   bundle["tip_labels"] == training.language_ids
+                   and stored["model"]["columns"] == training_columns
+                   and stored["model"]["config"] == asdict(getattr(ModelConfig, model_name)())
+                   and stored["held_out_partition"] == {**partition, "seed": report["split_seed"]})
+            configurations = stored["chain_configurations"]
+            expected_draws = budget["iterations"] // budget["thin"]
+            record(f"prediction:{kind}:{model_name}:chain_budgets",
+                   len(configurations) == bundle["n_chains"] == budget["chains"]
+                   and len({configuration["seed"] for configuration in configurations}) == budget["chains"]
+                   and all(all(configuration[key] == budget[key] for key in ("warmup", "iterations", "thin"))
+                           for configuration in configurations)
+                   and all(len(chain) == expected_draws and all(
+                       draw["iteration"] == budget["warmup"] + budget["thin"] * (index + 1)
+                       for index, draw in enumerate(chain)
+                   ) for chain in bundle["chains"]))
             reproduced = _replay_scores(bundle, probes, ids, lookup, partition)
             record(f"prediction:{kind}:{model_name}:predictive_replay",
                    np.allclose(reproduced, np.array(values)[probes], atol=1e-9, rtol=0),

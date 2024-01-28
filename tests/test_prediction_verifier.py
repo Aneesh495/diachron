@@ -63,3 +63,23 @@ def test_interrupted_prediction_resumes_identically(tmp_path, monkeypatch):
             )
     with pytest.raises(ValueError, match="budget changed"):
         producer.run_heldout_prediction(str(out), resume=True, **{**kwargs, "iterations": 30})
+
+
+def test_prediction_replay_rejects_removed_held_out_character(tmp_path):
+    dataset, truth = simulate_dataset(n_languages=8, n_concepts=30, seed=127, name="omission-test")
+    attestations = simulate_attestations(dataset, truth, n_records=12, seed=127)
+    out = tmp_path / "prediction"
+    run_heldout_prediction(str(out), dataset=dataset, attestations=attestations,
+                           n_chains=1, warmup=5, iterations=20)
+    for filename, update in [
+        ("concept/partition.json", lambda obj: obj["test_character_ids"].pop()),
+        ("concept/tree_only.json", lambda obj: obj["log_scores"].pop()),
+        ("heldout.json", lambda obj: obj["experiments"]["concept"].__setitem__(
+            "n_scored_characters", obj["experiments"]["concept"]["n_scored_characters"] - 1)),
+    ]:
+        path = out / filename
+        raw = json.loads(path.read_text())
+        update(raw)
+        path.write_text(json.dumps(raw))
+    checks = verify_prediction(out, dataset)
+    assert any(check["check"] == "prediction:concept:evaluation_vocabulary" and not check["ok"] for check in checks)

@@ -28,12 +28,19 @@ def verify_sensitivity(root: Path) -> list[dict]:
            and [row["config"] for row in report["configs"]] == names
            and report["n_configs"] == len(names) >= 12)
     record("source", report["source_commit"] == plan["source_commit"])
+    if plan["thin"] != 10 or not 1 <= plan["chains"] <= 8 or plan["warmup"] < 0 or plan["iterations"] < 10:
+        record("budget_shape", False)
+        return checks
+    declared = {row["name"]: row["model"] for row in expected}
     baseline = None
     computed = {}
     converged = []
     for row in report["configs"]:
         name = row["config"]
-        model_name = row["model"]["name"]
+        if name not in declared or row["model"] != declared[name]:
+            record(f"{name}:declared_model", False)
+            return checks
+        model_name = declared[name]["name"]
         raw = _read_json(root / name / model_name / "bundle.json", 128 * 1024 * 1024)
         roots = np.array([[draw["root_age"] for draw in chain] for chain in raw["chains"]]).flatten()
         mean, sd = float(roots.mean()), float(roots.std())
@@ -51,14 +58,16 @@ def verify_sensitivity(root: Path) -> list[dict]:
                and raw["source_commit"] == report["source_commit"]
                and raw["is_synthetic"] == report["is_synthetic"])
         configs = raw["context"]["chain_configurations"]
-        expected_iterations = list(range(plan["warmup"] + plan["thin"],
-                                         plan["warmup"] + plan["iterations"] + 1, plan["thin"]))
+        expected_draws = plan["iterations"] // plan["thin"]
         record(f"{name}:chain_budgets", len(configs) == raw["n_chains"] == plan["chains"]
                and len({config["seed"] for config in configs}) == plan["chains"]
                and all(all(config[key] == plan[key] for key in (
                    "warmup", "iterations", "thin", "initialization",
                )) for config in configs)
-               and all([draw["iteration"] for draw in chain] == expected_iterations for chain in raw["chains"]))
+               and all(len(chain) == expected_draws and all(
+                   draw["iteration"] == plan["warmup"] + plan["thin"] * (index + 1)
+                   for index, draw in enumerate(chain)
+               ) for chain in raw["chains"]))
         diagnostic = _diagnose(raw)
         converged.append(diagnostic["converged"])
         record(f"{name}:convergence_claim", diagnostic["converged"] == row["converged"])
