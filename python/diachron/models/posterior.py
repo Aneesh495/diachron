@@ -241,7 +241,10 @@ class PosteriorModel:
         geo_sigma2: float = 0.004,
         borrow_rates: list[float] | None = None,
         clock_multipliers: list[float] | None = None,
+        inverse_temperature: float = 1.0,
     ) -> float:
+        if not 0.05 <= inverse_temperature <= 1.0:
+            raise ValueError("lexical inverse temperature must be in [0.05, 1]")
         if not tree.times_valid() or not satisfies_clades(tree, self._clade_masks):
             return float("-inf")
         parameters = (gain, loss, clock_rate, geo_sigma2)
@@ -271,6 +274,7 @@ class PosteriorModel:
         ))
         if not np.isfinite(lp):
             return float("-inf")
+        lp *= inverse_temperature
         lp += self.calibration_log_density(tree)
         lp += self.geography_log_density(tree, geo_sigma2)
         if self.config.use_borrowing:

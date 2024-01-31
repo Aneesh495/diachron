@@ -195,3 +195,19 @@ log Hastings term is the log destination span minus the log original span.
 The four-tip continuous-volume test checks all 15 rooted labeled topologies
 against their analytically integrated probabilities. This pilot leaves the
 full-budget convergence criteria in force.
+
+## Lexical tempering pilot
+
+Use the dated IE-CoR target and the protocol 3 moves. Each independent chain
+has eight replicas with fixed inverse temperatures 1, .98, .94, .88, .80,
+.65, .47 and .25. Only the lexical log likelihood is multiplied by inverse
+temperature. Other factors retain their original strength. Attempt disjoint
+adjacent exchanges every twenty local steps, alternating parity. Save draws
+from temperature one before any exchange on the same iteration.
+
+Use four independent ensembles, 1000 warmup steps and 3000 sampling steps per
+replica, thinning the cold trajectories by ten. Keep the same cold seeds as
+the attachment-age pilot control. This fixes the same cold budget and more
+compute. Compare scalar traces, clade disagreement, adjacent swap rates,
+round trips and total elapsed time. Retain all replica states in checkpoints.
+The original convergence thresholds govern any subsequent full run.

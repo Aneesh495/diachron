@@ -204,6 +204,7 @@ def cmd_sample(args) -> int:
             jobs=args.jobs,
             initialization=args.initialization,
             height_resampled_spr=args.height_resampled_spr,
+            temperature_ladder=tuple(float(value) for value in args.tempering_ladder.split(",")),
             geography_error=args.geography_error,
             observed_study=args.study,
             observed_source=args.source,
@@ -507,6 +508,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--jobs", type=int, default=1)
     sp.add_argument("--initialization", choices=("random", "distance"), default="distance")
     sp.add_argument("--height-resampled-spr", action="store_true")
+    sp.add_argument("--tempering-ladder", default="1", help="comma-separated lexical inverse temperatures")
     sp.add_argument("--geography-error", type=float, help="fixed planar reference error in degrees")
     sp.add_argument("--study", choices=("iecor", "abvd"))
     sp.add_argument("--source", type=Path, help="root of pinned CLDF source checkout")

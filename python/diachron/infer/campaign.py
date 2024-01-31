@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import nullcontext
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 import multiprocessing
 from functools import partial
 from pathlib import Path
@@ -33,6 +33,7 @@ from ..models.tip_dates import TipDate
 from ..models.posterior import PosteriorModel, ModelConfig, Calibration
 from .chain import Chain, ChainConfig, ChainState
 from .artifacts import bundle_from_chains, PosteriorBundle
+from .replica import ReplicaExchange, validate_ladder
 
 
 @dataclass
@@ -222,26 +223,34 @@ def _run_chain(
     c: int, *, model: PosteriorModel, tip_labels: list[str], warmup: int,
     iterations: int, thin: int, root_age_init: float, base_seed: int,
     checkpoint_dir: str | None, resume: bool, initialization: str, height_resampled_spr: bool,
+    temperature_ladder: tuple[float, ...],
 ) -> Chain:
-    rng = np.random.default_rng(base_seed + c)
     dates = {taxon: date.center() for taxon, date in model.tip_dates.items()}
-    if initialization == "distance":
-        start = distance_starting_tree(
-            tip_labels, model.columns, root_age_init, rng, dates, model.required_clades,
-        )
-    else:
-        if model.required_clades:
-            raise ValueError("clade-constrained campaigns require distance initialization")
-        start = random_starting_tree(tip_labels, root_age_init, rng, dates)
     cfg = ChainConfig(
         seed=base_seed + 7919 * (c + 1), warmup=warmup, iterations=iterations, thin=thin,
         initialization=initialization, height_resampled_spr=height_resampled_spr,
     )
-    state = ChainState(
-        gain=0.0005, loss=0.001, clock_rate=1.0,
-        borrow_rates=[0.02] * len(model.borrow_candidates),
-        clock_multipliers=[1.0] * start.n_nodes if model.config.relaxed_clock_sigma > 0 else [],
-    )
+
+    def initialize(replica_index, beta):
+        rng = np.random.default_rng(base_seed + c + 104729 * replica_index)
+        if initialization == "distance":
+            tree = distance_starting_tree(tip_labels, model.columns, root_age_init, rng, dates, model.required_clades)
+        else:
+            if model.required_clades:
+                raise ValueError("clade-constrained campaigns require distance initialization")
+            tree = random_starting_tree(tip_labels, root_age_init, rng, dates)
+        state = ChainState(
+            gain=0.0005, loss=0.001, clock_rate=1.0,
+            borrow_rates=[0.02] * len(model.borrow_candidates),
+            clock_multipliers=[1.0] * tree.n_nodes if model.config.relaxed_clock_sigma > 0 else [],
+        )
+        configuration = replace(cfg, seed=cfg.seed + 33554393 * replica_index,
+                                thin=thin if replica_index == 0 else iterations + 1,
+                                inverse_temperature=beta)
+        return Chain(model, tree, state, configuration)
+
+    exchange_seed = base_seed + 900001 + 104729 * (c + 1)
+    sampler_class = Chain if len(temperature_ladder) == 1 else ReplicaExchange
     ckpt = None
     lock = nullcontext()
     if checkpoint_dir is not None:
@@ -260,13 +269,19 @@ def _run_chain(
         if ckpt is not None and ckpt.exists():
             if not resume:
                 raise FileExistsError(f"checkpoint already exists: {ckpt}; use --resume")
-            chain = Chain.resume(model, str(ckpt))
-            if chain.config != cfg or chain.tree.tip_labels != start.tip_labels:
+            sampler = sampler_class.resume(model, str(ckpt))
+            chain = sampler.cold if isinstance(sampler, ReplicaExchange) else sampler
+            if chain.config != cfg or chain.tree.tip_labels != dict(enumerate(tip_labels)):
                 raise ValueError(f"checkpoint chain budget, seed, or tip labels differ: {ckpt}")
+            if isinstance(sampler, ReplicaExchange) and (
+                sampler.ladder != temperature_ladder or sampler.seed != exchange_seed or sampler.swap_every != 20
+            ):
+                raise ValueError(f"checkpoint replica settings differ: {ckpt}")
         else:
-            chain = Chain(model, start, state, cfg)
-        chain.run(checkpoint_path=ckpt, checkpoint_every=1000)
-    return chain
+            replicas = [initialize(index, beta) for index, beta in enumerate(temperature_ladder)]
+            sampler = replicas[0] if len(replicas) == 1 else ReplicaExchange(replicas, exchange_seed)
+        sampler.run(checkpoint_path=ckpt, checkpoint_every=1000)
+    return sampler.cold if isinstance(sampler, ReplicaExchange) else sampler
 
 
 def _persist_chain(index, *, worker, directory, name):
@@ -290,6 +305,7 @@ def run_campaign(
     jobs: int = 1,
     initialization: str = "distance",
     height_resampled_spr: bool = False,
+    temperature_ladder: tuple[float, ...] = (1.0,),
 ) -> list[Chain]:
     """Run independent chains in a bounded pool, returning fixed index order."""
     if initialization not in {"random", "distance"}:
@@ -298,12 +314,14 @@ def run_campaign(
         raise ValueError("campaign requires 1 to 8 chains and 1 to 4 workers")
     if jobs > 1 and checkpoint_dir is None:
         raise ValueError("parallel chains require a checkpoint directory")
+    temperature_ladder = validate_ladder(temperature_ladder)
     model = build_model(study, config)
     worker = partial(
         _run_chain, model=model, tip_labels=study.tip_labels, warmup=warmup,
         iterations=iterations, thin=thin, root_age_init=root_age_init,
         base_seed=base_seed, checkpoint_dir=checkpoint_dir, resume=resume,
         initialization=initialization, height_resampled_spr=height_resampled_spr,
+        temperature_ladder=temperature_ladder,
     )
     if jobs == 1:
         chains = [worker(c) for c in range(n_chains)]
@@ -312,7 +330,11 @@ def run_campaign(
         with ProcessPoolExecutor(
             max_workers=min(n_chains, jobs), mp_context=multiprocessing.get_context("spawn"),
         ) as pool:
-            chains = [Chain.resume(model, path) for path in pool.map(task, range(n_chains))]
+            paths = list(pool.map(task, range(n_chains)))
+        if len(temperature_ladder) == 1:
+            chains = [Chain.resume(model, path) for path in paths]
+        else:
+            chains = [ReplicaExchange.resume(model, path).cold for path in paths]
     if progress is not None:
         for c, chain in enumerate(chains):
             progress(config.name, c, chain)
@@ -325,6 +347,8 @@ def campaign_bundle(
     config: ModelConfig,
     source_commit: str = "unknown",
 ) -> PosteriorBundle:
+    if any(chain.config.inverse_temperature != 1.0 for chain in chains):
+        raise ValueError("posterior bundles require cold chains")
     bundle = bundle_from_chains(
         chains,
         model_name=config.name,
@@ -345,4 +369,6 @@ def campaign_bundle(
         "calendar_epoch": 2000 if study.dataset.name == "iecor" else None,
         "language_names": {language.id: language.name for language in study.dataset.languages},
     }
+    if any(chain.exchange_statistics is not None for chain in chains):
+        bundle.context["replica_exchange"] = [chain.exchange_statistics for chain in chains]
     return bundle
