@@ -17,7 +17,11 @@ chains; the count and per-dataset budget are arguments so a pilot and the full
 
 from __future__ import annotations
 
+import gzip
+import hashlib
 import json
+import shutil
+from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -75,7 +79,7 @@ def run_recovery_study(n_datasets: int = 200, out_dir: str = "runs/recovery",
                 config = ModelConfig.dated()
                 chains = run_campaign(
                     study, config, n_chains=2, warmup=warmup, iterations=iterations, thin=10,
-                    root_age_init=initial, base_seed=chain_seed,
+                    root_age_init=initial, base_seed=chain_seed, initialization="random",
                 )
                 bundle = campaign_bundle(chains, study, config, source_commit=commit)
                 newicks = [nw for c in range(bundle.n_chains) for nw in bundle.chain_newicks(c)]
@@ -114,6 +118,22 @@ def run_recovery_study(n_datasets: int = 200, out_dir: str = "runs/recovery",
         if completed else None,
         "coverage_target": 0.90,
     }
+    compressed = out / "rows.jsonl.gz"
+    with compressed.open("wb") as output, (out / "rows.jsonl").open("rb") as source:
+        with gzip.GzipFile(filename="", fileobj=output, mode="wb", mtime=0) as archive:
+            shutil.copyfileobj(source, archive)
+    with compressed.open("rb") as source:
+        result["raw_rows_sha256"] = hashlib.file_digest(source, "sha256").hexdigest()
+    result["covered"] = sum(row["root_in_90ci"] for row in completed)
+    groups = defaultdict(list)
+    for row in completed:
+        groups[str(row["regime"]["borrow_prob"])].append(row)
+    result["by_borrow_probability"] = {
+        key: {"datasets": len(rows), "coverage": float(np.mean([row["root_in_90ci"] for row in rows])),
+              "mean_clade_recovery": float(np.mean([row["clade_recovery"] for row in rows]))}
+        for key, rows in sorted(groups.items())
+    }
+    (out / "recovery-summary.json").write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")
     (out / "recovery.json").write_text(
         json.dumps({"summary": result, "per_dataset": per_dataset}, indent=2, allow_nan=False),
         encoding="utf-8",

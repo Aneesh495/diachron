@@ -1,8 +1,4 @@
-"""Run and record the bounded diagnostic campaign.
-
-Full acceptance fails closed until the observed-data prediction, sensitivity,
-and release gates can be executed and independently verified.
-"""
+"""Run a bounded diagnostic or full evidence campaign."""
 
 from __future__ import annotations
 
@@ -33,7 +29,8 @@ _MODELS = {
 }
 
 
-def run_acceptance(run_id: str, profile: str = "full") -> int:
+def run_acceptance(run_id: str, profile: str = "full", *, inputs: Path | None = None,
+                   evidence_plan: Path | None = None, jobs: int = 4, release_policy: Path | None = None) -> int:
     if profile not in {"cpu", "full"} or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}", run_id):
         print("invalid profile or run ID", file=sys.stderr)
         return 2
@@ -45,15 +42,27 @@ def run_acceptance(run_id: str, profile: str = "full") -> int:
         return 2
     commit = source_commit()
     if profile == "full":
-        result = {
-            "run_id": run_id, "profile": profile, "source_commit": commit,
-            "status": "blocked", "full_profile_executed": False,
-            "blocking_gates": ["G06", "G07", "G08", "G10", "G14", "G15"],
-            "reason": "Full acceptance needs the complete observed-data campaign and verifier.",
-        }
+        from ..io.types import DataError
+        from ..verify.full import audit_full_plan, normalize_plan
+        from .full_execution import execute_full_profile
+
+        root = Path(evidence_dir)
+        try:
+            if bool(inputs) == bool(evidence_plan):
+                raise ValueError("provide --inputs for execution or --evidence-plan for an existing-evidence audit")
+            plan = normalize_plan(evidence_plan) if evidence_plan else execute_full_profile(root, inputs, jobs, release_policy)
+            _write(evidence_dir, "FULL_PLAN.json", plan)
+            result = audit_full_plan(plan, commit, root)
+        except (DataError, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as exc:
+            result = {"profile": "full", "source_commit": commit, "status": "blocked",
+                      "full_profile_executed": False, "ready": False, "reason": str(exc)}
+        result["run_id"] = run_id
         _write(evidence_dir, "ACCEPTANCE.json", result)
+        _write(evidence_dir, "REQUIREMENTS.json", result.get("gates", {}))
+        _write(evidence_dir, "MANIFEST.json", {"source_commit": commit, "run_id": run_id,
+                                             "evidence_files": sorted(os.listdir(evidence_dir))})
         print(json.dumps(result, indent=2))
-        return 1
+        return 0 if result["ready"] else 1
 
     commands_path = os.path.join(evidence_dir, "COMMANDS.jsonl")
     t0 = time.time()

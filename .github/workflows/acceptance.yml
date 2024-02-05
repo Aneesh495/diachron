@@ -29,7 +29,7 @@ jobs:
   acceptance:
     if: inputs.profile == 'full'
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
 
@@ -38,21 +38,29 @@ jobs:
           python-version: "3.12"
       - uses: dtolnay/rust-toolchain@1.88.0
 
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: ui/.nvmrc
+
       - name: Bootstrap and build
         run: |
           python -m venv .venv
           . .venv/bin/activate
           pip install -r requirements-dev.txt
           maturin develop --locked --release
+          npm --prefix ui ci --ignore-scripts
+          ui/node_modules/.bin/puppeteer browsers install chrome
+          python -m diachron.cli.main acquire --out runs/inputs --study iecor --study abvd
 
       - name: Run acceptance campaign
         run: |
           . .venv/bin/activate
-          python -m diachron.cli.main acceptance --run-id "$RUN_ID" --profile full
+          python -m diachron.cli.main acceptance --run-id "$RUN_ID" --profile full --inputs runs/inputs
         env:
           RUN_ID: ${{ inputs.run_id }}
 
       - name: Independent verification
+        if: always()
         run: |
           . .venv/bin/activate
           python -m diachron.cli.main verify --evidence "evidence/$RUN_ID" --expected-commit "$GITHUB_SHA"
@@ -64,5 +72,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: evidence-${{ github.event.inputs.run_id }}
-          path: evidence/${{ github.event.inputs.run_id }}
+          path: |
+            evidence/${{ github.event.inputs.run_id }}/ACCEPTANCE.json
+            evidence/${{ github.event.inputs.run_id }}/MANIFEST.json
+            evidence/${{ github.event.inputs.run_id }}/REQUIREMENTS.json
+            evidence/${{ github.event.inputs.run_id }}/COMMANDS.jsonl
+            evidence/${{ github.event.inputs.run_id }}/*.log
           retention-days: 30

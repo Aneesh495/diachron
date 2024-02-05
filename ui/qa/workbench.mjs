@@ -24,7 +24,7 @@ try {
     return page;
   }
   const page = await open({ width: 1440, height: 920 });
-  assert.match(await page.$eval(".wb-mixing", el => el.textContent), /Diagnostic draws/);
+  assert.match(await page.$eval(".wb-mixing", el => el.textContent), /Diagnostic draws|Recorded scalar checks passed/);
   assert.equal(await page.$$(".wb-panel").then(nodes => nodes.length), 4);
   const next = ".tour-navigation button:last-child";
   const nextStep = async (title) => {
