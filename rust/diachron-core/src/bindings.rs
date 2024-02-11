@@ -213,24 +213,10 @@ fn binary_character_scores(
     let tree = build_tree(&parent, &branch_len, &height, &taxon, root)?;
     let n_tips = tree.n_tips();
     let contacts = contacts.unwrap_or_default();
-    if columns.len().saturating_mul(n_tips) > 8_000_000
-        || contacts.len() > 16
-        || contacts.iter().any(|&(donor, recipient, intensity)| {
-            donor >= n_tips || recipient >= n_tips || donor == recipient
-                || !intensity.is_finite() || intensity < 0.0
-        })
-        || !contacts.iter().map(|(_, _, w)| w).sum::<f64>().is_finite()
-        || min_present > 2
-        || rate_categories.is_empty()
-        || rate_categories.len() > 32
-        || rate_categories.iter().any(|r| !r.is_finite() || *r <= 0.0)
-        || !gain.is_finite() || gain <= 0.0
-        || !loss.is_finite() || loss <= 0.0
-        || !(gain + loss).is_finite()
-        || columns.iter().any(|col| {
-            col.len() != n_tips || col.iter().any(|s| !(-1..=1).contains(s))
-        })
-    {
+    validate_binary_mixture(n_tips, gain, loss, &rate_categories, min_present, &contacts)?;
+    if columns.len().saturating_mul(n_tips) > 8_000_000 || columns.iter().any(|col| {
+        col.len() != n_tips || col.iter().any(|s| !(-1..=1).contains(s))
+    }) {
         return Err(PyValueError::new_err("invalid binary mixture rates or character states"));
     }
     let model = BinaryGainLoss::new(gain, loss);
@@ -240,6 +226,54 @@ fn binary_character_scores(
     Ok(crate::pruning::binary_mixture_scores(
         &tree, &model, &cols, &model.stationary(), &rate_categories, min_present, &contacts,
     ))
+}
+
+fn validate_binary_mixture(
+    n_tips: usize, gain: f64, loss: f64, rates: &[f64], minimum: usize,
+    contacts: &[(usize, usize, f64)],
+) -> PyResult<()> {
+    if contacts.len() > 16
+        || contacts.iter().any(|&(donor, recipient, intensity)| {
+            donor >= n_tips || recipient >= n_tips || donor == recipient
+                || !intensity.is_finite() || intensity < 0.0
+        })
+        || !contacts.iter().map(|(_, _, weight)| weight).sum::<f64>().is_finite()
+        || minimum > 2 || rates.is_empty() || rates.len() > 32
+        || rates.iter().any(|rate| !rate.is_finite() || *rate <= 0.0)
+        || !gain.is_finite() || gain <= 0.0 || !loss.is_finite() || loss <= 0.0
+        || !(gain + loss).is_finite()
+    {
+        return Err(PyValueError::new_err("invalid binary mixture rates or character states"));
+    }
+    Ok(())
+}
+
+/// Sample exact conditional binary patterns from observed-tip masks.
+#[pyfunction]
+#[allow(clippy::too_many_arguments)]
+#[pyo3(signature = (parent, branch_len, height, taxon, root, gain, loss, masks,
+                    rate_categories, min_present, seed, contacts=None))]
+fn binary_conditioned_draws(
+    parent: Vec<i64>, branch_len: Vec<f64>, height: Vec<f64>, taxon: Vec<i64>, root: usize,
+    gain: f64, loss: f64, masks: Vec<Vec<bool>>, rate_categories: Vec<f64>, min_present: usize,
+    seed: u64, contacts: Option<Vec<(usize, usize, f64)>>,
+) -> PyResult<Vec<Vec<i64>>> {
+    let tree = build_tree(&parent, &branch_len, &height, &taxon, root)?;
+    let n_tips = tree.n_tips();
+    let contacts = contacts.unwrap_or_default();
+    validate_binary_mixture(n_tips, gain, loss, &rate_categories, min_present, &contacts)?;
+    if masks.is_empty() || masks.len().saturating_mul(n_tips) > 8_000_000
+        || masks.len().saturating_mul(tree.nodes.len()) > 16_000_000
+        || masks.iter().any(|mask| mask.len() != n_tips
+            || (min_present > 0 && mask.iter().filter(|&&observed| observed).count() <= min_present))
+    {
+        return Err(PyValueError::new_err("invalid or oversized conditional simulation mask"));
+    }
+    let model = BinaryGainLoss::new(gain, loss);
+    crate::pruning::binary_conditioned_draws(
+        &tree, &model, &masks, &model.stationary(), &rate_categories, min_present, &contacts,
+        &mut Rng::seed_from_u64(seed),
+    ).map_err(PyValueError::new_err)
 }
 
 /// A checkpointable RNG exposed to Python for reproducible sampling.
@@ -402,6 +436,7 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(char_log_likelihood, m)?)?;
     m.add_function(wrap_pyfunction!(block_log_likelihood, m)?)?;
     m.add_function(wrap_pyfunction!(binary_character_scores, m)?)?;
+    m.add_function(wrap_pyfunction!(binary_conditioned_draws, m)?)?;
     m.add_function(wrap_pyfunction!(brownian_sphere_logpdf, m)?)?;
     m.add_function(wrap_pyfunction!(haversine_km, m)?)?;
     m.add_function(wrap_pyfunction!(discrete_gamma_rates, m)?)?;

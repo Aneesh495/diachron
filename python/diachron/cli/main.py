@@ -301,9 +301,28 @@ def cmd_merge_sensitivity(args) -> int:
 def cmd_recovery(args) -> int:
     from ..sensitivity.recovery import run_recovery_study
 
-    result = run_recovery_study(n_datasets=args.datasets, out_dir=args.out)
+    if args.design == "matched":
+        from ..sensitivity.matched import run_matched_recovery
+
+        result = run_matched_recovery(args.datasets, Path(args.out), args.jobs, args.resume)
+    else:
+        if args.resume:
+            raise ValueError("dataset-level resume is available for the matched design")
+        result = run_recovery_study(n_datasets=args.datasets, out_dir=args.out)
     _print(result)
     return 1 if result["failed"] else 0
+
+
+def cmd_verify_recovery(args) -> int:
+    from ..verify.recovery import verify_recovery
+
+    try:
+        result = verify_recovery(args.summary, args.rows, args.expected_commit)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    _print(result)
+    return 0 if result["artifact_valid"] else 1
 
 
 def cmd_predict(args) -> int:
@@ -571,7 +590,16 @@ def build_parser() -> argparse.ArgumentParser:
     rp = sub.add_parser("recovery")
     rp.add_argument("--datasets", type=int, default=200)
     rp.add_argument("--out", default="runs/recovery")
+    rp.add_argument("--design", choices=("misspecified", "matched"), default="misspecified")
+    rp.add_argument("--jobs", type=int, default=4)
+    rp.add_argument("--resume", action="store_true")
     rp.set_defaults(func=cmd_recovery)
+
+    vr = sub.add_parser("verify-recovery")
+    vr.add_argument("--summary", type=Path, required=True)
+    vr.add_argument("--rows", type=Path, required=True)
+    vr.add_argument("--expected-commit", required=True)
+    vr.set_defaults(func=cmd_verify_recovery)
 
     pr = sub.add_parser("predict")
     pr.add_argument("--out", default="runs/predict")

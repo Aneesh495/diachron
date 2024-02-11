@@ -22,6 +22,13 @@ def verify_recovery(summary_path: Path, rows_path: Path, expected_commit: str) -
         digest = hashlib.file_digest(stream, "sha256").hexdigest()
     if digest != summary["raw_rows_sha256"] or summary["source_commit"] != expected_commit:
         raise ValueError("recovery rows or source identity differ")
+    matched = summary.get("protocol", 2) == 3
+    data_base, chain_base = (52000, 53000) if matched else (20000, 30000)
+    borrow_field = "borrow_regime" if matched else "borrow_prob"
+    group_key = "by_borrow_regime" if matched else "by_borrow_probability"
+    date_field = "n_dated_tips" if matched else "n_attestations"
+    probes = set(np.linspace(0, summary["n_datasets"] - 1, 12, dtype=int)) if matched else set()
+    histogram = [0] * 10
     completed = []
     groups = defaultdict(list)
     regimes = defaultdict(set)
@@ -32,7 +39,7 @@ def verify_recovery(summary_path: Path, rows_path: Path, expected_commit: str) -
             if len(line) > 256 * 1024 or count >= 5000:
                 raise ValueError("recovery row or dataset budget exceeded")
             row = json.loads(line)
-            if row["i"] != count or row["data_seed"] != 20000 + count or row["chain_seed"] != 30000 + count:
+            if row["i"] != count or row["data_seed"] != data_base + count or row["chain_seed"] != chain_base + count:
                 raise ValueError("recovery seeds or dataset order differ")
             count += 1
             if row["status"] == "failed":
@@ -52,11 +59,26 @@ def verify_recovery(summary_path: Path, rows_path: Path, expected_commit: str) -
             if (not np.allclose([low, high], row["root_ci"], atol=1e-9, rtol=0)
                     or row["root_in_90ci"] != covered or abs(row["clade_recovery"] - recovered) > 1e-12):
                 raise ValueError("reported recovery row differs from its draws")
+            if matched:
+                if row["source_commit"] != expected_commit or row["chain_seeds"] != [
+                    row["chain_seed"] + 7919 * (chain + 1) for chain in range(4)
+                ]:
+                    raise ValueError("matched recovery source or chain seeds differ")
+                rank = sum(value < row["root_true"] for value in draws)
+                if row["root_rank"] != rank:
+                    raise ValueError("matched recovery rank differs from raw samples")
+                histogram[min(9, 10 * rank // (len(draws) + 1))] += 1
+                if row["i"] in probes:
+                    from ..sensitivity.matched import generate_matched_case
+
+                    _, _, _, expected_regime, truth = generate_matched_case(row["i"])
+                    if expected_regime != regime or truth != row["truth"]:
+                        raise ValueError("matched generator did not reproduce the saved truth")
             completed.append((covered, recovered))
-            groups[str(regime["borrow_prob"])].append((covered, recovered))
-            for key in ("n_languages", "borrow_prob", "missing_frac"):
+            groups[str(regime[borrow_field])].append((covered, recovered))
+            for key in ("n_languages", borrow_field, "missing_frac"):
                 regimes[key].add(regime[key])
-            regimes["n_attestations"].add(row["n_attestations"])
+            regimes[date_field].add(regime[date_field] if matched else row[date_field])
     if not completed:
         raise ValueError("recovery has no completed datasets")
     covered = sum(value[0] for value in completed)
@@ -67,13 +89,17 @@ def verify_recovery(summary_path: Path, rows_path: Path, expected_commit: str) -
              and covered == summary["covered"] and abs(coverage - summary["root_age_90ci_coverage"]) < 1e-12
              and abs(recovery - summary["mean_clade_recovery"]) < 1e-12
              and summary["coverage_target"] == .9 and all(len(values) > 1 for values in regimes.values())
-             and set(summary["by_borrow_probability"]) == set(groups))
+             and set(summary[group_key]) == set(groups))
+    if matched:
+        valid &= (summary["root_rank_histogram"] == histogram and summary["chains"] == 4
+                  and summary["warmup"] == 800 and summary["iterations"] == 3200 and summary["thin"] == 10)
     for key, outcomes in groups.items():
-        measured = summary["by_borrow_probability"][key]
+        measured = summary[group_key][key]
         valid &= (measured["datasets"] == len(outcomes)
                   and abs(measured["coverage"] - sum(row[0] for row in outcomes) / len(outcomes)) < 1e-12
                   and abs(measured["mean_clade_recovery"] - sum(row[1] for row in outcomes) / len(outcomes)) < 1e-12)
     return {"artifact_valid": bool(valid), "source_commit": expected_commit, "datasets": count,
             "completed": len(completed), "failed": failed, "covered": covered, "coverage": coverage,
             "coverage_target": .9, "clade_recovery": recovery, "calibration_target_met": coverage >= .9,
+            "matched_design": matched, "generator_probes": len(probes),
             "regimes": {key: sorted(values) for key, values in regimes.items()}}

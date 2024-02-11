@@ -201,60 +201,215 @@ pub fn log_likelihood_block(
     columns.iter().map(|col| plan.score(col, root_prior)).sum()
 }
 
-/// Conditional probability of the actual binary ascertainment event, given
-/// the observed-tip mask. A bucket tracks whether we saw any zero and how
-/// many ones we saw (saturated at two). The final accepted bucket is read
-/// directly, so near-constant trees do not lose precision to subtraction.
-fn retained_probability(
-    plan: &PruningPlan<'_>,
-    multiplicity: &[usize],
-    min_present: usize,
-    prior: &[f64],
-) -> f64 {
-    const BUCKETS: usize = 6;
-    const ANY_ZERO: usize = 3;
-    type Counts = [f64; BUCKETS];
+const COUNT_BUCKETS: usize = 6;
+const ZERO_FLAG: usize = 3;
+type Counts = [f64; COUNT_BUCKETS];
+type StateCounts = [Counts; 2];
 
-    let mut messages = vec![[[0.0; BUCKETS]; 2]; plan.tree.nodes.len()];
+fn combine_bucket(a: usize, b: usize) -> usize {
+    let has_zero = (a >= ZERO_FLAG || b >= ZERO_FLAG) as usize;
+    let positives = (a % ZERO_FLAG + b % ZERO_FLAG).min(2);
+    has_zero * ZERO_FLAG + positives
+}
+
+fn combine_counts(left: &Counts, right: &Counts) -> Counts {
+    let mut combined = [0.0; COUNT_BUCKETS];
+    for (a, &pa) in left.iter().enumerate() {
+        if pa == 0.0 {
+            continue;
+        }
+        for (b, &pb) in right.iter().enumerate() {
+            combined[combine_bucket(a, b)] += pa * pb;
+        }
+    }
+    combined
+}
+
+fn child_counts(plan: &PruningPlan<'_>, child: usize, state: usize, messages: &[StateCounts]) -> Counts {
+    let mut result = [0.0; COUNT_BUCKETS];
+    let transition = &plan.transitions[child];
+    for (bucket, probability) in result.iter_mut().enumerate() {
+        *probability = transition.at(state, 0) * messages[child][0][bucket]
+            + transition.at(state, 1) * messages[child][1][bucket];
+    }
+    result
+}
+
+fn count_messages(plan: &PruningPlan<'_>, multiplicity: &[usize]) -> Vec<StateCounts> {
+    let mut messages = vec![[[0.0; COUNT_BUCKETS]; 2]; plan.tree.nodes.len()];
     for &node in &plan.order {
-        let mut mass = [[0.0; BUCKETS]; 2];
+        let mut mass = [[0.0; COUNT_BUCKETS]; 2];
         if let Some(taxon) = plan.tree.nodes[node].taxon {
             let copies = multiplicity[taxon];
-            mass[0][if copies > 0 { ANY_ZERO } else { 0 }] = 1.0;
-            mass[1][copies] = 1.0;
+            mass[0][if copies > 0 { ZERO_FLAG } else { 0 }] = 1.0;
+            mass[1][copies.min(2)] = 1.0;
         } else {
             mass[0][0] = 1.0;
             mass[1][0] = 1.0;
             for &child in &plan.tree.nodes[node].children {
-                let p = &plan.transitions[child];
                 for (state, left) in mass.iter_mut().enumerate() {
-                    let mut right: Counts = [0.0; BUCKETS];
-                    for (bucket, prob) in right.iter_mut().enumerate() {
-                        *prob = p.at(state, 0) * messages[child][0][bucket]
-                            + p.at(state, 1) * messages[child][1][bucket];
-                    }
-                    let mut combined: Counts = [0.0; BUCKETS];
-                    for (a, &pa) in left.iter().enumerate() {
-                        if pa == 0.0 {
-                            continue;
-                        }
-                        for (b, &pb) in right.iter().enumerate() {
-                            let has_zero = (a >= ANY_ZERO || b >= ANY_ZERO) as usize;
-                            let ones = (a % ANY_ZERO + b % ANY_ZERO).min(2);
-                            combined[has_zero * ANY_ZERO + ones] += pa * pb;
-                        }
-                    }
-                    *left = combined;
+                    *left = combine_counts(left, &child_counts(plan, child, state, &messages));
                 }
             }
         }
         messages[node] = mass;
     }
-    messages[plan.tree.root]
-        .iter()
-        .zip(prior)
-        .map(|(mass, pi)| pi * mass[ANY_ZERO + min_present..].iter().sum::<f64>())
+    messages
+}
+
+/// Probability of the observed-mask retention event, computed directly in the
+/// selected buckets to avoid subtraction on nearly constant trees.
+fn retained_probability(
+    plan: &PruningPlan<'_>, multiplicity: &[usize], min_present: usize, prior: &[f64],
+) -> f64 {
+    let messages = count_messages(plan, multiplicity);
+    messages[plan.tree.root].iter().zip(prior)
+        .map(|(mass, pi)| pi * mass[ZERO_FLAG + min_present..].iter().sum::<f64>())
         .sum()
+}
+
+fn choose_weight(weights: &[f64], rng: &mut crate::rng::Rng) -> Option<usize> {
+    let total: f64 = weights.iter().sum();
+    if !total.is_finite() || total <= 0.0 {
+        return None;
+    }
+    let mut threshold = total * rng.next_f64();
+    let mut last = None;
+    for (index, &weight) in weights.iter().enumerate() {
+        if weight > 0.0 {
+            last = Some(index);
+            if threshold < weight {
+                return last;
+            }
+            threshold -= weight;
+        }
+    }
+    last
+}
+
+fn retained_assignment(
+    plan: &PruningPlan<'_>, messages: &[StateCounts], prior: &[f64],
+    minimum: usize, rng: &mut crate::rng::Rng,
+) -> Option<Vec<i64>> {
+    let root = plan.tree.root;
+    let mut weights = [0.0; 2 * COUNT_BUCKETS];
+    for state in 0..2 {
+        for bucket in 0..COUNT_BUCKETS {
+            if minimum == 0 || bucket >= ZERO_FLAG + minimum {
+                weights[state * COUNT_BUCKETS + bucket] = prior[state] * messages[root][state][bucket];
+            }
+        }
+    }
+    let first = choose_weight(&weights, rng)?;
+    let mut pending = vec![(root, first / COUNT_BUCKETS, first % COUNT_BUCKETS)];
+    let mut leaves = vec![0; plan.tree.n_tips()];
+    while let Some((node, state, mut bucket)) = pending.pop() {
+        if let Some(taxon) = plan.tree.nodes[node].taxon {
+            leaves[taxon] = state as i64;
+            continue;
+        }
+        let children = &plan.tree.nodes[node].children;
+        let mut prefix = Vec::with_capacity(children.len() + 1);
+        let mut first = [0.0; COUNT_BUCKETS];
+        first[0] = 1.0;
+        prefix.push(first);
+        for (index, &child) in children.iter().enumerate() {
+            prefix.push(combine_counts(&prefix[index], &child_counts(plan, child, state, messages)));
+        }
+        // Draw the last child's state and counts conditional on the aggregate.
+        // Its remaining prefix count becomes the constraint for the preceding child.
+        for (index, &child) in children.iter().enumerate().rev() {
+            let mut choices = [0.0; 2 * COUNT_BUCKETS * COUNT_BUCKETS];
+            let transition = &plan.transitions[child];
+            for child_state in 0..2 {
+                for a in 0..COUNT_BUCKETS {
+                    for b in 0..COUNT_BUCKETS {
+                        if combine_bucket(a, b) == bucket {
+                            let slot = (child_state * COUNT_BUCKETS + a) * COUNT_BUCKETS + b;
+                            choices[slot] = prefix[index][a] * transition.at(state, child_state)
+                                * messages[child][child_state][b];
+                        }
+                    }
+                }
+            }
+            let chosen = choose_weight(&choices, rng)?;
+            let child_state = chosen / (COUNT_BUCKETS * COUNT_BUCKETS);
+            pending.push((child, child_state, chosen % COUNT_BUCKETS));
+            bucket = (chosen / COUNT_BUCKETS) % COUNT_BUCKETS;
+        }
+    }
+    Some(leaves)
+}
+
+fn observation_multiplicity(mask: &[bool], contact: Option<&(usize, usize, f64)>) -> Vec<usize> {
+    let mut counts: Vec<_> = mask.iter().map(|&observed| usize::from(observed)).collect();
+    if let Some(&(donor, recipient, _)) = contact {
+        counts[donor] += counts[recipient];
+        counts[recipient] = 0;
+    }
+    counts
+}
+
+/// Exact conditional simulation. Select a rate and copy component by its
+/// retained mass, then sample the inherited states conditional on retention.
+/// Requests sharing a mask and component reuse the same upward messages.
+pub fn binary_conditioned_draws(
+    tree: &Tree, model: &dyn SubstModel, masks: &[Vec<bool>], prior: &[f64],
+    rates: &[f64], minimum: usize, contacts: &[(usize, usize, f64)],
+    rng: &mut crate::rng::Rng,
+) -> Result<Vec<Vec<i64>>, &'static str> {
+    use std::collections::{BTreeMap, HashMap};
+
+    let plans: Vec<_> = rates.iter().map(|rate| PruningPlan::new(tree, model, *rate)).collect();
+    let components = contacts.len() + 1;
+    let mut mixtures = HashMap::<Vec<bool>, Vec<f64>>::new();
+    let mut requests = BTreeMap::<(Vec<bool>, usize), Vec<usize>>::new();
+    for (index, mask) in masks.iter().enumerate() {
+        if !mixtures.contains_key(mask) {
+            let work = (mixtures.len() + 1).saturating_mul(tree.nodes.len())
+                .saturating_mul(plans.len()).saturating_mul(components);
+            if work > 20_000_000 {
+                return Err("conditional simulation exceeds the mask and component budget");
+            }
+            let mut weights = Vec::with_capacity(plans.len() * components);
+            for plan in &plans {
+                for component in 0..components {
+                    let contact = component.checked_sub(1).map(|edge| &contacts[edge]);
+                    let intensity = contact.map_or(1.0, |edge| edge.2);
+                    let mass = if minimum == 0 || intensity == 0.0 {
+                        1.0
+                    } else {
+                        retained_probability(plan, &observation_multiplicity(mask, contact), minimum, prior)
+                    };
+                    weights.push(mass * intensity);
+                }
+            }
+            mixtures.insert(mask.clone(), weights);
+        }
+        let component = choose_weight(&mixtures[mask], rng)
+            .ok_or("selection event has zero finite mass")?;
+        requests.entry((mask.clone(), component)).or_default().push(index);
+    }
+    let mut output = vec![Vec::new(); masks.len()];
+    for ((mask, component), indices) in requests {
+        let plan = &plans[component / components];
+        let contact = (component % components).checked_sub(1).map(|edge| &contacts[edge]);
+        let messages = count_messages(plan, &observation_multiplicity(&mask, contact));
+        for index in indices {
+            let mut leaves = retained_assignment(plan, &messages, prior, minimum, rng)
+                .ok_or("conditional assignment has zero finite mass")?;
+            if let Some(&(donor, recipient, _)) = contact {
+                leaves[recipient] = leaves[donor];
+            }
+            for (value, observed) in leaves.iter_mut().zip(&mask) {
+                if !observed {
+                    *value = -1;
+                }
+            }
+            output[index] = leaves;
+        }
+    }
+    Ok(output)
 }
 
 fn log_mean_exp(log_probs: &[f64]) -> f64 {
