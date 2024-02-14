@@ -31,6 +31,8 @@ from diachron import _core
 from ..models.tree import PhyloTree
 from ..models.posterior import PosteriorModel
 from ..util.gitmeta import source_commit
+from .attachment import resample_attachment
+from .initial import lexical_distances
 from .moves import MoveSet
 
 CHECKPOINT_SCHEMA = 3
@@ -46,6 +48,7 @@ class ChainConfig:
     initialization: str = "random"
     height_resampled_spr: bool = False
     inverse_temperature: float = 1.0
+    attachment_resampling: bool = False
 
 
 @dataclass
@@ -100,13 +103,14 @@ class Chain:
         self.move_proposals: dict[str, int] = {}
         self.move_accepts: dict[str, int] = {}
         self.exchange_statistics: dict | None = None
+        self._attachment_distances = lexical_distances(model.columns) if config.attachment_resampling else None
         self._log_post = self._eval()
         if not math.isfinite(self._log_post):
             raise ValueError("chain initial state has nonfinite posterior")
 
-    def _eval(self) -> float:
+    def _eval(self, tree: PhyloTree | None = None) -> float:
         return self.model.log_posterior(
-            self.tree,
+            self.tree if tree is None else tree,
             self.state.gain,
             self.state.loss,
             self.state.clock_rate,
@@ -134,6 +138,8 @@ class Chain:
             move_names += ("tip_date",)
         if self.config.height_resampled_spr:
             move_names += ("spr_with_height",)
+        if self.config.attachment_resampling:
+            move_names += ("attachment_resampling",)
         move_kind = self.rng.below(len(move_names))
         move_name = move_names[move_kind]
         self.move_proposals[move_name] = self.move_proposals.get(move_name, 0) + 1
@@ -244,6 +250,12 @@ class Chain:
                     accepted = True
                 else:
                     self.tree.heights[node] = old
+        elif move_name == "attachment_resampling":
+            old = self.tree
+            self.tree, self._log_post = resample_attachment(
+                old, self._log_post, self._eval, self._attachment_distances, self.rng,
+            )
+            accepted = self.tree is not old
         else:  # topology: NNI or SPR
             parent_snap = list(self.tree.parent)
             height_snap = list(self.tree.heights)

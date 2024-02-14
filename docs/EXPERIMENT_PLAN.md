@@ -236,3 +236,26 @@ true clade frequencies and chain seeds. Recompute 90% interval coverage,
 nontrivial clade recovery and the root rank histogram. The rank histogram is
 diagnostic because draws are serially dependent. Preserve failures in the
 completion count. Report the matched and earlier misspecified designs separately.
+
+## Informed attachment pilot
+
+Keep the dated IE-CoR input, four seeds and 1000/3000/10 budgets from the
+attachment-age pilot. Add one kernel to the control move schedule with
+`--attachment-resampling`. Each call keeps the current attachment and draws
+four independent edge and age alternatives on the detached backbone. The
+proposal uses observed-mask lexical distances and positive uniform mixture
+components. The choice weights use the full target divided by proposal
+density. No proposal parameter is fitted to the pilot results.
+
+Conditional on the selected child and labeled backbone, assign one pool slot
+to the target density and draw the other four from the proposal. The
+conditional slot probability is proportional to target divided by proposal
+density. Resampling this slot is a Gibbs step. Selecting the child uniformly
+over the fixed node array preserves the selection probability. The root age
+and the detached subtree stay fixed. A boundary state or a prune that would
+remove the root leaves the chain unchanged. The ordinary topology and age
+moves remain available.
+
+Compare posterior score, root split Rhat and ESS, distinct topologies,
+between-chain clade disagreement, move frequency and elapsed time. Preserve
+all trajectories. An improvement on a pilot does not change full thresholds.

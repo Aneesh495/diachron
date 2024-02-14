@@ -33,12 +33,14 @@ def _build_model():
     return model, truth
 
 
-def test_exact_resume(tmp_path):
+@pytest.mark.parametrize("attachment_resampling", [False, True])
+def test_exact_resume(tmp_path, attachment_resampling):
     model, truth = _build_model()
     rng = np.random.default_rng(0)
     start = random_starting_tree(truth.tip_language_ids, 6000.0, rng)
 
-    cfg = ChainConfig(seed=4321, warmup=200, iterations=400, thin=10)
+    cfg = ChainConfig(seed=4321, warmup=200, iterations=400, thin=10,
+                      attachment_resampling=attachment_resampling)
 
     full = Chain(model, start.copy(),
                  ChainState(gain=0.0005, loss=0.001, clock_rate=1.0), cfg)
@@ -58,6 +60,8 @@ def test_exact_resume(tmp_path):
     assert full.rng.snapshot() == resumed.rng.snapshot()
     assert full.tree.parent == resumed.tree.parent
     assert full.tree.heights == resumed.tree.heights
+    if attachment_resampling:
+        assert resumed.move_accepts["attachment_resampling"] > 0
     assert len(full.draws) == len(resumed.draws)
     # No duplicate retained iterations across the interruption.
     iters = [d.iteration for d in resumed.draws]
