@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from urllib.parse import quote, unquote, urlsplit, urlunsplit
 
 
 CHAPTER_ORDER = [
@@ -34,8 +35,42 @@ CHAPTER_ORDER = [
 ]
 
 
-def build_thesis(thesis_dir: str = "docs/thesis", out_path: str = "runs/thesis/THESIS.md") -> dict:
+def build_thesis(thesis_dir: str = "docs/thesis", out_path: str = "runs/thesis/THESIS.md",
+                 reference_base: str | None = None) -> dict:
     import markdown
+    from markdown.extensions import Extension
+    from markdown.treeprocessors import Treeprocessor
+
+    if reference_base:
+        base = urlsplit(reference_base)
+        if base.scheme != "https" or not base.netloc or base.query or base.fragment:
+            raise ValueError("the thesis reference base must be an HTTPS directory URL")
+
+    source_dir = Path(thesis_dir).resolve()
+    output_dir = Path(out_path).resolve().parent
+    checkout = Path.cwd().resolve()
+
+    class References(Treeprocessor):
+        def run(self, root):
+            for element in root.iter():
+                attribute = {"a": "href", "img": "src"}.get(element.tag)
+                if attribute is None or not (value := element.get(attribute)):
+                    continue
+                url = urlsplit(value)
+                if url.scheme or url.netloc or not url.path or url.path.startswith("/"):
+                    continue
+                source = (source_dir / unquote(url.path)).resolve()
+                if reference_base:
+                    path = f"{base.path.rstrip('/')}/{quote(source.relative_to(checkout).as_posix())}"
+                    rewritten = urlunsplit((base.scheme, base.netloc, path, url.query, url.fragment))
+                else:
+                    path = quote(Path(os.path.relpath(source, output_dir)).as_posix())
+                    rewritten = urlunsplit(("", "", path, url.query, url.fragment))
+                element.set(attribute, rewritten)
+
+    class ThesisReferences(Extension):
+        def extendMarkdown(self, md):
+            md.treeprocessors.register(References(md), "diachron_references", 3)
 
     rendered = None
     present = []
@@ -55,7 +90,7 @@ def build_thesis(thesis_dir: str = "docs/thesis", out_path: str = "runs/thesis/T
         target = Path(out_path)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(combined, encoding="utf-8")
-        body = markdown.markdown(combined, extensions=("fenced_code", "tables", "toc"))
+        body = markdown.markdown(combined, extensions=("fenced_code", "tables", "toc", ThesisReferences()))
         rendered = target.with_suffix(".html")
         rendered.write_text(
             """<!doctype html>

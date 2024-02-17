@@ -31,6 +31,7 @@ Use these sections for the available evidence.
 | --- | --- |
 | `inputs` | `iecor`, `abvd`, `catalog`, `edh_source`, `edh_geography` |
 | `inference`, `prediction`, `sensitivity` | `directory`, `source_commit` |
+| Archived `sensitivity` | `archive_directory`, `asset_manifest`, `source_commit` |
 | `recovery` | `summary`, `rows`, `source_commit` |
 | `workbench` | `html`, `qa` |
 
@@ -38,3 +39,8 @@ The verifier checks the pinned bytes, recomputes recovery summaries and
 convergence, replays held-out probes and runs the semantic controls. It reports
 missing components and mismatched sources separately. A report of incomplete
 research returns a nonzero status and preserves the gate details.
+
+For archived sensitivity, use a trusted asset manifest with `source_commit`
+and an `assets` object mapping archive filename to SHA-256. The verifier
+restores and checks one setting at a time. The archive inventory and the
+posterior diagnostics remain separate checks.
