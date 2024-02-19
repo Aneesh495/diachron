@@ -98,6 +98,7 @@ export interface RootLocation {
   lon: number;
   age: number;
   chain?: number;
+  region?: string;
 }
 
 // The current selection, propagated across all linked views.

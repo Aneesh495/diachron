@@ -172,9 +172,17 @@ export class MapView {
 
   private renderLatentCloud(project: Projection): void {
     const selection = this.store.selection;
-    for (const { lat, lon, age, chain } of this.selectedLocations()) {
-      if (this.locationChain !== null && chain !== this.locationChain) continue;
-      if (Math.abs(age - selection.timeYbp) > 250 || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+    const visible = this.selectedLocations().filter(({ lat, lon, age, chain }) =>
+      (this.locationChain === null || chain === this.locationChain)
+      && Math.abs(age - selection.timeYbp) <= 250 && Math.abs(lat) <= 90 && Math.abs(lon) <= 180);
+    const regions = new Map<string, { lat: number; lon: number; count: number }>();
+    for (const { lat, lon, chain, region } of visible) {
+      if (region !== undefined) {
+        const existing = regions.get(region);
+        if (existing) existing.count++;
+        else regions.set(region, { lat, lon, count: 1 });
+        continue;
+      }
       const location = project(lat, lon);
       if (!location) continue;
       const [x, y] = location;
@@ -185,6 +193,21 @@ export class MapView {
       dot.setAttribute("fill", "#4a6fa5");
       if (chain !== undefined) dot.setAttribute("data-chain", String(chain));
       dot.setAttribute("fill-opacity", "0.35");
+      this.el.appendChild(dot);
+    }
+    for (const [region, { lat, lon, count }] of regions) {
+      const location = project(lat, lon);
+      if (!location) continue;
+      const dot = this.svg("circle");
+      dot.setAttribute("cx", String(location[0]));
+      dot.setAttribute("cy", String(location[1]));
+      dot.setAttribute("r", String(3 + 8 * Math.sqrt(count / visible.length)));
+      dot.setAttribute("fill", "#4a6fa5");
+      dot.setAttribute("fill-opacity", "0.55");
+      dot.setAttribute("data-location-region", region);
+      const title = this.svg("title");
+      title.textContent = `${region} region centroid. ${count} of ${visible.length} draws in this time window.`;
+      dot.appendChild(title);
       this.el.appendChild(dot);
     }
   }
@@ -204,13 +227,15 @@ export class MapView {
   }
 
   private renderLegend(w: number): void {
+    const locations = this.selectedLocations();
+    const cladeSelected = this.store.selection.clade && this.store.selection.clade.size !== this.store.bundle.tip_labels.length;
+    const sampled = locations.some(point => point.region !== undefined)
+      ? "sampled region centroids (±250 years)"
+      : cladeSelected ? "sampled clade (±250 years)" : "sampled root (±250 years)";
     const items = [
       ["#888", "modern reference (present-day)"],
       ["#e6a23c", "attestation (observed)"],
-      ["#4a6fa5", this.selectedLocations().length
-        ? (this.store.selection.clade && this.store.selection.clade.size !== this.store.bundle.tip_labels.length
-          ? "sampled clade (±250 years)" : "sampled root (±250 years)")
-        : "location draws unavailable"],
+      ["#4a6fa5", locations.length ? sampled : "location draws unavailable"],
     ];
     items.forEach(([color, label], i) => {
       const y = 16 + i * 16;

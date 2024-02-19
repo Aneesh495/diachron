@@ -259,3 +259,24 @@ moves remain available.
 Compare posterior score, root split Rhat and ESS, distinct topologies,
 between-chain clade disagreement, move frequency and elapsed time. Preserve
 all trajectories. An improvement on a pilot does not change full thresholds.
+
+## Spatial observation study
+
+Compare a six-region distance-decayed CTMC and a 96-state local diffusion
+mesh on the unit sphere. Both predict the same six directional regions.
+Treat the 12-tip tree and its times as known. Use two independent truth
+regimes. Simulate regional histories from jump times and spherical histories
+by tangent Gaussian steps with per-axis variance at most 0.0025 radians².
+The latter approximates Brownian motion on the sphere. Its directional mean
+is tested against the first spherical harmonic moment.
+
+Normalize each generator's average initial loss of directional correlation to
+0.00016 per year. Fit one multiplier from {0.25, 0.5, 1, 2, 4} for each model
+and truth regime by likelihood on 40 training trees. In each truth regime,
+hold out three fixed tips per tree on 120 other trees. Select held-out tips
+before generating locations. Evaluate mean categorical negative log scores
+per independent tree and form a paired 95% bootstrap interval with 1,000
+resamples. Report 90% root region set coverage and mean set size. A negative
+mesh-minus-region log-score difference favors the mesh. An interval spanning
+zero leaves the predictive ranking unresolved. The study conditions on known
+trees and gives no evidence of a preferred observed historical geography.

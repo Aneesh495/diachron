@@ -24,6 +24,9 @@ try {
     return page;
   }
   const page = await open({ width: 1440, height: 920 });
+  const modelSelector = 'select[aria-label="Posterior model"]';
+  const regional = await page.$(`${modelSelector} option[value="regional"]`) !== null;
+  const modelCount = regional ? 5 : 4;
   assert.match(await page.$eval(".wb-mixing", el => el.textContent), /Diagnostic draws|Recorded scalar checks passed/);
   assert.equal(await page.$$(".wb-panel").then(nodes => nodes.length), 4);
   const next = ".tour-navigation button:last-child";
@@ -53,7 +56,7 @@ try {
   assert.match(await page.$eval(".timeline-readout", el => el.textContent), /3199/);
   await nextStep(/location modes/);
   await page.click(".research-tour div:last-child button");
-  assert.equal(await page.$eval('select[aria-label="Posterior model"]', el => el.value), "geography");
+  assert.equal(await page.$eval(modelSelector, el => el.value), "geography");
   const firstChain = await page.$eval(".map-view circle[data-chain]", el => el.dataset.chain);
   await page.select('select[aria-label="Location draw chain"]', firstChain);
   const visible = await page.$$eval(".map-view circle[data-chain]", nodes => nodes.map(el => el.dataset.chain));
@@ -66,13 +69,13 @@ try {
   await page.click(".research-tour summary");
   await page.click(".taxonomy-comparison summary");
   assert.match(await page.$eval(".taxonomy-comparison ul", el => el.textContent), /4800 draws/);
-  assert.equal(await page.$$(".taxonomy-comparison li").then(nodes => nodes.length), 4);
+  assert.equal(await page.$$(".taxonomy-comparison li").then(nodes => nodes.length), modelCount);
   await page.click(".taxonomy-comparison button");
   await page.waitForSelector('.map-view rect[stroke="#182739"]');
   await page.click(".taxonomy-comparison summary");
   await page.click(".tree-controls button:nth-child(2)");
   await page.click(".model-comparison summary");
-  assert.equal(await page.$$(".model-comparison tbody tr").then(nodes => nodes.length), 4);
+  assert.equal(await page.$$(".model-comparison tbody tr").then(nodes => nodes.length), modelCount);
   await page.click(".model-comparison summary");
   await page.select('select[aria-label="Geographic projection"]', "map");
   await page.click(".attestation-inspector summary");
@@ -84,6 +87,22 @@ try {
   await page.waitForSelector('.wb-map path[fill="#e6a23c"]');
   await page.click(".attestation-inspector summary");
   await page.screenshot({ path: resolve(directory, "workbench-desktop.png") });
+
+  if (regional) {
+    await page.click(".tree-controls button:nth-child(2)");
+    await page.select(modelSelector, "regional");
+    await page.evaluate(() => {
+      const data = JSON.parse(document.getElementById("workbench-data").textContent);
+      const age = Math.min(...data.bundles.regional.rootLocations.map(point => point.age));
+      const slider = document.querySelector('input[aria-label="Years before present"]');
+      slider.value = String(Math.round(age));
+      slider.dispatchEvent(new Event("input"));
+    });
+    await page.waitForSelector("circle[data-location-region]");
+    assert.match(await page.$eval("circle[data-location-region] title", el => el.textContent), /region centroid\. \d+ of \d+ draws/);
+    assert.match(await page.$eval(".map-view", el => el.textContent), /sampled region centroids/);
+    await page.screenshot({ path: resolve(directory, "workbench-regional.png") });
+  }
 
   const mobile = await open({ width: 390, height: 844, isMobile: true, hasTouch: true });
   await mobile.click(".research-tour summary");
@@ -102,7 +121,8 @@ try {
     html_sha256: createHash("sha256").update(html).digest("hex"),
     verified: ["offline standalone HTML", "four linked panels", "five evidence examples",
       "two sourced calendar alternatives", "location chain filter", "catalog group frequencies and selection",
-      "globe rotation", "four-model comparison", "EDH epoch conversion and focus", "mobile keyboard timeline"],
+      "globe rotation", "four-model comparison", "EDH epoch conversion and focus", "mobile keyboard timeline",
+      ...(regional ? ["regional centroid frequencies on saved draws"] : [])],
     network_requests: 0,
   }, null, 2) + "\n");
 } finally {
