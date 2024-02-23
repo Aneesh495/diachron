@@ -49,6 +49,7 @@ class ChainConfig:
     height_resampled_spr: bool = False
     inverse_temperature: float = 1.0
     attachment_resampling: bool = False
+    attachment_root_stem: bool = False
 
 
 @dataclass
@@ -90,6 +91,8 @@ class Chain:
     ):
         if config.warmup < 0 or config.iterations < 1 or config.thin < 1:
             raise ValueError("chain requires positive iterations and thinning, and nonnegative warmup")
+        if config.attachment_root_stem and (not config.attachment_resampling or model.config.relaxed_clock_sigma):
+            raise ValueError("root-stem attachment requires informed resampling and a strict clock")
         self.model = model
         self.tree = tree
         self.state = state
@@ -254,6 +257,7 @@ class Chain:
             old = self.tree
             self.tree, self._log_post = resample_attachment(
                 old, self._log_post, self._eval, self._attachment_distances, self.rng,
+                stem_scale=self.model.config.pop_size / 2 if self.config.attachment_root_stem else None,
             )
             accepted = self.tree is not old
         else:  # topology: NNI or SPR

@@ -260,6 +260,18 @@ Compare posterior score, root split Rhat and ESS, distinct topologies,
 between-chain clade disagreement, move frequency and elapsed time. Preserve
 all trajectories. An improvement on a pilot does not change full thresholds.
 
+## Informed root-stem pilot
+
+Repeat the same dated study and 1000/3000/10 budgets with the stem option
+enabled. The former root child may be pruned, and the reused attachment
+junction can be inserted above the backbone root. Give the stem 18% of
+proposal mass when ordinary edges are available, with an exponential age
+gap of mean half the coalescent scale. Keep all ordinary edges in the pool.
+The same detached backbone and stem density appear in both directions.
+The pilot uses a strict clock so changing the root does not require relocating
+a fixed edge multiplier. Compare root Rhat, ESS, topology and posterior scores
+against the fixed-root informed arm and the control. Keep all frozen gates.
+
 ## Spatial observation study
 
 Compare a six-region distance-decayed CTMC and a 96-state local diffusion

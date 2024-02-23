@@ -278,3 +278,37 @@ def test_attachment_resampling_corrects_nonuniform_proposal_to_continuous_target
     for clades, count in counts.items():
         volume = 1.0 if all(mask.bit_count() == 2 for mask in clades) else .5
         assert abs(count / draws - volume / 9) < .012
+
+
+def test_root_stem_resampling_targets_unbounded_four_tip_age_distribution():
+    from collections import Counter
+
+    from diachron.infer.attachment import resample_attachment
+    from diachron.models.constraints import clade_masks
+    from diachron.models.tree import PhyloTree
+
+    tree = PhyloTree([4, 4, 5, 5, 6, 6, -1], [0, 0, 0, 0, .3, .7, 1], [0, 1, 2, 3, -1, -1, -1])
+    distances = np.array([[0, .1, .6, .7], [.1, 0, .4, .5], [.6, .4, 0, .2], [.7, .5, .2, 0]])
+    rng = _core.PyRng(8599)
+    counts, roots, ages = Counter(), set(), []
+
+    def target(candidate):
+        return -candidate.root_age()
+
+    score = target(tree)
+    for iteration in range(52000):
+        tree, score = resample_attachment(tree, score, target, distances, rng, stem_scale=1.7)
+        assert score == target(tree)
+        assert all(tree.heights[p] > tree.heights[n] for n, p in enumerate(tree.parent) if p >= 0)
+        if iteration >= 2000:
+            counts[frozenset(clade_masks(tree) - {15})] += 1
+            roots.add(tree.root)
+            ages.append(tree.root_age())
+    # Integrate over the other two internal ages at a fixed root age r.
+    # Their volume scales as r², so the marginal root law is Gamma(3, 1).
+    assert roots == {4, 5, 6} and len(counts) == 15
+    assert abs(np.mean(ages) - 3.0) < .14
+    assert abs(np.mean(np.array(ages) <= 3) - (1 - 8.5 * np.exp(-3))) < .025
+    for clades, count in counts.items():
+        volume = 1.0 if all(mask.bit_count() == 2 for mask in clades) else .5
+        assert abs(count / len(ages) - volume / 9) < .015

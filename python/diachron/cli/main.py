@@ -205,6 +205,7 @@ def cmd_sample(args) -> int:
             initialization=args.initialization,
             height_resampled_spr=args.height_resampled_spr,
             attachment_resampling=args.attachment_resampling,
+            attachment_root_stem=args.attachment_root_stem,
             temperature_ladder=tuple(float(value) for value in args.tempering_ladder.split(",")),
             geography_error=args.geography_error,
             observed_study=args.study,
@@ -553,6 +554,8 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--initialization", choices=("random", "distance"), default="distance")
     sp.add_argument("--height-resampled-spr", action="store_true")
     sp.add_argument("--attachment-resampling", action="store_true")
+    sp.add_argument("--attachment-root-stem", action="store_true",
+                    help="include root-changing attachments in informed strict-clock proposals")
     sp.add_argument("--tempering-ladder", default="1", help="comma-separated lexical inverse temperatures")
     sp.add_argument("--geography-error", type=float, help="fixed planar reference error in degrees")
     sp.add_argument("--study", choices=("iecor", "abvd"))
