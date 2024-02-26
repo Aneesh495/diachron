@@ -115,3 +115,39 @@ def test_scenario_uses_actual_bundle_taxon_ids():
     assert scenario.support == 1.0
     assert scenario.detail["taxa"] == ["var-A", "var-B"]
     assert scenario.detail["source_commit"] == "example"
+
+
+def test_scenario_comparison_preserves_chain_counts_and_checks_context_digest(tmp_path):
+    import json
+
+    from diachron.infer.artifacts import PosteriorBundle
+    from diachron.registry.compare import compare_scenarios
+
+    commit = "f" * 40
+    labels = ["a", "b", "c"]
+    shape = {"parent": [3, 3, 4, 4, -1], "taxon": [0, 1, 2, -1, -1], "heights": [0, 0, 0, 1, 5000]}
+    old = {**shape, "root_age": 5000}
+    young = {**shape, "parent": [4, 3, 3, 4, -1], "heights": [0, 0, 0, 1, 4900], "root_age": 4900}
+    bundle = PosteriorBundle("dated", "observed", "1", False, 2, 1, labels, [[old], [young]],
+                             commit, context={"calendar_epoch": 2000})
+    directory = tmp_path / "dated"
+    bundle.save(directory)
+    base = {"assumptions": ["terminal date model"], "evidence_refs": ["source input"]}
+    plan = {"schema": 1, "source_commits": {"dated": commit}, "scenarios": [
+        {**base, "id": "old", "title": "Older root", "kind": "root_age_interval",
+         "calendar_epoch": 2000, "age_years": [5000, 6000]},
+        {**base, "id": "pair", "title": "AB pair", "kind": "clade", "taxa": ["a", "b"]},
+    ]}
+    path = tmp_path / "plan.json"
+    path.write_text(json.dumps(plan))
+    result = compare_scenarios(path, {"dated": directory})
+    for scenario in result["scenarios"]:
+        assert scenario["support"] == .5
+        assert scenario["detail"]["per_chain"] == [
+            {"matching_draws": 1, "total_draws": 1}, {"matching_draws": 0, "total_draws": 1},
+        ]
+    payload = json.loads((directory / "bundle.json").read_text())
+    payload["context"]["calendar_epoch"] = 1950
+    (directory / "bundle.json").write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="bundle identity"):
+        compare_scenarios(path, {"dated": directory})
