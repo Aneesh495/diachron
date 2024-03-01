@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from functools import lru_cache
 import hashlib
 import json
 import math
 from pathlib import Path
+import re
 import subprocess
 
 import numpy as np
@@ -55,21 +57,27 @@ def _diagnose(raw: dict) -> dict:
     }
 
 
-def _source_matches(root: Path, commit: str) -> bool:
-    """Bind the source hash inventory to trusted local Git objects."""
-    record = _read_json(root / "SOURCE_INPUTS.json", 2 * 1024 * 1024)
-    if record["source_commit"] != commit:
-        return False
+@lru_cache(maxsize=4)
+def _git_source_digests(repository: Path, commit: str) -> dict[str, str]:
+    if not re.fullmatch(r"[0-9a-f]{40}", commit):
+        raise ValueError("source inventory requires a full commit ID")
     tracked = subprocess.check_output(
-        ["git", "ls-tree", "-r", "--name-only", "-z", commit],
+        ["git", "ls-tree", "-r", "--name-only", "-z", commit], cwd=repository, timeout=30,
     ).decode().rstrip("\0").split("\0")
-    if not tracked or len(tracked) > 4096 or set(record["files"]) != set(tracked):
-        return False
+    if not tracked or len(tracked) > 4096:
+        raise ValueError("invalid source inventory size")
+    digests = {}
     for name in tracked:
-        content = subprocess.check_output(["git", "show", f"{commit}:{name}"])
-        if hashlib.sha256(content).hexdigest() != record["files"][name]:
-            return False
-    return True
+        content = subprocess.check_output(["git", "show", f"{commit}:{name}"], cwd=repository, timeout=30)
+        digests[name] = hashlib.sha256(content).hexdigest()
+    return digests
+
+
+def _source_matches(root: Path, commit: str) -> bool:
+    """Bind source hash inventories to trusted local Git objects."""
+    record = _read_json(root / "SOURCE_INPUTS.json", 2 * 1024 * 1024)
+    recorded = record.get("files", record.get("tracked_file_sha256"))
+    return record["source_commit"] == commit and recorded == _git_source_digests(Path.cwd(), commit)
 
 
 def _checkpoint_matches(checkpoint: dict, raw: dict, index: int, plan: dict) -> bool:

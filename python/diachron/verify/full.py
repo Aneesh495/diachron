@@ -67,10 +67,20 @@ def _check_fits(plan, component):
     if component == "sensitivity" and "archive_directory" in section:
         from .sensitivity_archives import verify_sensitivity_archives
 
-        return verify_sensitivity_archives(Path(section["archive_directory"]), Path(section["asset_manifest"]),
-                                           _source(section), **_inference_options(plan))
+        result = verify_sensitivity_archives(Path(section["archive_directory"]), Path(section["asset_manifest"]),
+                                             _source(section), **_inference_options(plan))
+        summary = result.pop("summary")
+        result["all_converged"] = summary["all_converged"]
+        result["material_root_shift_settings"] = summary["levers_that_shift_root_age"]
+        return result
     directory = Path(section["directory"])
     expected = _source(section)
+    hosted = None
+    if component == "prediction" and (directory / "JOB.json").is_file():
+        from .hosted import hosted_execution
+
+        hosted = hosted_execution(directory, expected, component)
+        directory /= "fit"
     marker = {"inference": "RUN_PLAN.json", "prediction": "heldout.json", "sensitivity": "sensitivity.json"}[component]
     if (directory / "ACCEPTANCE.json").is_file() or not (directory / marker).is_file():
         raise ValueError(f"missing completed {component} component")
@@ -97,6 +107,8 @@ def _check_fits(plan, component):
                     fits[f"{split}/{model}"] = _diagnose(raw)["converged"]
         detail.update({"full_budget": budget_ok, "fit_convergence": fits,
                        "passed": report["ok"] and budget_ok and len(fits) == 8 and all(fits.values())})
+        if hosted is not None:
+            detail["hosted_execution"] = hosted
         return detail
     sensitivity = _read_json(directory / "sensitivity.json", 8 * 1024 * 1024)
     budget = _read_json(directory / "SENSITIVITY_PLAN.json", 2 * 1024 * 1024)

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
 import tempfile
 
 from ..io.evidence_archive import restore_evidence
 from ..io.types import DataError
 from ..sensitivity.run import _declared_configs, summarize_sensitivity
 from ..util.gitmeta import source_commit
+from .hosted import hosted_execution
 from .verifier import _read_json, verify_evidence
 
 
@@ -30,17 +32,14 @@ def verify_sensitivity_archives(directory: Path, asset_manifest: Path, expected_
             with tempfile.TemporaryDirectory(dir=directory, prefix=".sensitivity-replay-") as temporary:
                 restored = Path(temporary) / "restored"
                 result = restore_evidence(directory / filename, restored, assets[filename], max_bytes=256 * 1024 * 1024)
-                job = _read_json(restored / "JOB.json", 1024 * 1024)
+                execution = hosted_execution(restored, expected_commit, "sensitivity", name)
                 fit = restored / "fit"
                 plan = _read_json(fit / "SENSITIVITY_PLAN.json", 2 * 1024 * 1024)
                 common = {key: value for key, value in plan.items() if key not in {"shard", "configurations"}}
                 if identity is not None and common != identity:
                     raise ValueError("archived fits do not share the same frozen inputs and budgets")
-                if (job["source_commit"] != expected_commit or job["configuration"] != name
-                        or job["status"] != "executed_and_verified" or plan["shard"] != name
-                        or [record["label"] for record in job["commands"]] != ["acquire", "fit", "verify"]
-                        or any(record["exit"] != 0 for record in job["commands"])):
-                    raise ValueError("archive job execution did not complete")
+                if plan["shard"] != name:
+                    raise ValueError("archive job setting differs from its frozen fit")
                 verification = verify_evidence(str(fit), expected_commit=expected_commit, **inputs)
                 if not verification["ok"] or verification["n_bundles"] != 1:
                     raise ValueError(f"shard replay failed: {[c['check'] for c in verification['checks'] if not c['ok']]}")
@@ -52,8 +51,9 @@ def verify_sensitivity_archives(directory: Path, asset_manifest: Path, expected_
                 row = report["configs"][0]
                 rows.append(row)
                 records[name] = {"status": "verified", "archive_sha256": result["archive_sha256"],
-                                 "restored_files": result["restored_files"], "converged": row["converged"]}
-        except (DataError, OSError, ValueError, KeyError, TypeError, IndexError) as exc:
+                                 "restored_files": result["restored_files"], "converged": row["converged"],
+                                 "execution": execution}
+        except (DataError, OSError, ValueError, KeyError, TypeError, IndexError, subprocess.SubprocessError) as exc:
             records[name] = {"status": "failed", "reason": str(exc)}
     complete = len(rows) == len(records)
     full_budget = bool(identity and identity["chains"] >= 4 and identity["warmup"] >= 3000
