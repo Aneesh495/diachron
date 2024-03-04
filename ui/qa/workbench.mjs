@@ -101,6 +101,10 @@ try {
     await page.waitForSelector("circle[data-location-region]");
     assert.match(await page.$eval("circle[data-location-region] title", el => el.textContent), /region centroid\. \d+ of \d+ draws/);
     assert.match(await page.$eval(".map-view", el => el.textContent), /sampled region centroids/);
+    assert(await page.$$eval("[data-map-legend]", nodes => nodes.every(node => {
+      const box = node.getBoundingClientRect();
+      return box.right <= node.ownerSVGElement.getBoundingClientRect().right;
+    })));
     await page.screenshot({ path: resolve(directory, "workbench-regional.png") });
   }
 
