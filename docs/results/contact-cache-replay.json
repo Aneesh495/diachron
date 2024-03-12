@@ -1,0 +1,99 @@
+{
+  "before": {
+    "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+    "characters": 2608,
+    "contact_edges": 8,
+    "states": 8,
+    "repetitions": 10,
+    "native_sha256": "c2764f32cd1c9bd8a68d1dd7f72940e65d5c1c82f74d6309316a31e6891c4d31",
+    "score_sha256": "781687bc064bbef3007836e7b8132bf7f4f4e03938cf71fd6fbc5da10069763a",
+    "seconds_per_call": [
+      0.07342718750005588,
+      0.05285642918897793,
+      0.05388961669523269,
+      0.05327710419660434,
+      0.05389707080321386,
+      0.05147961248876527,
+      0.05225105830468237,
+      0.052089183300267905
+    ],
+    "median_seconds": 0.05306676669279113
+  },
+  "after": {
+    "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+    "characters": 2608,
+    "contact_edges": 8,
+    "states": 8,
+    "repetitions": 10,
+    "native_sha256": "7d4c64c15bba921268231b6dc9629d9e5090249e652813affdc435d6bbaea9e8",
+    "score_sha256": "781687bc064bbef3007836e7b8132bf7f4f4e03938cf71fd6fbc5da10069763a",
+    "seconds_per_call": [
+      0.04878418749431148,
+      0.04777561658993364,
+      0.04929141659522429,
+      0.04821122910361737,
+      0.04848267500055954,
+      0.048495908395852896,
+      0.04995171669870615,
+      0.048722816701047125
+    ],
+    "median_seconds": 0.04860936254845001
+  },
+  "comparison": {
+    "same_scores": true,
+    "before": 0.05306676669279113,
+    "after": 0.04860936254845001,
+    "speedup": 1.0916984694028506
+  },
+  "observed_replay": {
+    "ok": true,
+    "n_bundles": 1,
+    "checks": [
+      {
+        "check": "borrowing:draw_digest",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "borrowing:context_digest",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "borrowing:source_commit",
+        "ok": true,
+        "detail": {
+          "stored": "01459af9ab79bca1c97ac2490624223a294292a2",
+          "expected": "01459af9ab79bca1c97ac2490624223a294292a2"
+        }
+      },
+      {
+        "check": "borrowing:draw_structure",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "borrowing:attestation_intervals",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "borrowing:geographic_honesty",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "borrowing:frozen_observed_inputs",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "borrowing:posterior_replay",
+        "ok": true,
+        "detail": {
+          "probes": 16
+        }
+      }
+    ]
+  }
+}

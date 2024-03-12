@@ -20,8 +20,14 @@ distribution for each retained geographic tree and diffusion rate. It shows
 points in a ±250-year band around the timeline position. Observations retain
 their full date ranges. The export also contains location marginals for up to
 24 recurring clades, conditional on each clade occurring in a retained tree.
-A fitted regional model still needs its own offline ancestral state sampler.
+Regional fits use inward and outward state messages to draw the root and
+clade categories. The workbench places categorical counts at named centroids
+and identifies the size of the filtered draw set.
 
 None of the geographic diagnostics establish a homeland. Coordinate spread,
 between-chain agreement, and stability to the reference-point model remain
 empirical checks.
+
+On known trees the spherical mesh scored better under spherical diffusion
+truth. The regional-truth comparison was unresolved. This check evaluates
+the spatial processes with tree and time fixed. [Spatial study](../results/spatial-study.md)

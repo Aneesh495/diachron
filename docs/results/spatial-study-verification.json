@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "test_cases": 240,
+  "independent_transition_probes": 8,
+  "cases_sha256": "b12ac567390596ea1179378ad92f322b859ab933ab555a7e209d092d453d61e3",
+  "source_commit": "108a924cae9f3c6ad28fbcde345e24afdcfae105"
+}

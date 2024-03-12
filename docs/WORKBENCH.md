@@ -50,6 +50,12 @@ The [desktop](screenshots/workbench-observed-full.png) and
 [mobile](screenshots/workbench-observed-full-mobile.png) screenshots show the
 same offline export.
 
+Add a verified regional bundle as `--bundle regional=PATH` to compare it
+with the planar geographic fit. Regional marks show sampled category
+frequencies at centroids in the selected time window. The legend and marker
+details identify the aggregation. [Regional browser replay](results/workbench-regional-browser.json)
+[Regional screenshot](screenshots/workbench-regional.png)
+
 ```sh
 node ui/qa/workbench.mjs runs/workbench/Diachron.html runs/workbench/qa
 ```

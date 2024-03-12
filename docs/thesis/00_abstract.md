@@ -15,8 +15,8 @@ copy event per character. The workbench links saved tree draws with
 lexical observations and source records. Geographic root draws retain
 their distinct label and show the diagnostic status of the underlying run.
 
-The observed chains did not meet convergence thresholds. In the revised
-200-dataset synthetic recovery study, nominal 90% root-age intervals
-contained the true age in 72% of datasets and mean nontrivial clade
-recovery was 41%. These results leave historical chronology and geographic
-comparisons open.
+The observed chains missed convergence thresholds at full budget. Nominal
+90% root-age intervals covered 72% of the 200 misspecified synthetic cases
+and 88.5% of the 200 matched cases. Both held-out experiments and all 20
+observed sensitivity settings completed. Their fitted draws leave historical
+chronology, geographic prediction and robustness unresolved.
