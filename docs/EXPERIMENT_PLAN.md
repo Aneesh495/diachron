@@ -292,3 +292,15 @@ resamples. Report 90% root region set coverage and mean set size. A negative
 mesh-minus-region log-score difference favors the mesh. An interval spanning
 zero leaves the predictive ranking unresolved. The study conditions on known
 trees and gives no evidence of a preferred observed historical geography.
+
+## Conditional-time diagnostic
+
+Use the first retained draw of chains one and four from the full dated IE-CoR
+fit at `01459af9ab79bca1c97ac2490624223a294292a2`. For each topology require
+all its nontrivial clades and run four chains for 1000/3000/10. Vary the
+initial root gap above the oldest daughter, gain and clock across the four
+starts. Preserve the same lexical observations and priors. Check that each
+trajectory stays on the prescribed topology and replays from the saved
+conditional model. Report scalar Rhat, ESS and root means separately for the
+two topologies. This diagnostic isolates within-topology time mixing and
+keeps the full topology convergence criteria in force for acceptance.
