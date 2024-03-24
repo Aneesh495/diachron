@@ -32,6 +32,7 @@ from ..models.tree import PhyloTree
 from ..models.posterior import PosteriorModel
 from ..util.gitmeta import source_commit
 from .attachment import resample_attachment
+from .calendar import propose_calendar_scale
 from .initial import lexical_distances
 from .moves import MoveSet
 
@@ -50,6 +51,7 @@ class ChainConfig:
     inverse_temperature: float = 1.0
     attachment_resampling: bool = False
     attachment_root_stem: bool = False
+    calendar_scale: bool = False
 
 
 @dataclass
@@ -143,6 +145,8 @@ class Chain:
             move_names += ("spr_with_height",)
         if self.config.attachment_resampling:
             move_names += ("attachment_resampling",)
+        if self.config.calendar_scale:
+            move_names += ("calendar_scale",)
         move_kind = self.rng.below(len(move_names))
         move_name = move_names[move_kind]
         self.move_proposals[move_name] = self.move_proposals.get(move_name, 0) + 1
@@ -253,6 +257,20 @@ class Chain:
                     accepted = True
                 else:
                     self.tree.heights[node] = old
+        elif move_name == "calendar_scale":
+            proposal = propose_calendar_scale(
+                self.model, self.tree, self.state.clock_rate, self.state.geo_sigma2, self.rng,
+            )
+            if proposal is not None:
+                tree, clock, diffusion, correction = proposal
+                old_rates = self.state.clock_rate, self.state.geo_sigma2
+                self.state.clock_rate, self.state.geo_sigma2 = clock, diffusion
+                lp = self._eval(tree)
+                if self._accept(lp, correction):
+                    self.tree, self._log_post = tree, lp
+                    accepted = True
+                else:
+                    self.state.clock_rate, self.state.geo_sigma2 = old_rates
         elif move_name == "attachment_resampling":
             old = self.tree
             self.tree, self._log_post = resample_attachment(
