@@ -36,3 +36,13 @@ conditional chain stayed within its prescribed topology and replayed.
 Calendar mixing remained poor on both fixed topologies at the pilot budget.
 The results motivate checking coupled clock and dated-height moves separately
 from topology transitions. [Conditional diagnostic](conditional-time-c6b8192.json)
+
+## Coupled calendar scale
+
+Joint scaling changed within-topology root bulk ESS from 8.81 to 33.77 on
+the first anchor and from 15.77 to 6.50 on the second. All calendar-scale
+proposals were accepted on the fixed trees. The free-tree pilot had root
+split R-hat 2.079, bulk ESS 5.46, and maximum between-chain clade difference
+1.00. The fixed and free trajectories passed replay.
+[Calendar-scale pilot measurements](calendar-scale-3b6836f.json)
+[Raw pilot archive](https://github.com/Aneesh495/diachron/releases/tag/pilots-47f25ca)
