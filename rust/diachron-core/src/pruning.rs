@@ -26,6 +26,9 @@ use crate::linalg::Mat;
 use crate::subst::SubstModel;
 use crate::tree::Tree;
 
+mod gradient;
+pub use gradient::binary_mixture_branch_gradient;
+
 /// Observed tip states. `states[taxon]` is `Some(s)` for an observed state `s`
 /// in `0..n_states`, or `None` for a missing observation.
 pub struct TipStates<'a> {

@@ -57,6 +57,7 @@ def run_sample(
     attachment_resampling: bool = False,
     attachment_root_stem: bool = False,
     calendar_scale: bool = False,
+    time_block: bool = False,
     geography_error: float | None = None,
     observed_study: str | None = None,
     observed_source: Path | None = None,
@@ -118,6 +119,7 @@ def run_sample(
         attachment_resampling=attachment_resampling,
         attachment_root_stem=attachment_root_stem,
         calendar_scale=calendar_scale,
+        time_block=time_block,
     )
     bundle = campaign_bundle(chains, study, config, source_commit=source_commit())
     if observed_study:
@@ -140,6 +142,7 @@ def run_sample(
         "attachment_resampling": attachment_resampling,
         "attachment_root_stem": attachment_root_stem,
         "calendar_scale": calendar_scale,
+        "time_block": time_block,
         "inverse_temperatures": list(temperature_ladder),
         "warmup": warmup,
         "iterations": iterations,

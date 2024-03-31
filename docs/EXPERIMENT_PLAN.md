@@ -316,3 +316,16 @@ topology pilot with the same four seeds, distance initialization and 1000/3000/1
 budget used in the earlier dated control. Record maximum between-chain clade
 frequency difference as well as root diagnostics. These pilots are diagnostics.
 The full budgets and scientific thresholds still apply.
+
+## Joint time and clock pilot
+
+Run the same fixed and free dated diagnostics with the optional time block
+enabled and calendar-scale resampling disabled. Preserve the same four starts,
+seed rules, anchor trees, and 1000/3000/10 budget. Report root and clock
+diagnostics, topology agreement, move acceptances, and elapsed time. The block
+proposes in log age gaps above the oldest child or terminal date offset, with
+a separate log clock coordinate. It uses the lexical likelihood, coalescent
+and terminal date gradients as drift. The acceptance calculation includes the
+full posterior, forward and reverse Gaussian densities and the change of
+variables. The scale adapts only during warmup.
+[Langevin proposal reference](https://doi.org/10.2307/3318418)

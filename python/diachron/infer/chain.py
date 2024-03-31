@@ -35,6 +35,7 @@ from .attachment import resample_attachment
 from .calendar import propose_calendar_scale
 from .initial import lexical_distances
 from .moves import MoveSet
+from .time_block import propose_time_block
 
 CHECKPOINT_SCHEMA = 3
 
@@ -52,6 +53,7 @@ class ChainConfig:
     attachment_resampling: bool = False
     attachment_root_stem: bool = False
     calendar_scale: bool = False
+    time_block: bool = False
 
 
 @dataclass
@@ -101,6 +103,7 @@ class Chain:
         self.config = config
         self.rng = _core.PyRng(config.seed)
         self.moves = MoveSet()
+        self.time_block_step = .035
         self.iteration = 0
         self.draws: list[Draw] = []
         self._accepts = 0
@@ -147,6 +150,8 @@ class Chain:
             move_names += ("attachment_resampling",)
         if self.config.calendar_scale:
             move_names += ("calendar_scale",)
+        if self.config.time_block:
+            move_names += ("time_block",)
         move_kind = self.rng.below(len(move_names))
         move_name = move_names[move_kind]
         self.move_proposals[move_name] = self.move_proposals.get(move_name, 0) + 1
@@ -257,6 +262,24 @@ class Chain:
                     accepted = True
                 else:
                     self.tree.heights[node] = old
+        elif move_name == "time_block":
+            proposal = propose_time_block(
+                self.model, self.tree, self.state, self.config.inverse_temperature,
+                self.time_block_step, self.rng,
+            )
+            if proposal is not None:
+                tree, clock, correction = proposal
+                old_clock = self.state.clock_rate
+                self.state.clock_rate = clock
+                lp = self._eval(tree)
+                if self._accept(lp, correction):
+                    self.tree, self._log_post = tree, lp
+                    accepted = True
+                else:
+                    self.state.clock_rate = old_clock
+            if adapt:
+                rate = min(.15, self.move_proposals[move_name] ** -.6)
+                self.time_block_step = min(.25, max(.002, self.time_block_step * math.exp(rate * (accepted - .45))))
         elif move_name == "calendar_scale":
             proposal = propose_calendar_scale(
                 self.model, self.tree, self.state.clock_rate, self.state.geo_sigma2, self.rng,
@@ -426,6 +449,7 @@ class Chain:
             "state": asdict(self.state),
             "scale_lambda": self.moves.scale_lambda,
             "time_window_frac": self.moves.time_window_frac,
+            "time_block_step": self.time_block_step,
             "log_post": self._log_post,
             "accepts": self._accepts,
             "proposals": self._proposals,
@@ -476,6 +500,9 @@ class Chain:
         chain.iteration = payload["iteration"]
         chain.moves.scale_lambda = payload["scale_lambda"]
         chain.moves.time_window_frac = payload["time_window_frac"]
+        chain.time_block_step = payload.get("time_block_step", .035)
+        if not .002 <= chain.time_block_step <= .25:
+            raise ValueError("invalid checkpoint time block step")
         chain._log_post = payload["log_post"]
         chain._accepts = payload["accepts"]
         chain._proposals = payload["proposals"]
