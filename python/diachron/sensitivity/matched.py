@@ -21,6 +21,7 @@ from ..diagnostics import convergence, topology
 from ..infer.campaign import StudyData, run_campaign
 from ..io.types import Concept, Dataset, Language
 from ..models.conditional import sample_selected_patterns
+from ..models.constraints import clade_masks
 from ..models.posterior import ModelConfig
 from ..models.tip_dates import TipDate
 from ..models.tree import PhyloTree
@@ -109,20 +110,38 @@ def generate_matched_case(index: int):
     return study, config, tree, regime, truth
 
 
-def _case(index: int, warmup: int, iterations: int) -> dict:
+def _case(index: int, warmup: int, iterations: int, protocol: int) -> dict:
     row = {"i": index, "data_seed": 52000 + index, "chain_seed": 53000 + index}
     try:
         study, config, tree, regime, truth = generate_matched_case(index)
         row.update({"regime": regime, "truth": truth})
         chains = run_campaign(study, config, n_chains=4, warmup=warmup, iterations=iterations,
-                              thin=10, root_age_init=8000.0, base_seed=row["chain_seed"])
+                              thin=10, root_age_init=8000.0, base_seed=row["chain_seed"],
+                              time_block=protocol == 4)
         raw_root = np.asarray([chain.scalar_trace("root_age") for chain in chains])
         roots = raw_root.flatten()
         low, high = np.quantile(roots, [.05, .95])
-        true_clades = topology._clade_signature(tree.newick())
-        frequencies = topology.clade_posteriors([draw.newick for chain in chains for draw in chain.draws])
-        masses = [frequencies.get(group, 0.0) for group in sorted(true_clades, key=lambda taxa: tuple(sorted(taxa)))
-                  if len(group) < len(study.tip_labels)]
+        if protocol == 4:
+            true_groups = sorted(clade_masks(tree) - {(1 << len(study.tip_labels)) - 1})
+            bit_by_group = {group: 1 << index for index, group in enumerate(true_groups)}
+            membership = []
+            counts = [0] * len(true_groups)
+            for chain in chains:
+                for draw in chain.draws:
+                    inferred = clade_masks(PhyloTree(draw.parent, draw.heights, draw.taxon))
+                    bits = sum(bit_by_group[group] for group in inferred if group in bit_by_group)
+                    membership.append(bits)
+                    for position in range(len(counts)):
+                        counts[position] += (bits >> position) & 1
+            masses = [count / len(membership) for count in counts]
+            row.update({"true_clade_masks": true_groups, "true_clade_membership": membership,
+                        "time_block_proposals": [chain.move_proposals.get("time_block", 0) for chain in chains],
+                        "time_block_accepts": [chain.move_accepts.get("time_block", 0) for chain in chains]})
+        else:
+            true_clades = topology._clade_signature(tree.newick())
+            frequencies = topology.clade_posteriors([draw.newick for chain in chains for draw in chain.draws])
+            masses = [frequencies.get(group, 0.0) for group in sorted(true_clades, key=lambda taxa: tuple(sorted(taxa)))
+                      if len(group) < len(study.tip_labels)]
         rhat = convergence.rank_normalized_rhat(raw_root)
         row.update({"status": "complete", "root_true": tree.root_age(), "root_ci": [float(low), float(high)],
                     "root_in_90ci": bool(low <= tree.root_age() <= high),
@@ -143,10 +162,15 @@ def _write_json(path: Path, value):
 
 
 def run_matched_recovery(n_datasets: int, out: Path, jobs: int = 4, resume: bool = False,
-                         *, warmup: int = 800, iterations: int = 3200):
+                         *, protocol: int = 3, warmup: int | None = None, iterations: int | None = None):
+    if protocol not in (3, 4):
+        raise ValueError("unknown matched recovery protocol")
+    default_warmup, default_iterations = (1600, 6400) if protocol == 4 else (800, 3200)
+    warmup = default_warmup if warmup is None else warmup
+    iterations = default_iterations if iterations is None else iterations
     if not 1 <= n_datasets <= 200 or not 1 <= jobs <= 4 or warmup < 0 or iterations < 10:
         raise ValueError("invalid matched recovery budget")
-    plan = {"schema": 1, "protocol": 3, "source_commit": source_commit(), "datasets": n_datasets,
+    plan = {"schema": 1, "protocol": protocol, "source_commit": source_commit(), "datasets": n_datasets,
             "warmup": warmup, "iterations": iterations, "chains": 4, "thin": 10}
     unit_dir = out / "units"
     if out.exists():
@@ -177,7 +201,7 @@ def _run_units(out, unit_dir, plan, jobs):
             raise ValueError("duplicate or invalid saved recovery unit")
         rows[index] = row
     remaining = [index for index in range(n_datasets) if index not in rows]
-    worker = partial(_case, warmup=warmup, iterations=iterations)
+    worker = partial(_case, warmup=warmup, iterations=iterations, protocol=plan["protocol"])
 
     def save(results):
         for row in results:
@@ -206,7 +230,7 @@ def _run_units(out, unit_dir, plan, jobs):
         histogram[bin_index] += 1
     with compressed.open("rb") as stream:
         digest = hashlib.file_digest(stream, "sha256").hexdigest()
-    result = {"gate": "G05", "profile": "matched binary retention recovery", "protocol": 3,
+    result = {"gate": "G05", "profile": "matched binary retention recovery", "protocol": plan["protocol"],
               "source_commit": plan["source_commit"], "n_datasets": n_datasets,
               "completed": len(completed), "failed": n_datasets - len(completed),
               "chains": 4, "warmup": warmup, "iterations": iterations, "thin": 10,

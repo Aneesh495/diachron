@@ -329,3 +329,13 @@ and terminal date gradients as drift. The acceptance calculation includes the
 full posterior, forward and reverse Gaussian densities and the change of
 variables. The scale adapts only during warmup.
 [Langevin proposal reference](https://doi.org/10.2307/3318418)
+
+## Matched recovery protocol 4
+
+Use the same 200 generated datasets, generation seeds, chain seed rules and
+initialization as protocol 3. Double the per-chain budgets to 1600 warmup
+and 6400 retained iterations, thin by ten, and enable the joint time block.
+Preserve the 90% root coverage target, all failures, per-chain root diagnostics,
+and every true-clade membership indicator. Compare against protocol 3 case
+by case. The longer run and the new move change together, so the comparison
+does not isolate the effect of either change.

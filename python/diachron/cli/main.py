@@ -305,10 +305,11 @@ def cmd_merge_sensitivity(args) -> int:
 def cmd_recovery(args) -> int:
     from ..sensitivity.recovery import run_recovery_study
 
-    if args.design == "matched":
+    if args.design in ("matched", "matched-time-block"):
         from ..sensitivity.matched import run_matched_recovery
 
-        result = run_matched_recovery(args.datasets, Path(args.out), args.jobs, args.resume)
+        protocol = 4 if args.design == "matched-time-block" else 3
+        result = run_matched_recovery(args.datasets, Path(args.out), args.jobs, args.resume, protocol=protocol)
     else:
         if args.resume:
             raise ValueError("dataset-level resume is available for the matched design")
@@ -629,7 +630,7 @@ def build_parser() -> argparse.ArgumentParser:
     rp = sub.add_parser("recovery")
     rp.add_argument("--datasets", type=int, default=200)
     rp.add_argument("--out", default="runs/recovery")
-    rp.add_argument("--design", choices=("misspecified", "matched"), default="misspecified")
+    rp.add_argument("--design", choices=("misspecified", "matched", "matched-time-block"), default="misspecified")
     rp.add_argument("--jobs", type=int, default=4)
     rp.add_argument("--resume", action="store_true")
     rp.set_defaults(func=cmd_recovery)

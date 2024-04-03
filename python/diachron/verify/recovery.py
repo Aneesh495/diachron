@@ -14,6 +14,36 @@ import numpy as np
 from .verifier import _read_json
 
 
+def _validate_time_block_row(row: dict, summary: dict, draws: list, masses: list) -> None:
+    from ..diagnostics.convergence import bulk_ess, rank_normalized_rhat
+    from ..models.constraints import clade_masks
+    from ..models.tree import PhyloTree
+
+    truth = row["truth"]
+    groups = sorted(clade_masks(PhyloTree(truth["parent"], truth["heights"], truth["taxon"]))
+                    - {(1 << row["regime"]["n_languages"]) - 1})
+    membership = row["true_clade_membership"]
+    if (row["true_clade_masks"] != groups or len(membership) != len(draws)
+            or any(type(bits) is not int or not 0 <= bits < 1 << len(groups) for bits in membership)):
+        raise ValueError("invalid retained clade membership")
+    recomputed = [sum((bits >> index) & 1 for bits in membership) / len(membership)
+                  for index in range(len(groups))]
+    if recomputed != masses:
+        raise ValueError("reported clade frequencies differ from retained membership")
+    proposed, accepted = row["time_block_proposals"], row["time_block_accepts"]
+    if (len(proposed) != 4 or len(accepted) != 4 or any(
+        type(p) is not int or type(a) is not int or not 0 <= a <= p <= summary["warmup"] + summary["iterations"]
+        for p, a in zip(proposed, accepted)
+    )):
+        raise ValueError("invalid time block proposal counters")
+    traces = np.asarray(draws).reshape(4, -1)
+    rhat = rank_normalized_rhat(traces)
+    expected = float(rhat) if np.isfinite(rhat) else None
+    if (row["root_rank_rhat"] != expected
+            or abs(row["root_bulk_ess"] - bulk_ess(traces)) > 1e-9):
+        raise ValueError("recovery diagnostics differ from retained chain draws")
+
+
 def verify_recovery(summary_path: Path, rows_path: Path, expected_commit: str) -> dict:
     summary = _read_json(summary_path, 1024 * 1024)
     if rows_path.stat().st_size > 32 * 1024 * 1024:
@@ -22,7 +52,10 @@ def verify_recovery(summary_path: Path, rows_path: Path, expected_commit: str) -
         digest = hashlib.file_digest(stream, "sha256").hexdigest()
     if digest != summary["raw_rows_sha256"] or summary["source_commit"] != expected_commit:
         raise ValueError("recovery rows or source identity differ")
-    matched = summary.get("protocol", 2) == 3
+    protocol = summary.get("protocol", 2)
+    if protocol not in (2, 3, 4):
+        raise ValueError("unknown recovery protocol")
+    matched = protocol in (3, 4)
     data_base, chain_base = (52000, 53000) if matched else (20000, 30000)
     borrow_field = "borrow_regime" if matched else "borrow_prob"
     group_key = "by_borrow_regime" if matched else "by_borrow_probability"
@@ -67,6 +100,8 @@ def verify_recovery(summary_path: Path, rows_path: Path, expected_commit: str) -
                 rank = sum(value < row["root_true"] for value in draws)
                 if row["root_rank"] != rank:
                     raise ValueError("matched recovery rank differs from raw samples")
+                if protocol == 4:
+                    _validate_time_block_row(row, summary, draws, masses)
                 histogram[min(9, 10 * rank // (len(draws) + 1))] += 1
                 if row["i"] in probes:
                     from ..sensitivity.matched import generate_matched_case
@@ -91,8 +126,9 @@ def verify_recovery(summary_path: Path, rows_path: Path, expected_commit: str) -
              and summary["coverage_target"] == .9 and all(len(values) > 1 for values in regimes.values())
              and set(summary[group_key]) == set(groups))
     if matched:
+        expected_budget = (1600, 6400) if protocol == 4 else (800, 3200)
         valid &= (summary["root_rank_histogram"] == histogram and summary["chains"] == 4
-                  and summary["warmup"] == 800 and summary["iterations"] == 3200 and summary["thin"] == 10)
+                  and (summary["warmup"], summary["iterations"]) == expected_budget and summary["thin"] == 10)
     for key, outcomes in groups.items():
         measured = summary[group_key][key]
         valid &= (measured["datasets"] == len(outcomes)
