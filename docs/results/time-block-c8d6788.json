@@ -1,0 +1,466 @@
+{
+  "fixed": {
+    "source_commit": "c8d6788877f27df9207f03c2239a581d97a16c68",
+    "anchor_source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+    "anchor_draw_digest": "087484cb37df3ddda5e51908d62e146385afe5c5fae374ea8d29a5780555d45f",
+    "calendar_scale": false,
+    "time_block": true,
+    "topologies": {
+      "anchor-chain-0": {
+        "anchor_iteration": 3010,
+        "anchor_root_age": 8452.153631412568,
+        "constrained_clades": 150,
+        "seconds": 68.12537783395965,
+        "draw_digest": "e3dd2ffb5539ec4e51ae272a24ddd2267af5bf0cf5203a136a195546a9321eba",
+        "scalars": {
+          "root_age": {
+            "mean": 5724.625928635537,
+            "split_rhat": 1.2507115888362594,
+            "rank_rhat": 1.2403935516035876,
+            "bulk_ess": 12.692020041638061,
+            "tail_ess": 64.74173519735373,
+            "mcse_mean": 48.02788320598609
+          },
+          "gain": {
+            "mean": 0.00000613192311607922,
+            "split_rhat": 1.0789802945357865,
+            "rank_rhat": 1.06246421488713,
+            "bulk_ess": 60.01079431641065,
+            "tail_ess": 74.85713394646552,
+            "mcse_mean": 4.032872987737831E-7
+          },
+          "loss": {
+            "mean": 0.0006580021699477545,
+            "split_rhat": 1.0744477894877935,
+            "rank_rhat": 1.060575640662607,
+            "bulk_ess": 60.97067040299447,
+            "tail_ess": 108.10609395459771,
+            "mcse_mean": 0.00004188352799944378
+          },
+          "clock_rate": {
+            "mean": 0.5590474980317813,
+            "split_rhat": 1.057608863256889,
+            "rank_rhat": 1.065463058281394,
+            "bulk_ess": 59.24740546054139,
+            "tail_ess": 81.5216323293135,
+            "mcse_mean": 0.029763361189039217
+          },
+          "log_posterior": {
+            "mean": -34870.57350628567,
+            "split_rhat": 1.6461244189667288,
+            "rank_rhat": 1.7121986768274642,
+            "bulk_ess": 6.139432958074414,
+            "tail_ess": 44.73201697878601,
+            "mcse_mean": 7.297224210434024
+          }
+        },
+        "calendar_proposals": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "calendar_accepts": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "time_block_proposals": [
+          327,
+          354,
+          350,
+          355
+        ],
+        "time_block_accepts": [
+          179,
+          161,
+          189,
+          179
+        ],
+        "time_block_steps": [
+          0.06086279120673701,
+          0.0631592165637077,
+          0.06292574681550558,
+          0.06309647763033065
+        ],
+        "verified": true
+      },
+      "anchor-chain-3": {
+        "anchor_iteration": 3010,
+        "anchor_root_age": 8814.394660773536,
+        "constrained_clades": 150,
+        "seconds": 76.5194214170333,
+        "draw_digest": "e3399cbdbcf7f6079870484b3ef36a658633d88410d43aa9287131827e3b3a1a",
+        "scalars": {
+          "root_age": {
+            "mean": 5747.765991775994,
+            "split_rhat": 1.6460477393904311,
+            "rank_rhat": 1.6155186717062695,
+            "bulk_ess": 6.605294732104657,
+            "tail_ess": 40.57680788191415,
+            "mcse_mean": 57.91602408053882
+          },
+          "gain": {
+            "mean": 0.00000484754133407243,
+            "split_rhat": 1.1398684764549067,
+            "rank_rhat": 1.1682673454282284,
+            "bulk_ess": 19.743060349506734,
+            "tail_ess": 48.27975253420047,
+            "mcse_mean": 3.8713268711995035E-7
+          },
+          "loss": {
+            "mean": 0.0005956303932194314,
+            "split_rhat": 1.13186275604465,
+            "rank_rhat": 1.1586647286601781,
+            "bulk_ess": 20.799324317839325,
+            "tail_ess": 48.08451275833948,
+            "mcse_mean": 0.00004678442714809242
+          },
+          "clock_rate": {
+            "mean": 0.6102775977390723,
+            "split_rhat": 1.1476714671802282,
+            "rank_rhat": 1.1323417127893736,
+            "bulk_ess": 26.871376756372573,
+            "tail_ess": 48.27975253420047,
+            "mcse_mean": 0.05789404490473627
+          },
+          "log_posterior": {
+            "mean": -34349.793654164685,
+            "split_rhat": 2.049159660121697,
+            "rank_rhat": 2.101526935487279,
+            "bulk_ess": 5.240629326372339,
+            "tail_ess": 11.36550191319281,
+            "mcse_mean": 13.135974127189083
+          }
+        },
+        "calendar_proposals": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "calendar_accepts": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "time_block_proposals": [
+          365,
+          326,
+          411,
+          371
+        ],
+        "time_block_accepts": [
+          145,
+          137,
+          202,
+          162
+        ],
+        "time_block_steps": [
+          0.04798460272527411,
+          0.04719825596761908,
+          0.044805201275329644,
+          0.04969970366383041
+        ],
+        "verified": true
+      }
+    }
+  },
+  "free": {
+    "model": "dated",
+    "n_chains": 4,
+    "scalars": {
+      "root_age": {
+        "mean": 5441.728062556262,
+        "split_rhat": 1.5801118650195733,
+        "rank_rhat": 1.514797034779713,
+        "bulk_ess": 7.443190281183322,
+        "tail_ess": 11.711670919341833,
+        "mcse_mean": 113.18423258707995
+      },
+      "gain": {
+        "mean": 0.0000062491518019071894,
+        "split_rhat": 1.058089263514259,
+        "rank_rhat": 1.0510353285108998,
+        "bulk_ess": 85.64028903399361,
+        "tail_ess": 154.64260012210144,
+        "mcse_mean": 2.8570392150603507E-7
+      },
+      "loss": {
+        "mean": 0.000678287188930992,
+        "split_rhat": 1.067095044642438,
+        "rank_rhat": 1.0476947161115184,
+        "bulk_ess": 90.29601651643826,
+        "tail_ess": 135.9196801861877,
+        "mcse_mean": 0.00003240644773031737
+      },
+      "clock_rate": {
+        "mean": 0.5536728099835667,
+        "split_rhat": 1.0460833648557464,
+        "rank_rhat": 1.0622664351248523,
+        "bulk_ess": 78.0523966355914,
+        "tail_ess": 175.82017007381302,
+        "mcse_mean": 0.02333121661959961
+      },
+      "log_posterior": {
+        "mean": -34555.825241368926,
+        "split_rhat": 7.497987962998347,
+        "rank_rhat": 3.286879232668384,
+        "bulk_ess": 4.431337512040777,
+        "tail_ess": 11.486624463957547,
+        "mcse_mean": 261.38154361988074
+      }
+    },
+    "topology_per_chain": [
+      {
+        "distinct": 28,
+        "switch_rate": 0.0903010033444816,
+        "map_prob": 0.11666666666666667
+      },
+      {
+        "distinct": 29,
+        "switch_rate": 0.09364548494983277,
+        "map_prob": 0.12333333333333334
+      },
+      {
+        "distinct": 27,
+        "switch_rate": 0.08695652173913043,
+        "map_prob": 0.14333333333333334
+      },
+      {
+        "distinct": 37,
+        "switch_rate": 0.12040133779264214,
+        "map_prob": 0.16333333333333333
+      }
+    ],
+    "between_chain_clades": {
+      "clades_compared": 329,
+      "minimum_pooled_frequency": 0.1,
+      "mean_frequency_sd": 0.3707086194266017,
+      "maximum_chain_delta": 1.0
+    },
+    "move_statistics": [
+      {
+        "proposed": {
+          "node_time": 348,
+          "time_clock_scale": 357,
+          "tip_date": 358,
+          "rate_clock_ridge": 386,
+          "root_scale": 343,
+          "time_block": 378,
+          "clock": 376,
+          "loss": 349,
+          "root_age": 378,
+          "gain": 371,
+          "topology": 356
+        },
+        "accepted": {
+          "node_time": 185,
+          "tip_date": 236,
+          "rate_clock_ridge": 309,
+          "time_block": 106,
+          "clock": 29,
+          "root_age": 328,
+          "root_scale": 9,
+          "gain": 80,
+          "topology": 42,
+          "loss": 26,
+          "time_clock_scale": 5
+        }
+      },
+      {
+        "proposed": {
+          "gain": 361,
+          "clock": 366,
+          "root_scale": 374,
+          "rate_clock_ridge": 333,
+          "tip_date": 348,
+          "topology": 358,
+          "node_time": 377,
+          "time_clock_scale": 371,
+          "loss": 374,
+          "root_age": 388,
+          "time_block": 350
+        },
+        "accepted": {
+          "gain": 59,
+          "root_scale": 8,
+          "rate_clock_ridge": 285,
+          "node_time": 212,
+          "clock": 33,
+          "topology": 44,
+          "loss": 33,
+          "root_age": 359,
+          "time_block": 66,
+          "tip_date": 225,
+          "time_clock_scale": 10
+        }
+      },
+      {
+        "proposed": {
+          "loss": 368,
+          "rate_clock_ridge": 353,
+          "node_time": 343,
+          "time_block": 362,
+          "tip_date": 381,
+          "topology": 382,
+          "gain": 341,
+          "clock": 368,
+          "root_scale": 363,
+          "time_clock_scale": 388,
+          "root_age": 351
+        },
+        "accepted": {
+          "rate_clock_ridge": 309,
+          "node_time": 173,
+          "time_block": 114,
+          "clock": 26,
+          "loss": 36,
+          "gain": 55,
+          "tip_date": 246,
+          "time_clock_scale": 11,
+          "root_age": 317,
+          "topology": 38,
+          "root_scale": 10
+        }
+      },
+      {
+        "proposed": {
+          "loss": 333,
+          "tip_date": 375,
+          "rate_clock_ridge": 387,
+          "topology": 370,
+          "gain": 374,
+          "clock": 347,
+          "root_scale": 353,
+          "time_block": 375,
+          "root_age": 361,
+          "time_clock_scale": 356,
+          "node_time": 369
+        },
+        "accepted": {
+          "loss": 31,
+          "tip_date": 233,
+          "rate_clock_ridge": 323,
+          "topology": 50,
+          "gain": 72,
+          "clock": 21,
+          "time_block": 156,
+          "root_age": 319,
+          "root_scale": 2,
+          "time_clock_scale": 6,
+          "node_time": 193
+        }
+      }
+    ],
+    "clade_agreement": [
+      {
+        "chains": [
+          0,
+          1
+        ],
+        "score": 0.4806
+      },
+      {
+        "chains": [
+          0,
+          2
+        ],
+        "score": 0.4761
+      },
+      {
+        "chains": [
+          0,
+          3
+        ],
+        "score": 0.525
+      },
+      {
+        "chains": [
+          1,
+          2
+        ],
+        "score": 0.5109
+      },
+      {
+        "chains": [
+          1,
+          3
+        ],
+        "score": 0.5072
+      },
+      {
+        "chains": [
+          2,
+          3
+        ],
+        "score": 0.5123
+      }
+    ],
+    "converged": false,
+    "thresholds": {
+      "split_rhat_below": 1.01,
+      "ess_above": 400,
+      "mean_clade_frequency_sd_below": 0.01,
+      "maximum_chain_clade_delta_below": 0.1
+    }
+  },
+  "free_verification": {
+    "ok": true,
+    "n_bundles": 1,
+    "checks": [
+      {
+        "check": "dated:draw_digest",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:context_digest",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:source_commit",
+        "ok": true,
+        "detail": {
+          "stored": "c8d6788877f27df9207f03c2239a581d97a16c68",
+          "expected": "c8d6788877f27df9207f03c2239a581d97a16c68"
+        }
+      },
+      {
+        "check": "dated:draw_structure",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:attestation_intervals",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:geographic_honesty",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:frozen_observed_inputs",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:posterior_replay",
+        "ok": true,
+        "detail": {
+          "probes": 16
+        }
+      }
+    ]
+  },
+  "archive": {
+    "archive": "runs/time_block_c8d6788.tar.gz",
+    "bytes": 9611956,
+    "sha256": "671d734127fb9ec4f098697c88ae4720a33db0d0ab6959c1c99a6323f85aaa2a"
+  }
+}

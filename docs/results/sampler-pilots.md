@@ -46,3 +46,14 @@ split R-hat 2.079, bulk ESS 5.46, and maximum between-chain clade difference
 1.00. The fixed and free trajectories passed replay.
 [Calendar-scale pilot measurements](calendar-scale-3b6836f.json)
 [Raw pilot archive](https://github.com/Aneesh495/diachron/releases/tag/pilots-47f25ca)
+
+## Gradient-guided joint time and clock move
+
+The fixed-tree root bulk ESS values were 12.69 and 6.61, with split R-hat
+1.251 and 1.646. The move accepted 708 of 1,386 and 646 of 1,473 attempts,
+respectively. The free-tree pilot improved root split R-hat from 2.115 in
+the control to 1.580, with bulk ESS 7.44 and maximum between-chain clade
+difference 1.00. The four free chains took 75.2 seconds. The trajectories
+passed replay and the convergence thresholds remain unmet.
+[Joint-move pilot measurements](time-block-c8d6788.json)
+[Raw pilot archive](https://github.com/Aneesh495/diachron/releases/tag/pilots-47f25ca)
