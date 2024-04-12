@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from diachron.infer.time_block import TimeChart, age_prior_gradient
+from diachron.infer.time_block import TimeChart, age_prior_gradient, leapfrog
 from diachron.models.priors import coalescent_log_prior
 from diachron.models.tip_dates import TipDate
 from diachron.models.tree import PhyloTree
@@ -36,3 +36,17 @@ def test_time_chart_jacobian_and_serial_age_force_match_finite_differences():
     assert log_jacobian == pytest.approx(point.sum(), abs=1e-8)
     force = chart.pullback(age_prior_gradient(tree, 3000., dates), point, anchors)
     np.testing.assert_allclose(force, reference, atol=1e-8)
+
+
+def test_trajectory_is_an_involution_with_a_partial_force():
+    widths = np.array([.06, .01])
+
+    def force(point):
+        # A nonconservative field checks the proposal algebra independently
+        # of whether the chosen drift equals the full posterior gradient.
+        return np.array([-.3 * point[1], .2 * point[0] ** 2])
+
+    q, p = np.array([1.4, -.75]), np.array([-.9, .25])
+    moved = leapfrog(q, p, widths, force, 4)
+    restored = leapfrog(*moved, widths, force, 4)
+    np.testing.assert_allclose(restored, [q, p], rtol=0, atol=1e-13)

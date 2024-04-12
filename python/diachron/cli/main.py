@@ -209,6 +209,7 @@ def cmd_sample(args) -> int:
             attachment_parsimony=args.attachment_parsimony,
             calendar_scale=args.calendar_scale,
             time_block=args.time_block,
+            time_block_steps=args.time_block_steps,
             temperature_ladder=tuple(float(value) for value in args.tempering_ladder.split(",")),
             geography_error=args.geography_error,
             observed_study=args.study,
@@ -579,6 +580,8 @@ def build_parser() -> argparse.ArgumentParser:
                     help="resample calendar ages and reciprocal rates jointly")
     sp.add_argument("--time-block", action="store_true",
                     help="enable gradient-guided joint proposals for ages and clock")
+    sp.add_argument("--time-block-steps", type=int, default=1,
+                    help="use a Hamiltonian trajectory when set to two through eight")
     sp.add_argument("--attachment-parsimony", action="store_true",
                     help="guide attachment resampling with whole-backbone binary parsimony")
     sp.add_argument("--attachment-root-stem", action="store_true",

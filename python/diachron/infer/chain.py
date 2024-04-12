@@ -55,6 +55,7 @@ class ChainConfig:
     attachment_parsimony: bool = False
     calendar_scale: bool = False
     time_block: bool = False
+    time_block_steps: int = 1
 
 
 @dataclass
@@ -100,13 +101,15 @@ class Chain:
             raise ValueError("root-stem attachment requires informed resampling and a strict clock")
         if config.attachment_parsimony and not config.attachment_resampling:
             raise ValueError("parsimony placement requires informed attachment resampling")
+        if not 1 <= config.time_block_steps <= 8 or (config.time_block_steps > 1 and not config.time_block):
+            raise ValueError("time block supports one to eight steps and must be enabled for Hamiltonian proposals")
         self.model = model
         self.tree = tree
         self.state = state
         self.config = config
         self.rng = _core.PyRng(config.seed)
         self.moves = MoveSet()
-        self.time_block_step = .035
+        self.time_block_step = .035 if config.time_block_steps == 1 else .018
         self.iteration = 0
         self.draws: list[Draw] = []
         self._accepts = 0
@@ -269,7 +272,7 @@ class Chain:
         elif move_name == "time_block":
             proposal = propose_time_block(
                 self.model, self.tree, self.state, self.config.inverse_temperature,
-                self.time_block_step, self.rng,
+                self.time_block_step, self.rng, steps=self.config.time_block_steps,
             )
             if proposal is not None:
                 tree, clock, correction = proposal
@@ -283,7 +286,8 @@ class Chain:
                     self.state.clock_rate = old_clock
             if adapt:
                 rate = min(.15, self.move_proposals[move_name] ** -.6)
-                self.time_block_step = min(.25, max(.002, self.time_block_step * math.exp(rate * (accepted - .45))))
+                target = .45 if self.config.time_block_steps == 1 else .65
+                self.time_block_step = min(.25, max(.002, self.time_block_step * math.exp(rate * (accepted - target))))
         elif move_name == "calendar_scale":
             proposal = propose_calendar_scale(
                 self.model, self.tree, self.state.clock_rate, self.state.geo_sigma2, self.rng,

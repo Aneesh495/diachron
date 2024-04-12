@@ -1,8 +1,8 @@
 # Chapter 6: Sampler correctness
 
 The sampler is a Metropolis-within-Gibbs cycle over scalar parameters and tree
-structure. This chapter states each move's proposal ratio, derives the two that
-carry a Jacobian, and reports the tests that validate them against exact targets.
+structure. This chapter states the proposal ratios and describes the tests
+that compare production moves with exact targets.
 
 ## Acceptance rule
 
@@ -119,6 +119,65 @@ and samples uniformly over the valid internal heights. Each balanced topology
 has a square of height volume. Each pectinate topology has half a square.
 Sampled frequencies meet the declared tolerance for all fifteen labeled
 rooted topologies.
+
+## Weighted attachment candidates
+
+An optional attachment move draws four candidates on the detached backbone
+and adds the current state to that set. Given the detached child and
+backbone, it selects an entry with weight proportional to its full posterior
+density divided by its edge and age proposal density. In the augmented
+distribution, the selected position has the target density and the other
+positions have the proposal density. Resampling the position from those
+weights preserves the target marginal.
+
+The parsimony option uses two-state inside and outside messages to compute
+the minimum lexical changes at each potential insertion edge. Those counts
+use only the fixed columns and the shared backbone and subtree. Missing
+states allow either value. The finite-edge probabilities retain a uniform
+component and the root stem retains its own mass. Enumerating states on
+small trees checks the placement scores. A separate four-tip test checks
+the stationary topology frequencies and unbounded root-age distribution
+with and without the parsimony weights.
+
+## Joint calendar scale and time block
+
+The calendar-scale move multiplies the inferred ages by exp(t) and divides
+the clock and any active diffusion rate by exp(t). Its volume factor is
+exp((d-r)t) for d free ages and r reciprocally scaled rates. Random placement
+of a unit interval on the log scale and subsequent shrinkage
+produce a reversible slice kernel for the calendar, coalescent and rate
+priors times that volume factor. The full posterior acceptance calculation
+subtracts the prior-density change accounted for by the slice kernel.
+[Slice sampling](https://arxiv.org/abs/physics/0009028)
+
+The joint time and clock block uses log gaps above the oldest child for
+internal nodes and log gaps above the date offset for sampled tips. The log
+clock is a separate coordinate. Computing ages from younger to older gives
+a triangular change of variables with log determinant equal to the sum of
+those log coordinates. A Gaussian proposal uses the lexical, coalescent and
+terminal date gradients to guide its mean. Acceptance uses the full posterior,
+both Gaussian densities and the log determinant difference. The step size
+adapts during warmup and is saved in the checkpoint.
+[Langevin proposal reference](https://doi.org/10.2307/3318418)
+
+With multiple steps the same chart supports a Hamiltonian proposal. Fixed
+metric drifts and position-dependent momentum kicks each preserve volume.
+The symmetric sequence followed by a momentum flip is its own inverse.
+The acceptance rule adds the initial minus final Gaussian kinetic energy to
+the full posterior and chart determinant changes. This remains valid when
+the deterministic force omits a posterior term. A test checks the inverse
+even for a nonconservative force, and a separate run resumes the complete
+multi-step kernel exactly.
+
+The lexical gradient combines derivatives of the observed pattern and the
+retention probability. The pattern derivative pairs a descendant likelihood
+with its complement on each edge. The retention derivative carries the
+same saturated count states as the likelihood, along with outside weights
+for each count bucket. Rate and contact mixtures average component
+derivatives by their mass. Tests compare the result with finite differences
+of the production likelihood and check the time-coordinate determinant
+and exact resume. The observed pilots measure mixing separately.
+[Sampler pilot results](../results/sampler-pilots.md)
 
 ## Lexical replica exchange
 
