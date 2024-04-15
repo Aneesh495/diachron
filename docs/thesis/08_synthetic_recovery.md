@@ -25,3 +25,12 @@ retained 1280 root ages. Their nominal 90% intervals covered 177 of 200
 true ages. Nontrivial clade recovery averaged 24.7%. The matched run also
 fell below the declared coverage target. Its different truth design and
 chain budgets limit comparisons with protocol 2. [Recovery evidence](../results/recovery_200.md)
+
+Protocol 4 repeated the same 200 matched datasets with the joint age and
+clock move and double the sampling budget. Nominal intervals covered 170
+true root ages (85%). Mean clade recovery rose to 28.8% and median root bulk
+ESS rose from 20.7 to 176.7. Nine previously covered cases lost coverage
+and two gained it. The paired result combines the sampler and budget
+changes. The independent replay matched the generator probes and
+recomputed the retained interval and clade summaries.
+[Protocol 4 evidence](../results/recovery-v4-matched-verification.json)

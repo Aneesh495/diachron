@@ -48,3 +48,34 @@ in coverage cannot isolate any one change.
   --rows docs/results/recovery-v3-matched-rows.jsonl.gz \
   --expected-commit 2df7fe5a3607fe671af075e3084a1a809dc6e652
 ```
+
+## Protocol 4 paired matched campaign
+
+The same 200 simulated truths, masks and seed rules were retained. Each fit
+used four chains, 1,600 warmup iterations and 6,400 sampling iterations, with
+every tenth draw saved. The joint time and clock block was enabled.
+
+| Measurement | Protocol 3 | Protocol 4 |
+| --- | ---: | ---: |
+| Root coverage at nominal 90% | 177/200 (88.5%) | 170/200 (85%) |
+| Mean clade recovery | 24.7% | 28.8% |
+| Median root bulk ESS | 20.7 | 176.7 |
+| Median root rank R-hat | 1.149 | 1.021 |
+| Median root interval width in years | 9,262 | 9,760 |
+
+The exact saved truths agree across all pairs. Coverage held in 168 cases,
+failed in both fits in 21, fell out of the interval in nine, and moved into
+it in two. Interval calibration remains below the target. The sampler and
+budget changed together, and the paired comparison cannot isolate either
+effect.
+
+- [Run summary](recovery-v4-matched.json)
+- [Per-case truth, root draws and clade membership](recovery-v4-matched-rows.jsonl.gz)
+- [Independent replay](recovery-v4-matched-verification.json)
+
+```sh
+.venv/bin/diachron verify-recovery \
+  --summary docs/results/recovery-v4-matched.json \
+  --rows docs/results/recovery-v4-matched-rows.jsonl.gz \
+  --expected-commit a135e990262e3d2224b1cd9ec0be8a6dac2831a3
+```
