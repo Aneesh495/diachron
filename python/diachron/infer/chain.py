@@ -53,6 +53,7 @@ class ChainConfig:
     attachment_resampling: bool = False
     attachment_root_stem: bool = False
     attachment_parsimony: bool = False
+    attachment_likelihood: bool = False
     calendar_scale: bool = False
     time_block: bool = False
     time_block_steps: int = 1
@@ -101,6 +102,9 @@ class Chain:
             raise ValueError("root-stem attachment requires informed resampling and a strict clock")
         if config.attachment_parsimony and not config.attachment_resampling:
             raise ValueError("parsimony placement requires informed attachment resampling")
+        if config.attachment_likelihood and (not config.attachment_resampling or config.attachment_parsimony
+                                             or model.config.relaxed_clock_sigma):
+            raise ValueError("likelihood placement requires informed resampling, a strict clock and one guide")
         if not 1 <= config.time_block_steps <= 8 or (config.time_block_steps > 1 and not config.time_block):
             raise ValueError("time block supports one to eight steps and must be enabled for Hamiltonian proposals")
         self.model = model
@@ -118,7 +122,8 @@ class Chain:
         self.move_accepts: dict[str, int] = {}
         self.exchange_statistics: dict | None = None
         self._attachment_distances = (lexical_distances(model.columns)
-                                      if config.attachment_resampling and not config.attachment_parsimony else None)
+                                      if config.attachment_resampling and not (config.attachment_parsimony
+                                                                             or config.attachment_likelihood) else None)
         self._log_post = self._eval()
         if not math.isfinite(self._log_post):
             raise ValueError("chain initial state has nonfinite posterior")
@@ -304,10 +309,12 @@ class Chain:
                     self.state.clock_rate, self.state.geo_sigma2 = old_rates
         elif move_name == "attachment_resampling":
             old = self.tree
+            rates = (self.state.gain * self.state.clock_rate, self.state.loss * self.state.clock_rate)
             self.tree, self._log_post = resample_attachment(
                 old, self._log_post, self._eval, self._attachment_distances, self.rng,
                 stem_scale=self.model.config.pop_size / 2 if self.config.attachment_root_stem else None,
-                columns=self.model.columns if self.config.attachment_parsimony else None,
+                columns=self.model.columns if self.config.attachment_parsimony or self.config.attachment_likelihood else None,
+                likelihood_rates=rates if self.config.attachment_likelihood else None,
             )
             accepted = self.tree is not old
         else:  # topology: NNI or SPR

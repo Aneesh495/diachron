@@ -290,6 +290,23 @@ fn parsimony_placement_costs(
     crate::placement::placement_costs(&tree, detached, &cols).map_err(PyValueError::new_err)
 }
 
+#[pyfunction]
+#[allow(clippy::too_many_arguments)]
+fn lexical_placement_likelihoods(
+    parent: Vec<i64>, heights: Vec<f64>, taxon: Vec<i64>, root: usize, detached: usize,
+    gain: f64, loss: f64, columns: Vec<Vec<i64>>,
+) -> PyResult<Vec<Option<[f64; 3]>>> {
+    if parent.len() > 10_000 || parent.len().saturating_mul(columns.len()) > 16_000_000 {
+        return Err(PyValueError::new_err("oversized placement score workspace"));
+    }
+    let zeroes = vec![0.0; parent.len()];
+    let tree = build_tree(&parent, &zeroes, &heights, &taxon, root)?;
+    validate_binary_mixture(tree.n_tips(), gain, loss, &[1.], 0, &[])?;
+    let cols = parse_binary_columns(columns, tree.n_tips())?;
+    crate::placement::placement_likelihoods(&tree, detached, &BinaryGainLoss::new(gain, loss), &cols)
+        .map_err(PyValueError::new_err)
+}
+
 /// Sample exact conditional binary patterns from observed-tip masks.
 #[pyfunction]
 #[allow(clippy::too_many_arguments)]
@@ -480,6 +497,7 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(binary_character_scores, m)?)?;
     m.add_function(wrap_pyfunction!(binary_branch_gradient, m)?)?;
     m.add_function(wrap_pyfunction!(parsimony_placement_costs, m)?)?;
+    m.add_function(wrap_pyfunction!(lexical_placement_likelihoods, m)?)?;
     m.add_function(wrap_pyfunction!(binary_conditioned_draws, m)?)?;
     m.add_function(wrap_pyfunction!(brownian_sphere_logpdf, m)?)?;
     m.add_function(wrap_pyfunction!(haversine_km, m)?)?;

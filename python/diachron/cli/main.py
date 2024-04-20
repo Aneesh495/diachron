@@ -207,6 +207,7 @@ def cmd_sample(args) -> int:
             attachment_resampling=args.attachment_resampling,
             attachment_root_stem=args.attachment_root_stem,
             attachment_parsimony=args.attachment_parsimony,
+            attachment_likelihood=args.attachment_likelihood,
             calendar_scale=args.calendar_scale,
             time_block=args.time_block,
             time_block_steps=args.time_block_steps,
@@ -584,6 +585,8 @@ def build_parser() -> argparse.ArgumentParser:
                     help="use a Hamiltonian trajectory when set to two through eight")
     sp.add_argument("--attachment-parsimony", action="store_true",
                     help="guide attachment resampling with whole-backbone binary parsimony")
+    sp.add_argument("--attachment-likelihood", action="store_true",
+                    help="guide attachment edges and ages with the vertical lexical likelihood")
     sp.add_argument("--attachment-root-stem", action="store_true",
                     help="include root-changing attachments in informed strict-clock proposals")
     sp.add_argument("--tempering-ladder", default="1", help="comma-separated lexical inverse temperatures")
