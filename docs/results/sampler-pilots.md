@@ -57,3 +57,14 @@ difference 1.00. The four free chains took 75.2 seconds. The trajectories
 passed replay and the convergence thresholds remain unmet.
 [Joint-move pilot measurements](time-block-c8d6788.json)
 [Raw pilot archive](https://github.com/Aneesh495/diachron/releases/tag/pilots-47f25ca)
+
+## Whole-backbone parsimony guide
+
+At `c2154c34b2676f9dcc8206ab082077852345156e`, the four-chain guide-only
+pilot visited 48 to 81 distinct topologies per chain. It reached root split
+R-hat 2.779 and bulk ESS 5.16 in 107.7 seconds. The arm combining the guide
+with joint time proposals reached R-hat 1.751 and bulk ESS 6.33 in 138.6
+seconds. Both arms reached maximum between-chain clade difference 1.00 and
+passed saved-draw replay.
+[Whole-backbone pilot measurements](whole-backbone-c2154c3.json)
+[Raw pilot archive](https://github.com/Aneesh495/diachron/releases/tag/pilots-47f25ca)
