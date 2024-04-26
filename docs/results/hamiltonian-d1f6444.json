@@ -1,0 +1,572 @@
+{
+  "archive": {
+    "archive": "runs/hamiltonian_d1f6444.tar.gz",
+    "bytes": 12972712,
+    "hosted_byte_identity_verified": true,
+    "restoration": {
+      "archive_sha256": "04a35aa88e1cd01de2adf31e90648f772dd6f0a79e31e59dcd8bd6a134ca6985",
+      "restored_files": 45,
+      "uncompressed_bytes": 83072993
+    },
+    "sha256": "04a35aa88e1cd01de2adf31e90648f772dd6f0a79e31e59dcd8bd6a134ca6985",
+    "url": "https://github.com/Aneesh495/diachron/releases/download/pilots-47f25ca/hamiltonian_d1f6444.tar.gz"
+  },
+  "commands": [
+    {
+      "arguments": [
+        "/Users/aneeshkrishna/Documents/diachron/.venv/bin/python",
+        "scripts/conditional_time_pilot.py",
+        "/Users/aneeshkrishna/Documents/diachron/runs/inference-full-01459af/dated/dated",
+        "/Users/aneeshkrishna/Documents/diachron/runs/hamiltonian-pilot-d1f6444/fixed",
+        "01459af9ab79bca1c97ac2490624223a294292a2",
+        "--time-block",
+        "--time-block-steps",
+        "4"
+      ],
+      "exit": 0,
+      "label": "fixed",
+      "seconds": 318.68390658299904,
+      "source_commit": "d1f6444ddb5918cd5738f76bfe1db71c4d03a7d1"
+    },
+    {
+      "arguments": [
+        "/Users/aneeshkrishna/Documents/diachron/.venv/bin/python",
+        "-m",
+        "diachron.cli.main",
+        "sample",
+        "--study",
+        "iecor",
+        "--model",
+        "dated",
+        "--profile",
+        "cpu",
+        "--chains",
+        "4",
+        "--jobs",
+        "4",
+        "--warmup",
+        "1000",
+        "--iterations",
+        "3000",
+        "--thin",
+        "10",
+        "--time-block",
+        "--out",
+        "/Users/aneeshkrishna/Documents/diachron/runs/hamiltonian-pilot-d1f6444/free",
+        "--source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/iecor",
+        "--catalog",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/glottolog53.zip",
+        "--edh-source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh",
+        "--edh-geography",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh-geography.json",
+        "--time-block-steps",
+        "4"
+      ],
+      "exit": 0,
+      "label": "free",
+      "seconds": 176.0030656249728,
+      "source_commit": "d1f6444ddb5918cd5738f76bfe1db71c4d03a7d1"
+    },
+    {
+      "arguments": [
+        "/Users/aneeshkrishna/Documents/diachron/.venv/bin/python",
+        "-m",
+        "diachron.cli.main",
+        "diagnose",
+        "--bundle",
+        "/Users/aneeshkrishna/Documents/diachron/runs/hamiltonian-pilot-d1f6444/free/dated"
+      ],
+      "exit": 0,
+      "label": "diagnose",
+      "seconds": 4.629445332917385,
+      "source_commit": "d1f6444ddb5918cd5738f76bfe1db71c4d03a7d1"
+    },
+    {
+      "arguments": [
+        "/Users/aneeshkrishna/Documents/diachron/.venv/bin/python",
+        "-m",
+        "diachron.cli.main",
+        "verify",
+        "--evidence",
+        "/Users/aneeshkrishna/Documents/diachron/runs/hamiltonian-pilot-d1f6444/free/dated",
+        "--expected-commit",
+        "d1f6444ddb5918cd5738f76bfe1db71c4d03a7d1",
+        "--source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/iecor",
+        "--catalog",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/glottolog53.zip",
+        "--edh-source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh",
+        "--edh-geography",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh-geography.json"
+      ],
+      "exit": 0,
+      "label": "verify",
+      "seconds": 1.6833295410033315,
+      "source_commit": "d1f6444ddb5918cd5738f76bfe1db71c4d03a7d1"
+    }
+  ],
+  "fixed": {
+    "anchor_draw_digest": "087484cb37df3ddda5e51908d62e146385afe5c5fae374ea8d29a5780555d45f",
+    "anchor_source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+    "calendar_scale": false,
+    "source_commit": "d1f6444ddb5918cd5738f76bfe1db71c4d03a7d1",
+    "time_block": true,
+    "time_block_steps": 4,
+    "topologies": {
+      "anchor-chain-0": {
+        "anchor_iteration": 3010,
+        "anchor_root_age": 8452.153631412568,
+        "calendar_accepts": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "calendar_proposals": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "constrained_clades": 150,
+        "draw_digest": "c3efd394f8e1fb8f865be94a84bbc0bd05dc693c8fde66d4a7c51289d7709751",
+        "scalars": {
+          "clock_rate": {
+            "bulk_ess": 29.45084910395196,
+            "mcse_mean": 0.0491964820698391,
+            "mean": 0.6482658960946647,
+            "rank_rhat": 1.1042126864041948,
+            "split_rhat": 1.0820407328289252,
+            "tail_ess": 49.32862550897852
+          },
+          "gain": {
+            "bulk_ess": 31.801180368900642,
+            "mcse_mean": 4.985842077007897e-07,
+            "mean": 5.634097927647378e-06,
+            "rank_rhat": 1.0974979772847413,
+            "split_rhat": 1.1134401651630244,
+            "tail_ess": 51.01845894538442
+          },
+          "log_posterior": {
+            "bulk_ess": 94.34717000908913,
+            "mcse_mean": 1.1210524811785703,
+            "mean": -34841.18889517409,
+            "rank_rhat": 1.0285881082076918,
+            "split_rhat": 1.0293623022197538,
+            "tail_ess": 233.83656919830813
+          },
+          "loss": {
+            "bulk_ess": 28.647924871422074,
+            "mcse_mean": 5.42863379936762e-05,
+            "mean": 0.0006048576594867499,
+            "rank_rhat": 1.1044734180345477,
+            "split_rhat": 1.1212394070990221,
+            "tail_ess": 49.32862550897852
+          },
+          "root_age": {
+            "bulk_ess": 79.39477819724131,
+            "mcse_mean": 19.584877833602093,
+            "mean": 5539.785350799906,
+            "rank_rhat": 1.0345400833585812,
+            "split_rhat": 1.0364548605544412,
+            "tail_ess": 185.86563587601879
+          }
+        },
+        "seconds": 150.3922537920298,
+        "time_block_accepts": [
+          277,
+          269,
+          211,
+          222
+        ],
+        "time_block_proposals": [
+          360,
+          344,
+          363,
+          329
+        ],
+        "time_block_steps": [
+          0.03659141868595355,
+          0.04012928927363245,
+          0.055259654703706675,
+          0.043303664721055235
+        ],
+        "verified": true
+      },
+      "anchor-chain-3": {
+        "anchor_iteration": 3010,
+        "anchor_root_age": 8814.394660773536,
+        "calendar_accepts": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "calendar_proposals": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "constrained_clades": 150,
+        "draw_digest": "38f861ee0ab1309e7bb5d1bb0ffbf3c429ecf6c00fa4ef69e5d61a06d2464762",
+        "scalars": {
+          "clock_rate": {
+            "bulk_ess": 29.823458050390876,
+            "mcse_mean": 0.058027409213392535,
+            "mean": 0.5918238064629736,
+            "rank_rhat": 1.1138962208496175,
+            "split_rhat": 1.1112673009930447,
+            "tail_ess": 66.28057703708022
+          },
+          "gain": {
+            "bulk_ess": 31.95397354406679,
+            "mcse_mean": 3.403661380796326e-07,
+            "mean": 5.471472187926918e-06,
+            "rank_rhat": 1.1088680949985485,
+            "split_rhat": 1.0970184926738764,
+            "tail_ess": 70.76665662481913
+          },
+          "log_posterior": {
+            "bulk_ess": 9.450895304375349,
+            "mcse_mean": 3.3397152537009935,
+            "mean": -34284.76926828443,
+            "rank_rhat": 1.3451435391507183,
+            "split_rhat": 1.35396612863719,
+            "tail_ess": 34.874669747879196
+          },
+          "loss": {
+            "bulk_ess": 28.830480400861543,
+            "mcse_mean": 4.0744136602036196e-05,
+            "mean": 0.0006568072712351313,
+            "rank_rhat": 1.1151780988575513,
+            "split_rhat": 1.102339984218443,
+            "tail_ess": 66.80294874232409
+          },
+          "root_age": {
+            "bulk_ess": 27.470487691048763,
+            "mcse_mean": 17.8035931281467,
+            "mean": 5368.239890281318,
+            "rank_rhat": 1.09639328254391,
+            "split_rhat": 1.1028412920982462,
+            "tail_ess": 39.57534596065148
+          }
+        },
+        "seconds": 166.38292812509462,
+        "time_block_accepts": [
+          260,
+          251,
+          284,
+          222
+        ],
+        "time_block_proposals": [
+          366,
+          366,
+          395,
+          329
+        ],
+        "time_block_steps": [
+          0.028048526872717333,
+          0.02773776050150977,
+          0.02608366676574549,
+          0.029142439877619337
+        ],
+        "verified": true
+      }
+    }
+  },
+  "free": {
+    "between_chain_clades": {
+      "clades_compared": 305,
+      "maximum_chain_delta": 1.0,
+      "mean_frequency_sd": 0.35096744081310516,
+      "minimum_pooled_frequency": 0.1
+    },
+    "clade_agreement": [
+      {
+        "chains": [
+          0,
+          1
+        ],
+        "score": 0.5741
+      },
+      {
+        "chains": [
+          0,
+          2
+        ],
+        "score": 0.5377
+      },
+      {
+        "chains": [
+          0,
+          3
+        ],
+        "score": 0.5713
+      },
+      {
+        "chains": [
+          1,
+          2
+        ],
+        "score": 0.5352
+      },
+      {
+        "chains": [
+          1,
+          3
+        ],
+        "score": 0.5378
+      },
+      {
+        "chains": [
+          2,
+          3
+        ],
+        "score": 0.5503
+      }
+    ],
+    "converged": false,
+    "model": "dated",
+    "move_statistics": [
+      {
+        "accepted": {
+          "clock": 27,
+          "gain": 78,
+          "loss": 27,
+          "node_time": 180,
+          "rate_clock_ridge": 310,
+          "root_age": 311,
+          "root_scale": 7,
+          "time_block": 233,
+          "time_clock_scale": 4,
+          "tip_date": 254,
+          "topology": 49
+        },
+        "proposed": {
+          "clock": 340,
+          "gain": 387,
+          "loss": 348,
+          "node_time": 349,
+          "rate_clock_ridge": 384,
+          "root_age": 356,
+          "root_scale": 368,
+          "time_block": 389,
+          "time_clock_scale": 330,
+          "tip_date": 378,
+          "topology": 371
+        }
+      },
+      {
+        "accepted": {
+          "clock": 27,
+          "gain": 81,
+          "loss": 36,
+          "node_time": 215,
+          "rate_clock_ridge": 293,
+          "root_age": 339,
+          "root_scale": 3,
+          "time_block": 182,
+          "time_clock_scale": 9,
+          "tip_date": 228,
+          "topology": 43
+        },
+        "proposed": {
+          "clock": 354,
+          "gain": 368,
+          "loss": 389,
+          "node_time": 375,
+          "rate_clock_ridge": 352,
+          "root_age": 371,
+          "root_scale": 345,
+          "time_block": 361,
+          "time_clock_scale": 360,
+          "tip_date": 340,
+          "topology": 385
+        }
+      },
+      {
+        "accepted": {
+          "clock": 24,
+          "gain": 63,
+          "loss": 32,
+          "node_time": 199,
+          "rate_clock_ridge": 297,
+          "root_age": 309,
+          "root_scale": 8,
+          "time_block": 239,
+          "time_clock_scale": 4,
+          "tip_date": 227,
+          "topology": 33
+        },
+        "proposed": {
+          "clock": 391,
+          "gain": 349,
+          "loss": 389,
+          "node_time": 366,
+          "rate_clock_ridge": 368,
+          "root_age": 339,
+          "root_scale": 391,
+          "time_block": 365,
+          "time_clock_scale": 352,
+          "tip_date": 339,
+          "topology": 351
+        }
+      },
+      {
+        "accepted": {
+          "clock": 28,
+          "gain": 57,
+          "loss": 26,
+          "node_time": 212,
+          "rate_clock_ridge": 279,
+          "root_age": 335,
+          "root_scale": 3,
+          "time_block": 167,
+          "time_clock_scale": 6,
+          "tip_date": 213,
+          "topology": 56
+        },
+        "proposed": {
+          "clock": 376,
+          "gain": 343,
+          "loss": 357,
+          "node_time": 364,
+          "rate_clock_ridge": 356,
+          "root_age": 377,
+          "root_scale": 386,
+          "time_block": 359,
+          "time_clock_scale": 341,
+          "tip_date": 361,
+          "topology": 380
+        }
+      }
+    ],
+    "n_chains": 4,
+    "scalars": {
+      "clock_rate": {
+        "bulk_ess": 71.21677691952345,
+        "mcse_mean": 0.03127514837841725,
+        "mean": 0.6055034038855927,
+        "rank_rhat": 1.0301488753132997,
+        "split_rhat": 1.0303814837065208,
+        "tail_ess": 114.98983341149518
+      },
+      "gain": {
+        "bulk_ess": 42.0058231847664,
+        "mcse_mean": 3.9707337154384496e-07,
+        "mean": 5.935672929566449e-06,
+        "rank_rhat": 1.1036939088947126,
+        "split_rhat": 1.0929217046073278,
+        "tail_ess": 59.65143088953834
+      },
+      "log_posterior": {
+        "bulk_ess": 4.663374282860561,
+        "mcse_mean": 215.52065431527677,
+        "mean": -34385.71656764167,
+        "rank_rhat": 2.727710024724455,
+        "split_rhat": 3.4570392539002164,
+        "tail_ess": 11.360910892588887
+      },
+      "loss": {
+        "bulk_ess": 67.34092328501772,
+        "mcse_mean": 3.413579484592175e-05,
+        "mean": 0.0006405786161963004,
+        "rank_rhat": 1.040749448467728,
+        "split_rhat": 1.036318682026873,
+        "tail_ess": 135.70856079175883
+      },
+      "root_age": {
+        "bulk_ess": 9.651123976916999,
+        "mcse_mean": 67.00867382373623,
+        "mean": 5513.814307024752,
+        "rank_rhat": 1.3243539002267781,
+        "split_rhat": 1.3359627136968317,
+        "tail_ess": 95.69138167677218
+      }
+    },
+    "thresholds": {
+      "ess_above": 400,
+      "maximum_chain_clade_delta_below": 0.1,
+      "mean_clade_frequency_sd_below": 0.01,
+      "split_rhat_below": 1.01
+    },
+    "topology_per_chain": [
+      {
+        "distinct": 31,
+        "map_prob": 0.10666666666666667,
+        "switch_rate": 0.10033444816053512
+      },
+      {
+        "distinct": 27,
+        "map_prob": 0.11333333333333333,
+        "switch_rate": 0.08695652173913043
+      },
+      {
+        "distinct": 25,
+        "map_prob": 0.22,
+        "switch_rate": 0.0802675585284281
+      },
+      {
+        "distinct": 37,
+        "map_prob": 0.12,
+        "switch_rate": 0.12374581939799331
+      }
+    ]
+  },
+  "free_verification": {
+    "checks": [
+      {
+        "check": "dated:draw_digest",
+        "detail": null,
+        "ok": true
+      },
+      {
+        "check": "dated:context_digest",
+        "detail": null,
+        "ok": true
+      },
+      {
+        "check": "dated:source_commit",
+        "detail": {
+          "expected": "d1f6444ddb5918cd5738f76bfe1db71c4d03a7d1",
+          "stored": "d1f6444ddb5918cd5738f76bfe1db71c4d03a7d1"
+        },
+        "ok": true
+      },
+      {
+        "check": "dated:draw_structure",
+        "detail": null,
+        "ok": true
+      },
+      {
+        "check": "dated:attestation_intervals",
+        "detail": null,
+        "ok": true
+      },
+      {
+        "check": "dated:geographic_honesty",
+        "detail": null,
+        "ok": true
+      },
+      {
+        "check": "dated:frozen_observed_inputs",
+        "detail": null,
+        "ok": true
+      },
+      {
+        "check": "dated:posterior_replay",
+        "detail": {
+          "probes": 16
+        },
+        "ok": true
+      }
+    ],
+    "n_bundles": 1,
+    "ok": true
+  },
+  "source_commit": "d1f6444ddb5918cd5738f76bfe1db71c4d03a7d1"
+}

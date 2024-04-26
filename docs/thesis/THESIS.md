@@ -465,6 +465,15 @@ small trees checks the placement scores. A separate four-tip test checks
 the stationary topology frequencies and unbounded root-age distribution
 with and without the parsimony weights.
 
+The likelihood guide uses inside and outside lexical messages to score three
+age bands per finite edge. Within a site, each insertion score is divided
+by the corresponding backbone likelihood. The backbone likelihood and
+the normalized detached message introduce only constants common to all
+placements. The guide gives each band nonzero probability and uses a
+uniform density inside that band. It omits the retention, geography and
+contact terms from the guide score. The selected state's importance weight
+still uses the complete target and the exact continuous proposal density.
+
 ## Joint calendar scale and time block
 
 The calendar-scale move multiplies the inferred ages by exp(t) and divides
@@ -648,14 +657,14 @@ budget. Every model failed convergence. Root split R-hat ranged from 1.53 to
 difference for a clade was 1.00 in each model. Full checkpoints and the
 source-bound replay checks passed. [Full inference results](../results/full-inference.md)
 
-Four additional pilots changed topology moves or introduced lexical replica
-exchange. Informed attachment visited more distinct topologies, with worse
-root-age split Rhat than the control. Each pilot still had a maximum
-between-chain clade frequency difference of 1.00. [Sampler pilot results](../results/sampler-pilots.md)
-
-Holding two reference topologies fixed still gave root bulk ESS of 8.8 and
-15.8. Both conditional targets replayed. Poor mixing therefore persists
-within the sampled time coordinates at this budget. [Conditional-time diagnostic](../results/sampler-pilots.md#calendar-time-mixing-with-fixed-topology)
+Shorter dated pilots isolated calendar moves and topology transitions at a
+common budget. Holding two reference topologies fixed, the four-step
+Hamiltonian move increased root bulk ESS from 8.8 and 15.8 to 79.4 and
+27.5, respectively. The free-tree pilot improved root split R-hat from 2.115
+to 1.336. Adding a lexical likelihood guide brought it to 1.324, with bulk
+ESS 9.57 and tail ESS 11.86. The maximum between-chain clade frequency
+difference was 1.00 in both free-tree pilots. All runs passed replay, and the
+full inference gate remains unmet. [Sampler pilot results](../results/sampler-pilots.md)
 
 The alternative-history registry counts declared age windows and exact
 catalog-defined clades over every saved draw. It retains source and context

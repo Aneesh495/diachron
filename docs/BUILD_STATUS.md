@@ -11,7 +11,7 @@ campaigns completed their frozen budgets and missed convergence.
 | G03 Sampler | passed | Independent enumeration checks all four composed finite targets. Production acceptance frequencies, reversible topology moves and scale Jacobians meet the declared tests. See [Sampler correctness](thesis/06_sampler_correctness.md). |
 | G04 Ascertainment | passed | Exact selection on observed masks with and without singleton filtering is checked against enumeration. Contact copies and rate mixtures are included in the selection normalization. |
 | G05 Recovery | failed | The three 200-dataset campaigns measured 72%, 88.5%, and 85% root coverage against a nominal 90% target. The longer matched run improved root ESS and clade recovery. See [Recovery](results/recovery_200.md). |
-| G06 Inference | failed | All 16 full-budget chains completed and replayed. Each model missed scalar and clade agreement thresholds. See [full inference](results/full-inference.md). |
+| G06 Inference | failed | All 16 [full-budget chains](results/full-inference.md) completed and replayed. Each model missed convergence. New dated pilots improved root split R-hat to 1.324 but still reached the maximum possible clade disagreement. See [sampler pilots](results/sampler-pilots.md). |
 | G07 Prediction | failed | All eight fits completed and independently replayed. Each missed convergence. See [Observed campaign](results/observed-campaign.md). |
 | G08 Robustness | failed | All 20 settings completed and replayed. None met convergence thresholds. See [Observed campaign](results/observed-campaign.md). |
 | G09 Geographic provenance | passed | Map marks distinguish modern points, sourced historical localities and model-sampled root locations. Unknown locations are kept off the map. |
