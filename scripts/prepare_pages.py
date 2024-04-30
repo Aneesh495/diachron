@@ -12,6 +12,7 @@ def prepare(site: Path) -> None:
 .diachron-links a { color: #96ddff; }
 @media (max-width: 48rem) {
   pre { overflow-x: auto; max-width: 100%; }
+  :not(pre) > code { overflow-wrap: anywhere; }
   figure { margin-inline: 0; max-width: 100%; }
   img { max-width: 100%; height: auto; }
   table { display: block; max-width: 100%; overflow-x: auto; }
