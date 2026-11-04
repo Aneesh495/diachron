@@ -54,13 +54,13 @@ class MoveSet:
         lower = max((tree.heights[c] for c in kids), default=0.0)
         parent = tree.parent[node]
         upper = tree.heights[parent] if parent >= 0 else math.inf
-        window = self.time_window_frac * max(tree.root_age(), 1.0)
+        window = self.time_window_frac * max(lower if parent < 0 else tree.root_age(), 1.0)
         step = (rng.uniform() - 0.5) * 2.0 * window
         proposed = tree.heights[node] + step
         if proposed <= lower + 1e-9 or (upper != math.inf and proposed >= upper - 1e-9):
             return MoveResult(0.0, False)
         tree.heights[node] = proposed
-        # Symmetric reflected window; Hastings term is zero.
+        # The window is invariant under this move; out-of-bounds steps reject.
         return MoveResult(0.0, True)
 
     # --- root height scale -------------------------------------------------
@@ -75,14 +75,13 @@ class MoveSet:
         internals = tree.internal_nodes()
         u = rng.uniform()
         factor = math.exp(self.scale_lambda * (u - 0.5))
-        for node in internals:
-            tree.heights[node] *= factor
-        if not tree.times_valid():
-            # revert
-            inv = 1.0 / factor
-            for node in internals:
-                tree.heights[node] *= inv
+        scaled = [tree.heights[i] * factor if not tree.is_tip(i) else tree.heights[i]
+                  for i in range(tree.n_nodes)]
+        if any(not math.isfinite(age) for age in scaled) or any(
+            p >= 0 and scaled[p] < scaled[i] for i, p in enumerate(tree.parent)
+        ):
             return MoveResult(0.0, False)
+        tree.heights = scaled
         return MoveResult(len(internals) * math.log(factor), True)
 
     # --- nearest-neighbor interchange -------------------------------------
@@ -123,107 +122,48 @@ class MoveSet:
         tree.parent[gc] = p
         return MoveResult(0.0, True)
 
-    # --- subtree prune and regraft (bounded) ------------------------------
     def spr(self, tree: PhyloTree, rng) -> MoveResult:
-        """A bounded subtree-prune-regraft: move a subtree to a nearby edge.
+        """Time-preserving SPR with symmetric selection on the detached backbone.
 
-        SPR explores topology more broadly than NNI. We prune a node `v` together
-        with its parent edge. Its parent `u` has exactly one other child `sib` in
-        the binary case; detaching `v` collapses `u`, so `sib` reconnects directly
-        to `u`'s parent `gp`, and `u` is freed for reuse. We then regraft by
-        reinserting `u` on a target edge `(w, parent_w)` whose time interval spans
-        `v`'s crown age, making `u` the new parent of both `v` and `w`.
-
-        The move is kept reversible and safe by three guards: the target edge is
-        chosen from edges that span `v`'s age and that are not inside the pruned
-        subtree (so no cycle can form), `sib` is never chosen as the target (that
-        would be the identity after collapse), and the resulting times are checked.
-        The Hastings ratio is the ratio of the number of valid targets before and
-        after the move, computed from the tree structure.
-
-        Correctness note: an earlier version reattached `u` without excluding the
-        collapsed edge and the pruned subtree, which could create a cycle. The
-        exclusions below are what prevent that; `tests/test_moves.py` checks that
-        many SPR moves never corrupt the tree.
+        Choose an ordered prunable child and preserve its parent's age. Suppress
+        the parent and draw uniformly from backbone edges crossing that age.
+        The original sibling edge is in the same set and is a self-transition.
+        Given the same child on reversal, both the backbone and age are
+        identical, so the proposal probabilities cancel. Binary node degrees
+        and the number of children beneath the root are invariant.
         """
-        ch = tree.children()
-
-        # Prunable nodes: any non-root node whose parent is binary (exactly two
-        # children) so collapsing the parent yields a valid binary tree.
-        prunable = []
-        for v in range(tree.n_nodes):
-            u = tree.parent[v]
-            if u < 0:
-                continue
-            gp = tree.parent[u]
-            if gp < 0:
-                continue  # parent is the root; skip to keep the root binary
-            if len(ch[u]) != 2:
-                continue
-            prunable.append(v)
+        children = tree.children()
+        prunable = [
+            child for child, parent in enumerate(tree.parent)
+            if parent >= 0 and tree.parent[parent] >= 0 and len(children[parent]) == 2
+        ]
         if not prunable:
             return MoveResult(0.0, False)
 
-        v = prunable[rng.below(len(prunable))]
-        u = tree.parent[v]
-        gp = tree.parent[u]
-        sib = next(x for x in ch[u] if x != v)
-
-        node_age = tree.heights[v]
-        subtree = _descendants(tree, v) | {v, u}
-
-        # Valid target edges: child-node `w` whose edge (w -> parent_w) strictly
-        # spans node_age, excluding anything in the pruned subtree, the collapsed
-        # node `u`, and the sibling edge (reattaching above sib is the identity).
-        def valid_targets() -> list[int]:
-            out = []
-            for w in range(tree.n_nodes):
-                pw = tree.parent[w]
-                if pw < 0 or w in subtree or w == u or w == sib:
-                    continue
-                if tree.heights[w] < node_age < tree.heights[pw]:
-                    out.append(w)
-            return out
-
-        targets_before = valid_targets()
-        if not targets_before:
-            return MoveResult(0.0, False)
-        n_before = len(targets_before)
-
-        w = targets_before[rng.below(n_before)]
-        parent_w = tree.parent[w]
-
-        # Prune: reconnect sib to gp, freeing u.
-        tree.parent[sib] = gp
-        # Regraft: u becomes the parent of w and v, inserted on edge (parent_w, w).
-        tree.parent[u] = parent_w
-        tree.parent[w] = u
-        tree.parent[v] = u
-        # u sits at the subtree's crown age on the target edge.
-        tree.heights[u] = node_age
-
-        if not tree.times_valid():
+        child = prunable[rng.below(len(prunable))]
+        parent = tree.parent[child]
+        grandparent = tree.parent[parent]
+        sibling = next(node for node in children[parent] if node != child)
+        age = tree.heights[parent]
+        if tree.heights[child] >= age or not tree.heights[sibling] < age < tree.heights[grandparent]:
             return MoveResult(0.0, False)
 
-        # Reverse-move target count for the Hastings ratio. After the move, the
-        # pruned subtree is {v, u} again; recompute from the new structure.
-        ch2 = tree.children()
-        sib_after = sib  # sib now hangs under gp
-        subtree_after = _descendants(tree, v) | {v, u}
+        detached = _descendants(tree, child) | {child, parent}
+        targets = []
+        for node, ancestor in enumerate(tree.parent):
+            if node in detached or ancestor < 0:
+                continue
+            backbone_parent = grandparent if node == sibling else ancestor
+            if tree.heights[node] < age < tree.heights[backbone_parent]:
+                targets.append((node, backbone_parent))
+        target, target_parent = targets[rng.below(len(targets))]
+        if target == sibling:
+            return MoveResult(0.0, False)
 
-        def valid_targets_after() -> int:
-            count = 0
-            for x in range(tree.n_nodes):
-                px = tree.parent[x]
-                if px < 0 or x in subtree_after or x == u or x == sib_after:
-                    continue
-                if tree.heights[x] < node_age < tree.heights[px]:
-                    count += 1
-            return count
-
-        n_after = max(valid_targets_after(), 1)
-        _ = ch2
-        return MoveResult(math.log(n_before / n_after), True)
+        tree.parent[sibling] = grandparent
+        tree.parent[parent] = target_parent
+        tree.parent[target] = parent
+        return MoveResult(0.0, True)
 
 
 def _descendants(tree: PhyloTree, node: int) -> set[int]:
