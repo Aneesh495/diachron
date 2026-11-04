@@ -47,6 +47,9 @@ class ChainState:
     loss: float
     clock_rate: float
     geo_sigma2: float = 0.004
+    # Per-candidate-edge borrowing intensities; empty unless the borrowing model
+    # is active. Stored as a plain list so it serializes in checkpoints.
+    borrow_rates: list = field(default_factory=list)
 
 
 @dataclass
@@ -81,12 +84,16 @@ class Chain:
         self._log_post = self._eval()
 
     def _eval(self) -> float:
+        import numpy as _np
+
+        br = _np.array(self.state.borrow_rates) if self.state.borrow_rates else None
         return self.model.log_posterior(
             self.tree,
             self.state.gain,
             self.state.loss,
             self.state.clock_rate,
             self.state.geo_sigma2,
+            borrow_rates=br,
         )
 
     def _accept(self, log_post_new: float, log_hastings: float) -> bool:
@@ -180,8 +187,43 @@ class Chain:
         if accepted:
             self._accepts += 1
 
+        # Hyperparameter moves for the active model's extra variables. These run
+        # occasionally alongside the main move so the geographic diffusion rate
+        # and the borrowing intensities are sampled rather than held fixed.
+        self._maybe_sample_hyperparameters()
+
         if adapt and self._proposals % 100 == 0:
             self._adapt()
+
+    def _maybe_sample_hyperparameters(self) -> None:
+        """Sample geo_sigma2 (geography) and borrow_rates (borrowing) in place.
+
+        Each is a scale move with the log-factor Jacobian, accepted against the
+        full posterior. They are gated on the model config so a tree-only or dated
+        run does nothing here.
+        """
+        cfg = self.model.config
+        if cfg.use_geography and self.rng.uniform() < 0.25:
+            new, res = self.moves.scale_scalar(self.state.geo_sigma2, self.rng)
+            if res.valid:
+                old = self.state.geo_sigma2
+                self.state.geo_sigma2 = new
+                lp = self._eval()
+                if self._accept(lp, res.log_hastings):
+                    self._log_post = lp
+                else:
+                    self.state.geo_sigma2 = old
+        if cfg.use_borrowing and self.state.borrow_rates and self.rng.uniform() < 0.25:
+            idx = self.rng.below(len(self.state.borrow_rates))
+            new, res = self.moves.scale_scalar(self.state.borrow_rates[idx], self.rng)
+            if res.valid:
+                old = self.state.borrow_rates[idx]
+                self.state.borrow_rates[idx] = new
+                lp = self._eval()
+                if self._accept(lp, res.log_hastings):
+                    self._log_post = lp
+                else:
+                    self.state.borrow_rates[idx] = old
 
     def _adapt(self) -> None:
         """Robbins-Monro step-size adaptation toward the target acceptance rate.
