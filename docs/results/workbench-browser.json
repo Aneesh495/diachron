@@ -1,0 +1,26 @@
+{
+  "browsers": [
+    "Chromium"
+  ],
+  "desktop": [
+    1440,
+    920
+  ],
+  "mobile": [
+    390,
+    844
+  ],
+  "passed": true,
+  "verified": [
+    "linked views",
+    "model switch",
+    "root samples",
+    "attestation link",
+    "timeline jump",
+    "focus restoration",
+    "keyboard timeline",
+    "no horizontal overflow",
+    "one local data fetch per navigation",
+    "no uncaught errors"
+  ]
+}

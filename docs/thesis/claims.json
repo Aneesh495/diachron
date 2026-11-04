@@ -32,43 +32,43 @@
     "scope": "algorithm"
   },
   {
-    "claim": "The inferred chronology is identifiable only through calibration.",
+    "claim": "The historical effect of calibration choice remains unresolved.",
     "hypothesis": "H4 (calibration dependence)",
-    "evidence": "runs/sensitivity/sensitivity.json: root age shifts under half/no-calibration and tree-only; stable to tree-prior and ascertainment",
-    "counterevidence": "a family with strong independent calibrations could yield a narrow identifiable date (Ch.13)",
-    "status": "supported, calibration-dependent",
-    "scope": "historical, with uncertainty"
+    "evidence": "docs/EXPERIMENT_PLAN.md: calibration-removal and subset comparisons",
+    "counterevidence": "The prior and rate scale also regularize calendar estimates.",
+    "status": "unverified",
+    "scope": "planned sensitivity comparison"
   },
   {
-    "claim": "The tree model reproduces pairwise cognate sharing but not the missingness pattern.",
+    "claim": "Observed diagnostic draws can reproduce some lexical summaries and miss others.",
     "hypothesis": "Q1/model fit",
-    "evidence": "ppc on runs/smoke/dated: sharing bayesian_p approx 0.18; missingness p approx 0",
-    "counterevidence": "missingness p=0 is a generative-check limitation, not a likelihood error",
-    "status": "supported",
-    "scope": "model fit on study corpus"
+    "evidence": "docs/results/observed-diagnostic.json: observed-mask conditional checks",
+    "counterevidence": "Chains fail convergence; missingness is fixed by conditioning.",
+    "status": "diagnostic",
+    "scope": "selected character patterns"
   },
   {
-    "claim": "Short runs of large trees do not converge and are not presented as posteriors.",
+    "claim": "The observed diagnostic runs missed the convergence criteria.",
     "hypothesis": "Q7 (multimodality/mixing)",
-    "evidence": "diagnose on runs/smoke/dated: split-Rhat 1.1-2.8, ESS in tens, reported converged=false",
-    "counterevidence": "none; this is a reported non-result",
-    "status": "supported",
+    "evidence": "docs/results/observed-diagnostic.json: scalar and topology diagnostics",
+    "counterevidence": "The bounded diagnostic is shorter than the full campaign.",
+    "status": "observed nonconvergence",
     "scope": "inference diagnostics"
   },
   {
-    "claim": "Known-truth root-age credible intervals are roughly calibrated.",
+    "claim": "Nominal 90% root-age intervals undercovered in protocol 2.",
     "hypothesis": "recovery coverage (G05)",
-    "evidence": "runs/recovery pilot: 90% CI coverage 0.8 on 5 datasets; full 200-dataset study pending",
-    "counterevidence": "pilot is small; coverage below 0.9 in the full study would indicate over-confidence",
-    "status": "preliminary",
+    "evidence": "docs/results/recovery-v2.json: 144 covered true ages of 200",
+    "counterevidence": "Short-chain and model effects are not isolated.",
+    "status": "measured failure of calibration target",
     "scope": "synthetic recovery"
   },
   {
-    "claim": "A latent homeland is reported as a posterior cloud, never a single pin when support is broad.",
+    "claim": "The workbench distinguishes sampled root locations from evidence localities.",
     "hypothesis": "Q6/Q8 (geographic honesty)",
-    "evidence": "ui map view renders inferred locations as a density; exporter tags observation kinds; docs/screenshots/workbench.png",
-    "counterevidence": "a removal-stable concentrated posterior could warrant a point claim (Ch.13)",
-    "status": "supported",
+    "evidence": "docs/screenshots/workbench.png and docs/results/workbench-browser.json",
+    "counterevidence": "Root-only export and nonconverged diagnostic draws limit interpretation.",
+    "status": "verified presentation",
     "scope": "geographic honesty"
   }
 ]

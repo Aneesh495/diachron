@@ -1,39 +1,25 @@
-# Diachron: posterior inference over language family history under uncertain evidence
+# Diachron: evidence and inference for language family history
 
 ## Abstract
 
-Diachron is a research platform for studying how language families diversify,
-borrow words, and shift their geographic footprint, built around original
-probabilistic inference rather than narrative. The core computes a Felsenstein
-pruning likelihood of cognate-class evolution under a continuous-time Markov
-model, composes it with clock, calibration, tree-prior, geographic, and bounded
-borrowing terms into an explicit posterior, and samples that posterior with an
-original Metropolis-Hastings kernel whose moves carry derived and tested proposal
-ratios and Jacobians.
+Diachron implements pruning and posterior sampling for historical lexical
+data. Its evidence model keeps lexical forms, source cognate judgments,
+loan flags and uncertain dated observations distinct. The primary study
+uses 152 IE-CoR varieties and 170 meanings. A bounded ABVD study covers
+40 Austronesian varieties, and a separate EDH cohort contributes 175
+individual Latin inscriptions.
 
-The thesis makes two kinds of statement and keeps them apart. Mathematical
-statements concern the algorithms: the pruning recursion computes the stated
-marginal likelihood, and the sampler leaves the stated target invariant. These
-are proved against independent tiny-state enumeration (agreement within 1e-9 over
-1200 random cases) and against exact finite posteriors. Historical statements are
-empirical claims with uncertainty: a posterior over a root age or a latent
-homeland is a distribution with credible regions, prior sensitivity, and
-counterevidence, never a recovered fact.
+The likelihood conditions on the actual character retention rule and
+observed-tip masks. A finite contact mixture marginalizes one possible
+copy event per character. The workbench links saved tree draws with
+lexical observations and source records. Geographic root draws retain
+their distinct label and show the diagnostic status of the underlying run.
 
-A central finding, established on labeled-synthetic known-truth corpora, is that
-the inferred chronology is identifiable only through calibration: the root-age
-estimate shifts materially when calibrations are removed or halved, while it is
-stable to the tree-prior strength and the ascertainment correction. Posterior
-predictive checks show the tree model reproduces the pairwise cognate-sharing
-structure of the data but does not reproduce the missingness pattern, which the
-likelihood handles but the generative check does not, a misspecification we report
-rather than hide. Geographic conclusions are presented as posterior clouds; the
-platform refuses to collapse a broad or multimodal location posterior to a single
-homeland pin, and separates modern reference coordinates, dated attestations, and
-inferred latent locations in every view and export.
-
-The contribution is an auditable, reproducible inference pipeline with honest
-uncertainty, not a claimed reconstruction of any particular family's history.
+The observed chains did not meet convergence thresholds. In the revised
+200-dataset synthetic recovery study, nominal 90% root-age intervals
+contained the true age in 72% of datasets and mean nontrivial clade
+recovery was 41%. These results leave historical chronology and geographic
+comparisons open.
 
 
 # Chapter 1: Research questions and hypotheses
@@ -499,163 +485,118 @@ of negative results, not dropped.
 
 # Chapter 8: Synthetic recovery
 
-Known-truth recovery answers two questions: can the sampler recover a tree it
-generated under its own model, and are its credible regions honest?
+Protocol 2 executed all 200 known-truth datasets at commit
+`8c47e96bab0f326d8476a90c418304018397df06`. Each dataset was evaluated with
+two chains, 400 warmup iterations and 1200 sampling iterations. Dates were
+generated with three levels of attestation coverage. The sampler started from
+a random tree and a calibration midpoint. The all-tip clade was excluded
+from scoring.
 
-## Design
+The nominal 90% root-age intervals covered 144 of 200 true ages. Mean
+nontrivial clade recovery was 0.4132, using a sampling frequency threshold
+of 0.5. The interval result is below its nominal target. The observation model,
+topology mixing and the simulator all contribute possible explanations. The
+experiment does not isolate them.
 
-Each synthetic dataset is drawn with a coalescent tree, cognate-class evolution
-under the inference model, optional borrowing, Brownian geography, and dated
-attestations, with the true tree and parameters recorded. The regime is varied
-across datasets: 8 to 20 varieties, 40 to 90 concepts, root ages from 3000 to
-8000 years, borrowing probabilities in {0, 0.15, 0.3}, and missingness fractions
-in {0, 0.08, 0.2}. For each dataset two chains of the dated model are run and
-summarized.
-
-## Measures
-
-Clade recovery is the fraction of true clades whose posterior support exceeds
-0.5. Credible-region coverage is the fraction of datasets whose true root age
-falls inside the 90 percent posterior interval; honest uncertainty means this is
-near 0.9.
-
-## Pilot results
-
-A five-dataset pilot with short chains gives a mean clade recovery of 0.41 and a
-90 percent root-age interval coverage of 0.8 (four of five). The moderate clade
-recovery reflects the short pilot chains and the small, borrowing-perturbed trees;
-coverage near the target is early evidence that the interval width is roughly
-calibrated. The full study runs 200 datasets with the frozen budget; its summary
-and per-dataset records are written to `runs/recovery/recovery.json`. Coverage
-materially below 0.9 would indicate over-confident intervals and is reported as a
-failure rather than hidden.
-
-## What recovery cannot establish
-
-Recovery under the model's own generative assumptions is a necessary check, not a
-sufficient one: a posterior narrower than it should be can still be wrong under
-misspecification. Chapter 12 therefore includes deliberate model violations, and
-Chapter 9's posterior predictive checks test fit to features the generative model
-does not directly target.
+The results directory includes raw sampled root ages and true-clade
+frequencies per dataset, together with the seed, regime and source commit.
+These permit direct recomputation of coverage and recovery without rerunning
+inference. The earlier 94% result used a different sampler and selection
+correction and remains available as an archived result.
 
 
-# Chapter 9: Results on the study corpus
+# Chapter 9: Observed study results
 
-Results here are on the primary study corpus (112 varieties, 110 concepts, 1576
-variable characters, 140 attestations). The corpus is labeled synthetic
-known-truth; the same pipeline runs on CLDF collections ingested under their own
-licenses.
+## Evidence
 
-## Inference and convergence
+The pinned IE-CoR primary study retains 152 varieties and 170 meanings. It has
+24,989 cells with a lexical record, 851 missing lexical cells, and 2,255
+loan-associated judgments. It contains 44 historical varieties with source
+date distributions. The bounded ABVD study retains 40 Austronesian varieties
+and 210 concepts. It has 7,355 lexical cells, including 1,169 with no cognate
+judgment. These dimensions follow the frozen rules in the observed-data
+protocol and do not depend on inferred trees.
 
-A diagnostic four-chain run of the dated model (1200 retained iterations per
-chain after 400 warmup) produces a root-age posterior with mean about 7240 years
-and active topology exploration: 60 to 72 distinct topologies per chain, a
-topology switch rate near 0.55, and a between-chain clade agreement of 0.76. The
-scalar endpoints on this short run have split-Rhat between 1.1 and 2.8 and ESS in
-the tens, so the run is reported as not converged; it is a diagnostic profile, not
-the acceptance campaign. The honest reading is that a short run of a 112-tip tree
-space has not mixed, and more iterations are required before the posterior is
-reported as converged.
+The EDH cohort contributes 175 individual records with reported date intervals,
+localities and bibliographies. The cohort covers Latin epigraphy and is indexed
+to the IE-CoR Latin entry for inspection. It contributes no automatic
+calibration. The IE-CoR dated models use the wordlist authors' terminal
+variety distributions instead.
 
-## Held-out prediction
+## Inference status
 
-Held-out-concept prediction holds out whole concepts so no cognate class spans
-the partition, fits on the training characters only, and scores the held-out
-characters by posterior predictive log density per character. The comparison
-between the dated and tree-only models, and the leakage guard, are recorded in
-`runs/predict/heldout.json`. The design, not a single number, answers Q1:
-geographic or dated structure earns its place only if it improves held-out
-density over the tree-only baseline.
+Each observed diagnostic used four independent starts, 400 warmup iterations,
+1200 sampling iterations and thinning by ten. These checks test the whole path
+through saved draws and do not set the convergence gate. Historical estimates
+remain unverified. The source-defined historical tips are terminal leaves, so
+the result also cannot adjudicate whether a recorded variety was an ancestor of
+another sampled variety.
 
-## Posterior predictive checks
-
-Simulating characters from posterior draws and comparing summary statistics to
-the observed data gives a Bayesian p-value near 0.18 for mean pairwise cognate
-sharing, so the tree model reproduces who-shares-cognates well. The missingness
-rate has a p-value of 0 because the generative check does not model the
-missingness process that the likelihood handles by marginalization; this is a
-reported misspecification of the generative check, not of the likelihood. The
-mean class size is slightly over-predicted (p near 0.93). These results are the
-kind of honest mixed fit the platform is built to surface.
+Held-out prediction and sensitivity operate as distinct experiments. Their
+scores are not inferred from convergence or the retrospective fit of these
+models.
 
 
-# Chapter 10: Borrowing and contact
+# Chapter 10: A bounded contact model
 
-## Model and its limits
+Each lexical character begins as a binary pattern generated on the dated tree.
+A categorical variable selects either the inherited pattern, with weight 1, or
+one directed contact edge with weight equal to its nonnegative intensity. When
+an edge is selected, the donor's latent tip state replaces the recipient's.
+The candidate network is fixed by a modern-proximity screen. Directions are
+hypotheses with separate intensities, independent exponential priors and equal
+prior rates.
 
-The borrowing model places a borrowing intensity on each edge of a fixed
-candidate contact network, with an exponential prior pulling intensities toward
-zero. This is a bounded, identifiable model. It deliberately does not attempt
-unrestricted network reconstruction: with a fixed candidate set it can ask whether
-a specific posited contact improves the fit, but it cannot discover arbitrary
-reticulation, and the platform does not market it as doing so.
+For an observed recipient, the copied pattern is scored by observing its
+state at the donor and marginalizing the recipient's inherited state. If both
+tips were observed and differ, the copy component has probability zero. If
+the recipient is missing, copying changes no observed state. For the selection
+event, an observed recipient adds one count to the donor and stops contributing
+its own inherited count. The likelihood sums over contact and rate categories
+before conditioning on retention. The no-contact model follows as all
+intensities tend to zero.
 
-## What it can and cannot recover
+The enumeration checks include missing donors and competition between two
+edges. They validate the calculation, and the synthetic comparison tests
+sensitivity to injected sharing on candidate edges. Independent historical
+contact remains a separate question. The model permits only one terminal copy
+per character, and a repeated match can arise from shared inheritance or a
+copy. The model does not identify contact date, chains of transmission, or
+contact outside the candidate set.
 
-On known-truth data where a loan was injected between geographic neighbors, the
-borrowing-aware model can detect elevated sharing on candidate edges that the tree
-alone does not explain, provided the true contact lies on or near a candidate
-edge. When the true contact is absent from the candidate set, the model cannot
-recover it; the correct outcome in that case is that the borrowing channel stays
-near its zero-intensity prior and the conflict shows up instead as reduced tree
-support, not as a false contact claim.
-
-## Loan removal sensitivity
-
-Removing loan-annotated forms from the inherited characters and refitting measures
-how much the tree depends on borrowed material. This is one of the predeclared
-sensitivity configurations (Chapter 12). A tree that changes substantially under
-loan removal is flagged as borrowing-sensitive, which is a finding about
-identifiability, not a defect.
-
-## No unsupported causal history
-
-The platform reports borrowing as a posterior over intensities on named candidate
-edges with stated priors, never as a narrative of which people borrowed from whom.
-A detected intensity is evidence that a candidate contact improves fit under the
-model; it is not a proof of historical contact, and Chapter 13 keeps that
-distinction explicit.
+IE-CoR's loan classes and ABVD's form loan flags are auditable annotations.
+The observed likelihood can be recomputed after removing those forms.
+The contact component models visible cognate states and carries no likelihood
+for the existence of an annotation.
 
 
-# Chapter 11: Geography
+# Chapter 11: Location evidence and inference
 
-## Observation model
+Diachron uses three distinct inputs or outputs. Contemporary lexical varieties
+can carry catalog reference points. Independently sourced inscriptions carry
+reported historical localities and dating uncertainty. The geographic model
+produces latent samples conditional on its tree, rates, and modern reference
+points. The workbench shows the categories separately. An ancient object may
+have traveled before deposition, and its origin is not a boundary of a speech
+community.
 
-A catalog coordinate is a present-day reference location, not a historical
-homeland or boundary. An ancient attestation may be an isolated inscription,
-elite writing, or a trade document rather than a whole-population distribution.
-Diachron encodes the observation type and treats tip coordinates as uncertain
-observations with their own error, so the geographic likelihood never assumes a
-modern point marks an ancient boundary.
+The planar contrasts model integrates internal locations by Gaussian message
+passing and conditions on measured modern reference points. Missing tips
+supply no geographic contrast. This approximation measures squared degrees
+and is sensitive to the extent of the region. The region model instead uses a
+symmetric distance-decayed transition generator and exact discrete pruning.
+Unresolved region assignments can be marginalized.
 
-## Two models compared
+The workbench's planar root cloud is drawn offline from the conditional root
+distribution for each retained geographic tree and diffusion rate. It shows
+points in a ±250-year band around the timeline position. Observations retain
+their full date ranges. Root-only sampling is an explicit scope limit of the
+current map export. A fitted regional model still needs its own offline root
+state sampler.
 
-The region CTMC moves a lineage among coarse named regions; it is appropriate
-when the evidence cannot resolve coordinates and avoids over-claiming precision.
-The Brownian-on-tree model diffuses coordinates continuously and integrates out
-internal locations exactly by Gaussian pruning. Rather than declare one map
-historically correct because it looks coherent, the platform compares their
-posterior predictions; the region model is preferred where the data are coarse,
-the diffusion model where attestations constrain continuous movement.
-
-## Posterior clouds, not pins
-
-A latent location is reported as a posterior cloud or credible region. When the
-posterior is broad or multimodal, it stays a cloud; the platform refuses to
-collapse it to a single homeland pin. The workbench draws the inferred location
-as a density of sampled points whose spread grows with inferred temporal depth,
-and the map legend keeps modern reference points, dated attestations, and
-inferred latent locations visually distinct at every time step (gate G09).
-
-## Sensitivity and influence
-
-The geographic prior (diffusion variance, region granularity) is one of the
-predeclared sensitivity levers; a location posterior driven more by the prior than
-the data is reported as such. The influence of a single language or attestation is
-tested by removal: an apparently stable homeland estimate that moves when one
-influential observation is dropped is not a stable finding. This directly serves
-Q6 and Q8.
+None of the geographic diagnostics establish a homeland. Coordinate spread,
+between-chain agreement, and stability to the reference-point model remain
+empirical checks.
 
 
 # Chapter 12: Sensitivity and robustness

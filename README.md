@@ -1,117 +1,62 @@
 # Diachron
 
-Diachron studies how language families diversify, borrow words, and shift their
-geographic footprint, and it does so under uncertain evidence. It infers
-posterior distributions over family trees, divergence times, borrowing, and
-latent lineage locations from cognate data and dated attestations, and it keeps
-the line between what was observed, what was inferred, and what is merely
-illustrated visible at every step.
+Diachron explores how language families diversify, share cognate classes and
+change their geographic distributions. The inference engine combines a Rust
+pruning likelihood with Python models for dated terminal tips, strict and
+relaxed clocks, site-rate heterogeneity, and bounded contact. A TypeScript
+workbench reads saved draws and connects the tree, map, timeline, lexical
+matrix and attestation inspector.
 
-A language is not a population. A word lineage is not a language tree. Neither is
-a genetic ancestry tree. Diachron keeps these apart in both the models and the
-interface.
+A language family tree describes a hypothesis about linguistic descent.
+Cognate classes have their own histories, and an inscription or reference
+coordinate describes a locality at a particular evidentiary scale.
 
-## What is here
+## Run the demo
 
-- An original phylogenetic likelihood: continuous-time Markov cognate evolution,
-  a Felsenstein pruning recursion with log-space scaling, and an ascertainment
-  correction, implemented in Rust (`rust/diachron-core`) and validated against an
-  independent brute-force enumerator.
-- Original Metropolis-Hastings MCMC with branch-length, node-time, clock-rate,
-  and topology moves, checkpointed for exact CPU resume.
-- Clock and calibration models, a bounded borrowing/contact model, and
-  region-based and spherical geographic transition models.
-- A Python orchestration layer (`python/diachron`) for CLDF ingestion, dated
-  attestations, inference, diagnostics, posterior predictive checks, sensitivity
-  analysis, and a research CLI.
-- A linked tree / globe / timeline / lexical-matrix workbench (`ui/`) that reads
-  saved posterior artifacts and never triggers hidden inference.
-- A thesis and a set of focused research notes under `docs/`.
-
-## Quick start
+Use CPython 3.12 to 3.14, Rustup, and Node 24 for the workbench.
 
 ```bash
-# 1. Toolchain: Python 3.11+, Rust (stable), Node 18+.
-make bootstrap        # create the venv and install Python tooling
-make build            # compile the Rust core and install the extension
-make test             # run the Rust and Python correctness suites
-make demo             # run the bounded end-to-end demonstration
+make bootstrap
+make build
+make test
+make demo
+make verify EVIDENCE=runs/demo VERIFY_ARGS="--expected-commit $(git rev-parse HEAD)"
+.venv/bin/diachron export-workbench --bundle dated=runs/demo/dated
+cd ui
+npm ci
+npm run dev
 ```
 
-The demonstration ingests a small labeled-synthetic corpus, runs a short MCMC,
-computes diagnostics, and writes posterior artifacts that the workbench can load.
-It runs on a laptop in about eight seconds and needs no network access. Example
-output from `make demo`:
+The demo uses a labeled synthetic corpus. The verifier checks the saved tree
+and model state against the stored score. Open the workbench URL printed by
+Vite to inspect the same draws. Workbench interactions use the exported file.
 
-```
-[demo] dataset: 16 varieties, 80 concepts, 219 variable characters
-[demo] 40 dated attestations; synthetic known-truth corpus
-[demo] 4 chains done; acceptance rates [0.369, 0.387, 0.377, 0.396]
-[demo] root age: true 6000, posterior mean 4950 +/- 987 years
-[demo] split-Rhat 1.516, bulk-ESS 47
-```
+## Observed inputs and results
 
-The short demo chains do not fully converge (split-Rhat above 1.01), and the demo
-says so rather than presenting the draws as a settled posterior. The full
-acceptance campaign uses much longer chains.
+The pinned Indo-European study has 152 eligible IE-CoR varieties and 170
+meanings. The Austronesian study uses a 40-variety ABVD subset. A separate
+EDH cohort contains 175 individually sourced Latin inscriptions. The
+[acquisition and freeze guide](docs/OBSERVED_DATA.md) gives exact input
+versions, licenses, filters and commands.
 
-## The workbench
+The observed diagnostic runs missed the convergence thresholds. In the
+revised 200-dataset synthetic study, nominal 90% root-age intervals covered
+144 of 200 true ages, and mean nontrivial clade recovery was 41%.
+The [recovery report](docs/results/recovery_200.md) links the raw outcomes.
+The [build status](docs/BUILD_STATUS.md) tracks research and release gates.
 
-`diachron export-workbench` turns saved posterior bundles into a JSON the
-TypeScript workbench reads; the workbench never runs inference. The four views
-(tree, globe, timeline, lexical matrix) are linked by selection, and the map
-keeps modern reference coordinates, dated attestations, and inferred latent
-locations visually distinct.
+![Observed IE-CoR workbench showing saved diagnostic draws](docs/screenshots/workbench.png)
 
-![Diachron workbench](docs/screenshots/workbench.png)
+## Source and research notes
 
-## Status
+- [Rust engine](rust/diachron-core/src) for transition matrices, pruning and the binary contact mixture.
+- [Python package](python/diachron) for verified ingestion, inference, replay and experiments.
+- [Workbench](ui/src) for visualization and source inspection.
+- [Architecture](docs/ARCHITECTURE.md), [specification](docs/SPECIFICATION.md),
+  [reproducibility](docs/REPRODUCIBILITY.md), and [diagrams](docs/diagrams).
+- [Thesis chapters](docs/thesis) and [research notes](docs/notes).
+  Run `make thesis` for assembled Markdown and standalone HTML.
 
-This is an active build. `docs/BUILD_STATUS.md` tracks the acceptance gates and
-what each one currently resolves to. Nothing here claims a recovered historical
-map as proven: every historical statement is a posterior with stated uncertainty
-and counterevidence, and the synthetic corpora used for known-truth tests are
-always labeled synthetic.
-
-## Layout
-
-```
-rust/diachron-core/   Rust likelihood, MCMC kernels, geographic models
-python/diachron/      ingestion, models, inference, diagnostics, CLI
-ui/                   TypeScript workbench (tree, globe, timeline, matrix)
-data/                 dataset manifests and synthetic corpus generators
-docs/                 specification, architecture, ADRs, thesis, notes, diagrams
-tests/                Python correctness and integration tests
-```
-
-## Documentation
-
-- `docs/SPECIFICATION.md` and `docs/ARCHITECTURE.md`: what it is and how it fits
-  together.
-- `docs/thesis/`: the study, chapter by chapter, with a claim-to-evidence ledger.
-- `docs/notes/`: twelve focused research notes, including the negative results.
-- `docs/adr/`: twelve architecture decision records.
-- `docs/diagrams/`: twelve editable Mermaid diagrams with rendered SVGs, covering
-  system context, the evidence lineage, the pruning messages, the proposal moves,
-  the chain lifecycle, and more.
-- `docs/EXPERIMENT_PLAN.md`, `docs/NUMERICAL_CONTRACTS.md`,
-  `docs/REPRODUCIBILITY.md`, `docs/WALKTHROUGHS.md`, `docs/BIBLIOGRAPHY.md`,
-  `docs/DATA_CARD.md`, and the live gate table in `docs/BUILD_STATUS.md`.
-
-## What is established, and what is not
-
-The mathematical results are checked: the pruning likelihood matches an
-independent enumerator within 1e-9 over 1200 cases, the sampler reproduces exact
-finite posteriors, the ascertainment correction matches its simulated selection,
-and interrupted chains resume bit-for-bit. The historical results are posteriors
-with stated uncertainty. A headline finding is that the inferred chronology is
-identifiable only through calibration: the root-age estimate moves when
-calibrations are removed or halved, and is stable to the tree-prior strength and
-the ascertainment correction. Nothing here claims a recovered historical map as
-proven.
-
-## License
-
-MIT. Dataset licenses are tracked separately per source; see
-`docs/SPECIFICATION.md` and the data manifests. Restricted lexical records are
-not redistributed.
+The project source is [MIT licensed](LICENSE). Data sources carry their own
+licenses. Lexical inputs and generated Arrow tables remain in local study
+directories.
