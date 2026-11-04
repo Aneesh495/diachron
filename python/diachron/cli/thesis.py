@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 
 
 CHAPTER_ORDER = [
@@ -33,7 +34,10 @@ CHAPTER_ORDER = [
 ]
 
 
-def build_thesis(thesis_dir: str = "docs/thesis", out_path: str = "docs/thesis/THESIS.md") -> dict:
+def build_thesis(thesis_dir: str = "docs/thesis", out_path: str = "runs/thesis/THESIS.md") -> dict:
+    import markdown
+
+    rendered = None
     present = []
     missing = []
     parts = []
@@ -46,9 +50,28 @@ def build_thesis(thesis_dir: str = "docs/thesis", out_path: str = "docs/thesis/T
         else:
             missing.append(ch)
 
-    if parts:
-        with open(out_path, "w", encoding="utf-8") as f:
-            f.write("\n\n".join(parts))
+    if parts and not missing:
+        combined = "\n\n".join(parts)
+        target = Path(out_path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(combined, encoding="utf-8")
+        body = markdown.markdown(combined, extensions=("fenced_code", "tables", "toc"))
+        rendered = target.with_suffix(".html")
+        rendered.write_text(
+            """<!doctype html>
+<html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diachron research report</title>
+<style>
+body { font: 16px/1.65 Georgia, serif; color: #1c2733; margin: 2rem auto; max-width: 74ch; padding: 0 1rem; }
+h1, h2, h3 { line-height: 1.2; }
+pre { overflow: auto; background: #eff2f5; padding: 0.8rem; }
+td, th { padding: 0.3rem 0.5rem; border-bottom: 1px solid #b9c3ce; }
+@media print { h1 { break-before: page; } h1:first-child { break-before: auto; } }
+</style>
+<main>""" + body + "</main></html>\n",
+            encoding="utf-8",
+        )
 
     # Claim-to-evidence ledger check.
     claims_path = os.path.join(thesis_dir, "claims.json")
@@ -65,7 +88,8 @@ def build_thesis(thesis_dir: str = "docs/thesis", out_path: str = "docs/thesis/T
         "gate": "G14",
         "chapters_present": present,
         "chapters_missing": missing,
-        "assembled": out_path if parts else None,
+        "assembled": out_path if rendered else None,
+        "rendered_html": str(rendered) if rendered else None,
         "claim_ledger": ledger,
         "ledger_ok": ledger["claims"] > 0 and not ledger["incomplete"],
     }

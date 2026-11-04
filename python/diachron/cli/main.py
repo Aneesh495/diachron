@@ -239,7 +239,7 @@ def cmd_thesis(args) -> int:
 
     result = build_thesis()
     _print(result)
-    return 0
+    return 0 if result["ledger_ok"] and result["rendered_html"] else 1
 
 
 def cmd_demo(args) -> int:
