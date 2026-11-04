@@ -1,0 +1,34 @@
+{
+  "gate": "G05",
+  "source_commit": "8c47e96bab0f326d8476a90c418304018397df06",
+  "profile": "known-truth recovery, protocol 2",
+  "n_datasets": 200,
+  "completed": 200,
+  "failed": 0,
+  "iterations": 1200,
+  "warmup": 400,
+  "chains": 2,
+  "thin": 10,
+  "mean_clade_recovery": 0.4132124150359445,
+  "root_age_90ci_coverage": 0.72,
+  "coverage_target": 0.9,
+  "covered": 144,
+  "raw_rows_sha256": "adeb0a9fb49a0b83b4194a4455dad0172a1f4acde9692fd2a9fcdd04da2291ad",
+  "by_borrow_probability": {
+    "0.0": {
+      "datasets": 67,
+      "coverage": 0.7164179104477612,
+      "mean_clade_recovery": 0.4871505920671856
+    },
+    "0.15": {
+      "datasets": 70,
+      "coverage": 0.7571428571428571,
+      "mean_clade_recovery": 0.38473995542272854
+    },
+    "0.3": {
+      "datasets": 63,
+      "coverage": 0.6825396825396826,
+      "mean_clade_recovery": 0.3662158168110549
+    }
+  }
+}

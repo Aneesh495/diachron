@@ -1,44 +1,22 @@
-# Recovery study: 200 known-truth datasets (gate G05)
+# Known-truth recovery
 
-Run: `make recovery` with 200 datasets, two chains each, dated model. All datasets
-are labeled synthetic known-truth. Raw per-dataset records are in
-`runs/recovery_full/recovery.json`.
+The current 200-dataset run used protocol 2 at executable commit
+`8c47e96bab0f326d8476a90c418304018397df06`. All 200 datasets completed.
+The central 90% root-age intervals contained the true age in 144 datasets
+(72%). The mean fraction of nontrivial true clades with a sampling frequency
+above one half was 0.4132. Root ages started from the derived calibration
+midpoint, with an independently initialized topology in each chain.
 
-## Headline
+The intervals undercovered in this workload. The run does not distinguish
+short-chain mixing, simulator misspecification, and calibration misspecification
+as explanations. The model treats the simulated data as a dated tree, even
+when the simulator injected borrowing. This is a test of model robustness
+under deliberate misspecification.
 
-- Root-age 90 percent credible-interval coverage: 0.94 (188 of 200). Target 0.90.
-- Mean clade recovery (fraction of true clades with posterior support above 0.5):
-  0.333; median 0.286.
+The earlier run used a different sampler and reported 94% coverage. Its
+results predate the corrected topology proposal and observed-mask
+ascertainment. Retain it as a historical result. Use protocol 2 for current
+comparisons.
 
-## Coverage by borrowing regime
-
-| borrow probability | datasets | root age in 90% CI | coverage |
-|---|---|---|---|
-| 0.0 | 67 | 64 | 0.96 |
-| 0.15 | 70 | 65 | 0.93 |
-| 0.3 | 63 | 59 | 0.94 |
-
-## Reading
-
-The coverage is at or slightly above the 0.90 target and holds across all three
-borrowing regimes, including the ones that misspecify the fitted dated model. That
-is the result the study is for: the root-age credible intervals are honestly
-calibrated, and they do not become over-confident when the data were generated
-with borrowing the model does not include.
-
-Clade recovery is modest. Two reasons, both honest rather than defects to hide.
-First, the per-dataset chains are short (1200 retained iterations), and topology
-on even small trees needs more mixing, consistent with the convergence note.
-Second, the borrowing-perturbed datasets inject shared cognates that conflict with
-the tree, which correctly lowers support for the affected clades rather than
-forcing a confident wrong tree. A recovery number inflated by longer chains would
-be reported separately, with its own budget; this study reports what the frozen
-budget produced.
-
-## What this establishes and what it does not
-
-It establishes that, under the model's generative assumptions and across a span
-of borrowing and missingness regimes, the uncertainty Diachron reports for the
-root age is calibrated. It does not establish clade recovery at production
-quality, which needs longer chains, nor does it substitute for fit to real data,
-which the posterior predictive checks probe separately.
+- [Run summary and stratification](recovery-v2.json)
+- [Per-dataset ages and clade masses](recovery-v2-rows.jsonl.gz)
