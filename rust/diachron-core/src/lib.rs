@@ -21,6 +21,8 @@ pub mod enumerate;
 pub mod rng;
 pub mod mcmc;
 pub mod geo;
+pub mod rates;
+pub mod chain;
 
 #[cfg(feature = "python")]
 mod bindings;
