@@ -18,7 +18,7 @@ come from the added structure, not from changing what counts as data.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import math
 
 import numpy as np
@@ -60,6 +60,7 @@ class ModelConfig:
     diffusion_prior_log_sd: float = 2.0
     borrowing_prior_rate: float = 10.0
     relaxed_clock_sigma: float = 0.0
+    geo_region_count: int = 0
 
     @staticmethod
     def tree_only() -> "ModelConfig":
@@ -212,7 +213,10 @@ class PosteriorModel:
             from ..geo.regions import region_log_likelihood
 
             n_tips = self.n_tips or (max(self.tip_regions) + 1)
-            ll = region_log_likelihood(tree, self.region_model, self.tip_regions, n_tips)
+            region = replace(
+                self.region_model, base_rate=self.region_model.base_rate * geo_sigma2 / 0.004,
+            )
+            ll = region_log_likelihood(tree, region, self.tip_regions, n_tips)
             return ll if np.isfinite(ll) else float("-inf")
         # Continuous spherical/Brownian path.
         if not self.tip_coords:
