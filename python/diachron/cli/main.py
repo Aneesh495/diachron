@@ -301,7 +301,7 @@ def cmd_export_workbench(args) -> int:
     for spec in args.bundle:
         name, _, path = spec.partition("=")
         bundle_dirs[name] = path
-    result = export_workbench(bundle_dirs, args.out)
+    result = export_workbench(bundle_dirs, args.out, source=args.source)
     _print(result)
     return 0
 
@@ -411,6 +411,7 @@ def build_parser() -> argparse.ArgumentParser:
     ewp.add_argument("--bundle", action="append", default=[],
                      help="model=path, repeatable (e.g. dated=runs/demo/dated)")
     ewp.add_argument("--out", default="ui/public/workbench.json")
+    ewp.add_argument("--source", type=Path, help="optional pinned wordlist for archived display labels")
     ewp.set_defaults(func=cmd_export_workbench)
     return p
 

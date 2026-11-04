@@ -23,8 +23,8 @@ export class TimelineView {
     this.el.innerHTML = "";
     const band = document.createElement("div");
     band.className = "timeline-band";
-    const lo = (1 - root.q95 / maxAge) * 100;
-    const hi = (1 - root.q05 / maxAge) * 100;
+    const lo = (root.q05 / maxAge) * 100;
+    const hi = (root.q95 / maxAge) * 100;
     band.style.cssText =
       `position:relative;height:10px;border:1px solid #ccc;` +
       `background:linear-gradient(to right,` +
