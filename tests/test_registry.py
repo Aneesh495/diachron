@@ -64,11 +64,14 @@ def _atts():
     return [
         Attestation(
             id="a1", language_id="L1", age_low=100, age_high=300,
-            source_ref="ref1", quotation=" ".join(["word"] * 40),
+            source_ref="ref1", quotation=" ".join(["word"] * 40), conflicting_with=("a2",),
         ),
         # conflicting with a1 (non-overlapping interval) for the same language
         Attestation(
             id="a2", language_id="L1", age_low=500, age_high=700, source_ref="ref2",
+        ),
+        Attestation(
+            id="a4", language_id="L1", age_low=900, age_high=950, source_ref="independent event",
         ),
         Attestation(
             id="a3", language_id="L2", age_low=100, age_high=200, source_ref="ref3",
@@ -96,3 +99,19 @@ def test_inspector_no_false_conflict():
     insp = AttestationInspector(_atts())
     # L2 has a single attestation; no conflicts.
     assert insp.conflicts_for_language("L2") == []
+    assert insp.inspect("a4").conflicts_with == []
+
+
+def test_scenario_uses_actual_bundle_taxon_ids():
+    from diachron.infer.artifacts import PosteriorBundle
+
+    bundle = PosteriorBundle(
+        "dated", "observed", "1", False, 1, 1, ["var-A", "var-B", "var-C"],
+        [[{"newick": "((var-A:1,var-B:1):1,var-C:2);"}]], source_commit="example",
+    )
+    scenario = ScenarioRegistry().add_clade_scenario(
+        bundle, {0, 1}, "sister-pair", "A and B form a clade", ["sampled tree"], ["bundle"],
+    )
+    assert scenario.support == 1.0
+    assert scenario.detail["taxa"] == ["var-A", "var-B"]
+    assert scenario.detail["source_commit"] == "example"

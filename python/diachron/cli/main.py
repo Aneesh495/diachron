@@ -307,6 +307,24 @@ def cmd_export_workbench(args) -> int:
     return 0
 
 
+def cmd_inspect_attestation(args) -> int:
+    from dataclasses import asdict
+
+    from ..infer.artifacts import PosteriorBundle
+    from ..io.types import Attestation
+    from ..registry import AttestationInspector
+
+    bundle = PosteriorBundle.load(args.bundle)
+    records = [Attestation(**raw) for raw in bundle.context.get("attestations", ())]
+    try:
+        report = AttestationInspector(records).inspect(args.id)
+    except KeyError:
+        print(f"attestation is absent from this bundle: {args.id}", file=sys.stderr)
+        return 2
+    _print(asdict(report))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="diachron", description="Diachron research CLI")
     p.add_argument("--version", action="version", version=f"diachron {__version__}")
@@ -407,6 +425,11 @@ def build_parser() -> argparse.ArgumentParser:
     vp.set_defaults(func=cmd_verify)
 
     sub.add_parser("release").set_defaults(func=cmd_release)
+
+    isp = sub.add_parser("inspect-attestation")
+    isp.add_argument("--bundle", required=True)
+    isp.add_argument("--id", required=True)
+    isp.set_defaults(func=cmd_inspect_attestation)
 
     ewp = sub.add_parser("export-workbench")
     ewp.add_argument("--bundle", action="append", default=[],

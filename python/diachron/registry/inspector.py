@@ -35,10 +35,16 @@ class AttestationReport:
     page: str | None
     location: tuple[float, float] | None
     location_uncertainty_km: float | None
-    assignment_confidence: float
+    assignment_confidence: float | None
     quotation_excerpt: str | None
     quotation_truncated: bool
     conflicts_with: list[str]
+    bibliography: tuple[str, ...]
+    region: str | None
+    location_kind: str | None
+    location_note: str | None
+    assignment_note: str | None
+    source_dates: tuple[str | None, str | None]
 
 
 class AttestationInspector:
@@ -55,17 +61,14 @@ class AttestationInspector:
 
         excerpt, truncated = self._limited_quotation(att.quotation)
 
-        # Conflicting records: other attestations of the same language whose
-        # dating intervals do not overlap this one's.
-        conflicts = list(att.conflicting_with)
-        for other in self._by_language.get(att.language_id, []):
-            if other.id == att.id:
-                continue
-            if not self._intervals_overlap(
-                (att.age_low, att.age_high), (other.age_low, other.age_high)
-            ):
-                if other.id not in conflicts:
-                    conflicts.append(other.id)
+        # Conflict links refer to alternative accounts of the same evidence.
+        # Distinct inscriptions in different years can both be correct.
+        conflicts = sorted({
+            other.id for other in self._by_language.get(att.language_id, ())
+            if other.id != att.id and (
+                other.id in att.conflicting_with or att.id in other.conflicting_with
+            )
+        })
 
         location = None
         if att.latitude is not None and att.longitude is not None:
@@ -86,6 +89,10 @@ class AttestationInspector:
             quotation_excerpt=excerpt,
             quotation_truncated=truncated,
             conflicts_with=conflicts,
+            bibliography=att.bibliography, region=att.region,
+            location_kind=att.location_kind, location_note=att.location_uncertainty_note,
+            assignment_note=att.language_assignment_note,
+            source_dates=(att.source_date_start, att.source_date_end),
         )
 
     def _limited_quotation(self, quotation: str | None) -> tuple[str | None, bool]:
@@ -96,19 +103,10 @@ class AttestationInspector:
             return quotation, False
         return " ".join(words[:_MAX_QUOTE_WORDS]) + " [...]", True
 
-    @staticmethod
-    def _intervals_overlap(a: tuple[float, float], b: tuple[float, float]) -> bool:
-        return not (a[1] < b[0] or b[1] < a[0])
-
     def conflicts_for_language(self, language_id: str) -> list[tuple[str, str]]:
-        """Pairs of attestation ids for one language whose dates do not overlap."""
-        records = self._by_language.get(language_id, [])
-        out = []
-        for i in range(len(records)):
-            for j in range(i + 1, len(records)):
-                if not self._intervals_overlap(
-                    (records[i].age_low, records[i].age_high),
-                    (records[j].age_low, records[j].age_high),
-                ):
-                    out.append((records[i].id, records[j].id))
-        return out
+        """Explicit source alternatives for attestations of the same language."""
+        return sorted({
+            tuple(sorted((record.id, other)))
+            for record in self._by_language.get(language_id, ())
+            for other in self.inspect(record.id).conflicts_with
+        })
