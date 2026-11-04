@@ -278,7 +278,10 @@ def cmd_acceptance(args) -> int:
 def cmd_verify(args) -> int:
     from ..verify.verifier import verify_evidence
 
-    result = verify_evidence(args.evidence, expected_commit=args.expected_commit)
+    result = verify_evidence(
+        args.evidence, expected_commit=args.expected_commit, observed_source=args.source,
+        catalog=args.catalog, edh_source=args.edh_source, edh_geography=args.edh_geography,
+    )
     _print(result)
     return 0 if result["ok"] else 1
 
@@ -394,6 +397,10 @@ def build_parser() -> argparse.ArgumentParser:
     vp = sub.add_parser("verify")
     vp.add_argument("--evidence", required=True)
     vp.add_argument("--expected-commit", help="trusted executable source commit")
+    vp.add_argument("--source", type=Path, help="trusted pinned lexical inputs")
+    vp.add_argument("--catalog", type=Path, help="trusted Glottolog archive")
+    vp.add_argument("--edh-source", type=Path, help="trusted EDH XML inputs")
+    vp.add_argument("--edh-geography", type=Path, help="trusted EDH gazetteer")
     vp.set_defaults(func=cmd_verify)
 
     sub.add_parser("release").set_defaults(func=cmd_release)

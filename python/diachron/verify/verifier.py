@@ -122,13 +122,57 @@ def _replay(bundle: dict, probe_draws: int) -> tuple[bool, int]:
     return count > 0, count
 
 
-def verify_evidence(evidence_dir: str, expected_commit: str | None = None, probe_draws: int = 16) -> dict:
+def _observed_context_matches(
+    bundle: dict, source: Path, catalog: Path, edh_source: Path | None, edh_geography: Path | None,
+) -> bool:
+    from dataclasses import asdict
+
+    from ..infer.campaign import prepare_study
+    from ..io.epidoc import load_edh
+    from ..io.freeze import load_study
+    from ..io.types import Attestation
+
+    name = bundle["dataset_name"]
+    dataset, _, manifest = load_study(name, source, catalog)
+    observations = []
+    if edh_source is not None:
+        cohort = load_edh(edh_source, edh_geography)
+        observations = cohort["attestations"]
+    model = bundle["context"]["model"]
+    rebuilt = prepare_study(
+        dataset, [Attestation(**att) for att in observations],
+        drop_singletons=model["minimum_present"] == 2,
+    )
+    dates = {str(t): asdict(date) for t, date in rebuilt.tip_dates.items()}
+    if not model["config"]["use_calibration"]:
+        dates = {}
+    return (
+        not bundle["is_synthetic"] and bundle["dataset_version"] == dataset.version
+        and bundle["context"]["frozen_study"] == manifest
+        and bundle["tip_labels"] == rebuilt.tip_labels and model["columns"] == rebuilt.columns
+        and model["tip_dates"] == dates
+        and model["tip_coords"] == {str(t): list(point) for t, point in rebuilt.tip_coords.items()}
+        and bundle["context"]["attestations"] == json.loads(json.dumps(observations))
+    )
+
+
+def verify_evidence(
+    evidence_dir: str, expected_commit: str | None = None, probe_draws: int = 16,
+    *, observed_source: Path | None = None, catalog: Path | None = None,
+    edh_source: Path | None = None, edh_geography: Path | None = None,
+) -> dict:
+    from ..io.types import DataError
+
     root = Path(evidence_dir)
     checks = []
 
     def record(name: str, passed: bool, detail=None) -> None:
         checks.append({"check": name, "ok": bool(passed), "detail": detail})
 
+    if bool(observed_source) != bool(catalog) or bool(edh_source) != bool(edh_geography):
+        return {"ok": False, "reason": "source verification requires both files of each pair", "checks": []}
+    if edh_source and not observed_source:
+        return {"ok": False, "reason": "EDH source verification requires the lexical inputs", "checks": []}
     if probe_draws < 1:
         return {"ok": False, "reason": "probe budget must be positive", "checks": []}
     bundle_dirs = sorted(path.parent for path in root.rglob("bundle.json"))
@@ -157,10 +201,15 @@ def verify_evidence(evidence_dir: str, expected_commit: str | None = None, probe
             record(f"{name}:draw_structure", well_formed)
             record(f"{name}:attestation_intervals", _calibrations_match(bundle))
             record(f"{name}:geographic_honesty", _validate_geography(bundle))
+            if observed_source is not None:
+                record(
+                    f"{name}:frozen_observed_inputs",
+                    _observed_context_matches(bundle, observed_source, catalog, edh_source, edh_geography),
+                )
             if well_formed:
                 replay, count = _replay(bundle, probe_draws)
                 record(f"{name}:posterior_replay", replay, {"probes": count})
-        except (OSError, KeyError, IndexError, TypeError, ValueError, RecursionError) as exc:
+        except (DataError, OSError, KeyError, IndexError, TypeError, ValueError, RecursionError) as exc:
             record(f"{name}:artifact_error", False, str(exc))
 
     acceptance_path = root / "ACCEPTANCE.json"
