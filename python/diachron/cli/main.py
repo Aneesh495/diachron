@@ -114,6 +114,26 @@ def cmd_cldf(args) -> int:
 
 def cmd_attestations(args) -> int:
     """Summarize the attestation corpus (observation types, dating spread)."""
+    if args.action == "edh":
+        from pathlib import Path
+        from ..io.epidoc import load_edh
+        from ..io.types import DataError
+
+        if not all((args.source, args.geography, args.out)):
+            print("provide --source, --geography and --out", file=sys.stderr)
+            return 2
+        try:
+            report = load_edh(Path(args.source), Path(args.geography))
+            out = Path(args.out)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            with out.open("x", encoding="utf-8") as file:
+                json.dump(report, file, indent=2, ensure_ascii=False, allow_nan=False)
+        except (DataError, OSError, ValueError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        _print({key: value for key, value in report.items() if key != "attestations"})
+        return 0
+
     from ..io.corpus import build_primary_corpus
 
     corpus = build_primary_corpus()
@@ -291,7 +311,10 @@ def build_parser() -> argparse.ArgumentParser:
     cp.set_defaults(func=cmd_cldf)
 
     ap = sub.add_parser("attestations")
-    ap.add_argument("action", nargs="?", default="build")
+    ap.add_argument("action", nargs="?", choices=("build", "edh"), default="build")
+    ap.add_argument("--source", help="directory with the pinned EDH XML files")
+    ap.add_argument("--geography", help="pinned EDH GeoJSON gazetteer")
+    ap.add_argument("--out", help="new attestation JSON file")
     ap.set_defaults(func=cmd_attestations)
 
     lp = sub.add_parser("likelihood-check")

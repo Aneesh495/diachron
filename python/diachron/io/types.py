@@ -133,10 +133,16 @@ class Attestation:
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     location_uncertainty_km: Optional[float] = None
-    language_assignment_confidence: float = 1.0
+    language_assignment_confidence: Optional[float] = 1.0
     observation_type: str = "attestation"  # attestation | inscription | reconstruction | trade
     conflicting_with: tuple[str, ...] = field(default_factory=tuple)
     quotation: Optional[str] = None  # exposed only within permitted limits
+    bibliography: tuple[str, ...] = ()
+    location_kind: Optional[str] = None
+    location_uncertainty_note: Optional[str] = None
+    language_assignment_note: Optional[str] = None
+    source_date_start: Optional[str] = None
+    source_date_end: Optional[str] = None
 
 
 @dataclass
