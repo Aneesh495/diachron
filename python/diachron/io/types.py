@@ -114,6 +114,20 @@ class CognateJudgment:
 
 
 @dataclass(frozen=True)
+class CognateClassRecord:
+    """A source class and optional alternative links, before binary projection."""
+
+    id: str
+    root_form: str | None
+    root_language: str | None
+    source_ref: str | None
+    proposed_cognate_id: str | None
+    proposed_scale: int | None
+    superset_id: str | None
+    parallel_derivation: bool | None
+
+
+@dataclass(frozen=True)
 class Attestation:
     """A dated, located record of a language at a point in the past.
 
@@ -170,6 +184,7 @@ class Dataset:
     is_synthetic: bool = False
     source_url: Optional[str] = None
     notes: str = ""
+    cognate_classes: list[CognateClassRecord] = field(default_factory=list)
 
     def validate(self) -> None:
         """Check referential integrity and the invariants the models rely on."""
@@ -183,6 +198,9 @@ class Dataset:
             raise DataError("duplicate language ids")
         if len(lexeme_ids) != len(self.lexemes):
             raise DataError("duplicate lexeme ids")
+        class_ids = {row.id for row in self.cognate_classes}
+        if len(class_ids) != len(self.cognate_classes):
+            raise DataError("duplicate source cognate class ids")
 
         for lx in self.lexemes:
             if lx.language_id not in language_ids:
