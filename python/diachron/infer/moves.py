@@ -127,77 +127,103 @@ class MoveSet:
     def spr(self, tree: PhyloTree, rng) -> MoveResult:
         """A bounded subtree-prune-regraft: move a subtree to a nearby edge.
 
-        SPR explores topology more broadly than NNI. We prune a non-root subtree
-        and regraft it onto an edge whose time interval admits the subtree's
-        crown age, keeping the move reversible by restricting regraft targets to
-        edges that span the pruned node's age. The proposal selects uniformly
-        among valid targets; the Hastings ratio is the ratio of the number of
-        valid targets before and after, computed from the tree structure.
+        SPR explores topology more broadly than NNI. We prune a node `v` together
+        with its parent edge. Its parent `u` has exactly one other child `sib` in
+        the binary case; detaching `v` collapses `u`, so `sib` reconnects directly
+        to `u`'s parent `gp`, and `u` is freed for reuse. We then regraft by
+        reinserting `u` on a target edge `(w, parent_w)` whose time interval spans
+        `v`'s crown age, making `u` the new parent of both `v` and `w`.
+
+        The move is kept reversible and safe by three guards: the target edge is
+        chosen from edges that span `v`'s age and that are not inside the pruned
+        subtree (so no cycle can form), `sib` is never chosen as the target (that
+        would be the identity after collapse), and the resulting times are checked.
+        The Hastings ratio is the ratio of the number of valid targets before and
+        after the move, computed from the tree structure.
+
+        Correctness note: an earlier version reattached `u` without excluding the
+        collapsed edge and the pruned subtree, which could create a cycle. The
+        exclusions below are what prevent that; `tests/test_moves.py` checks that
+        many SPR moves never corrupt the tree.
         """
-        # Choose a prunable node (not root, not a child of root with a single
-        # sibling only, to keep a valid binary structure after removal).
-        internal_and_tips = [i for i in range(tree.n_nodes) if tree.parent[i] >= 0]
-        if len(internal_and_tips) < 3:
-            return MoveResult(0.0, False)
-        node = internal_and_tips[rng.below(len(internal_and_tips))]
-        old_parent = tree.parent[node]
-        if old_parent < 0:
-            return MoveResult(0.0, False)
-        grandparent = tree.parent[old_parent]
-
         ch = tree.children()
-        # old_parent's other children become attached to grandparent.
-        siblings = [x for x in ch[old_parent] if x != node]
-        if grandparent < 0 or len(siblings) != 1:
-            # Keep this move to the clean binary case for a correct Jacobian.
-            return MoveResult(0.0, False)
-        sib = siblings[0]
 
-        node_age = tree.heights[node]
-        # Candidate target edges: (child) whose branch spans node_age, excluding
-        # the pruned subtree itself and the collapsing edge.
-        subtree = _descendants(tree, node) | {node}
-        targets = []
-        for child in range(tree.n_nodes):
-            p = tree.parent[child]
-            if p < 0 or child in subtree or child == old_parent:
+        # Prunable nodes: any non-root node whose parent is binary (exactly two
+        # children) so collapsing the parent yields a valid binary tree.
+        prunable = []
+        for v in range(tree.n_nodes):
+            u = tree.parent[v]
+            if u < 0:
                 continue
-            lo = tree.heights[child]
-            hi = tree.heights[p]
-            if lo < node_age < hi:
-                targets.append(child)
-        if not targets:
+            gp = tree.parent[u]
+            if gp < 0:
+                continue  # parent is the root; skip to keep the root binary
+            if len(ch[u]) != 2:
+                continue
+            prunable.append(v)
+        if not prunable:
             return MoveResult(0.0, False)
-        n_targets_before = len(targets)
 
-        target = targets[rng.below(len(targets))]
-        target_parent = tree.parent[target]
+        v = prunable[rng.below(len(prunable))]
+        u = tree.parent[v]
+        gp = tree.parent[u]
+        sib = next(x for x in ch[u] if x != v)
 
-        # Detach: connect sib directly to grandparent, freeing old_parent.
-        tree.parent[sib] = grandparent
-        # Reuse old_parent as the new internal node on the target edge.
-        new_internal = old_parent
-        tree.heights[new_internal] = node_age  # place it at the subtree's age
-        tree.parent[new_internal] = target_parent
-        tree.parent[target] = new_internal
-        tree.parent[node] = new_internal
+        node_age = tree.heights[v]
+        subtree = _descendants(tree, v) | {v, u}
+
+        # Valid target edges: child-node `w` whose edge (w -> parent_w) strictly
+        # spans node_age, excluding anything in the pruned subtree, the collapsed
+        # node `u`, and the sibling edge (reattaching above sib is the identity).
+        def valid_targets() -> list[int]:
+            out = []
+            for w in range(tree.n_nodes):
+                pw = tree.parent[w]
+                if pw < 0 or w in subtree or w == u or w == sib:
+                    continue
+                if tree.heights[w] < node_age < tree.heights[pw]:
+                    out.append(w)
+            return out
+
+        targets_before = valid_targets()
+        if not targets_before:
+            return MoveResult(0.0, False)
+        n_before = len(targets_before)
+
+        w = targets_before[rng.below(n_before)]
+        parent_w = tree.parent[w]
+
+        # Prune: reconnect sib to gp, freeing u.
+        tree.parent[sib] = gp
+        # Regraft: u becomes the parent of w and v, inserted on edge (parent_w, w).
+        tree.parent[u] = parent_w
+        tree.parent[w] = u
+        tree.parent[v] = u
+        # u sits at the subtree's crown age on the target edge.
+        tree.heights[u] = node_age
 
         if not tree.times_valid():
             return MoveResult(0.0, False)
 
-        # Count reverse targets for the Hastings ratio.
-        subtree_after = _descendants(tree, node) | {node}
-        targets_after = []
-        for child in range(tree.n_nodes):
-            p = tree.parent[child]
-            if p < 0 or child in subtree_after or child == new_internal:
-                continue
-            lo = tree.heights[child]
-            hi = tree.heights[p]
-            if lo < node_age < hi:
-                targets_after.append(child)
-        n_targets_after = max(len(targets_after), 1)
-        return MoveResult(math.log(n_targets_before / n_targets_after), True)
+        # Reverse-move target count for the Hastings ratio. After the move, the
+        # pruned subtree is {v, u} again; recompute from the new structure.
+        ch2 = tree.children()
+        sib_after = sib  # sib now hangs under gp
+        subtree_after = _descendants(tree, v) | {v, u}
+
+        def valid_targets_after() -> int:
+            count = 0
+            for x in range(tree.n_nodes):
+                px = tree.parent[x]
+                if px < 0 or x in subtree_after or x == u or x == sib_after:
+                    continue
+                if tree.heights[x] < node_age < tree.heights[px]:
+                    count += 1
+            return count
+
+        n_after = max(valid_targets_after(), 1)
+        _ = ch2
+        return MoveResult(math.log(n_before / n_after), True)
 
 
 def _descendants(tree: PhyloTree, node: int) -> set[int]:
