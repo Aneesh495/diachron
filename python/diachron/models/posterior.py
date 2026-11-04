@@ -113,15 +113,45 @@ class PosteriorModel:
     def calibration_log_density(self, tree) -> float:
         if not self.config.use_calibration or not self.calibrations:
             return 0.0
-        ch = tree.children()
+        # taxon -> node index, built once per evaluation.
+        taxon_to_node = {
+            tree.taxon[i]: i for i in range(tree.n_nodes) if tree.taxon[i] >= 0
+        }
         total = 0.0
+        need_mrca = False
         for cal in self.calibrations:
-            node = _mrca(tree, ch, cal.clade_taxa)
-            if node is None:
-                return float("-inf")
-            total += calibration_log_density(
-                tree.heights[node], cal.age_low, cal.age_high, cal.kind
-            )
+            if len(cal.clade_taxa) == 1:
+                # Single-taxon calibration from a dated attestation: the
+                # language's lineage existed at the attested age, so the node
+                # where that lineage branches from its sibling (the tip's parent)
+                # must be at least that old. We score the parent node's age
+                # against the interval, which is what carries time-scale
+                # information; a contemporary tip at age 0 would carry none.
+                tip = taxon_to_node.get(cal.clade_taxa[0])
+                if tip is None:
+                    return float("-inf")
+                parent = tree.parent[tip]
+                node = parent if parent >= 0 else tip
+                total += calibration_log_density(
+                    tree.heights[node], cal.age_low, cal.age_high, cal.kind
+                )
+            else:
+                need_mrca = True
+        if need_mrca:
+            n_tips = len(taxon_to_node)
+            for cal in self.calibrations:
+                if len(cal.clade_taxa) <= 1:
+                    continue
+                if len(cal.clade_taxa) == n_tips:
+                    # MRCA of every tip is the root; skip the ancestor walk.
+                    node = tree.root
+                else:
+                    node = _mrca(tree, cal.clade_taxa, taxon_to_node)
+                if node is None:
+                    return float("-inf")
+                total += calibration_log_density(
+                    tree.heights[node], cal.age_low, cal.age_high, cal.kind
+                )
         return total
 
     def geography_log_density(self, tree, geo_sigma2: float) -> float:
@@ -184,9 +214,8 @@ class PosteriorModel:
         return lp
 
 
-def _mrca(tree, children: dict[int, list[int]], taxa: tuple[int, ...]) -> int | None:
+def _mrca(tree, taxa: tuple[int, ...], taxon_to_node: dict[int, int]) -> int | None:
     """Most recent common ancestor node of a set of tip taxa."""
-    taxon_to_node = {tree.taxon[i]: i for i in range(tree.n_nodes) if tree.taxon[i] >= 0}
     try:
         nodes = [taxon_to_node[t] for t in taxa]
     except KeyError:
