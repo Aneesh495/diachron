@@ -189,12 +189,80 @@ fn haversine_km(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
     geo::haversine_km(lat1, lon1, lat2, lon2)
 }
 
+/// Discrete-gamma rate categories (median representatives, mean normalized to 1).
+#[pyfunction]
+fn discrete_gamma_rates(alpha: f64, k: usize) -> Vec<f64> {
+    crate::rates::discrete_gamma_rates(alpha, k)
+}
+
+/// Run the native Rust MCMC chain and return thinned scalar draws.
+///
+/// Returns a list of (iteration, log_post, root_age, gain, loss) tuples. The tree
+/// crosses as the usual parallel arrays; node heights carry the times.
+#[pyfunction]
+#[allow(clippy::too_many_arguments)]
+fn run_native_chain(
+    parent: Vec<i64>,
+    height: Vec<f64>,
+    taxon: Vec<i64>,
+    root: usize,
+    gain: f64,
+    loss: f64,
+    columns: Vec<Vec<i64>>,
+    pop_size: f64,
+    seed: u64,
+    warmup: u64,
+    iterations: u64,
+    thin: u64,
+) -> PyResult<Vec<(u64, f64, f64, f64, f64)>> {
+    // Build the tree (branch lengths derived from heights).
+    let n = parent.len();
+    if height.len() != n || taxon.len() != n {
+        return Err(PyValueError::new_err("tree arrays length mismatch"));
+    }
+    let mut tree = crate::tree::Tree::new();
+    for i in 0..n {
+        tree.nodes.push(crate::tree::Node {
+            parent: if parent[i] < 0 { None } else { Some(parent[i] as usize) },
+            children: Vec::new(),
+            branch_len: 0.0,
+            taxon: if taxon[i] < 0 { None } else { Some(taxon[i] as usize) },
+            height: height[i],
+        });
+    }
+    for i in 0..n {
+        if let Some(p) = tree.nodes[i].parent {
+            if p >= n {
+                return Err(PyValueError::new_err("parent index out of range"));
+            }
+            tree.nodes[p].children.push(i);
+        }
+    }
+    tree.root = root;
+    tree.set_branch_lengths_from_heights();
+
+    let cols: Vec<Vec<Option<usize>>> = columns
+        .iter()
+        .map(|c| c.iter().map(|&s| if s < 0 { None } else { Some(s as usize) }).collect())
+        .collect();
+    let target = crate::chain::Target { columns: cols, pop_size };
+    let mut chain = crate::chain::NativeChain::new(tree, gain, loss, seed, target);
+    chain.run(warmup, iterations, thin);
+    Ok(chain
+        .draws
+        .iter()
+        .map(|d| (d.iteration, d.log_post, d.root_age, d.gain, d.loss))
+        .collect())
+}
+
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(char_log_likelihood, m)?)?;
     m.add_function(wrap_pyfunction!(block_log_likelihood, m)?)?;
     m.add_function(wrap_pyfunction!(brownian_sphere_logpdf, m)?)?;
     m.add_function(wrap_pyfunction!(haversine_km, m)?)?;
+    m.add_function(wrap_pyfunction!(discrete_gamma_rates, m)?)?;
+    m.add_function(wrap_pyfunction!(run_native_chain, m)?)?;
     m.add_class::<PyRng>()?;
     Ok(())
 }
