@@ -1,0 +1,30 @@
+{
+  "name": "diachron_primary",
+  "version": "synthetic-1",
+  "license": "synthetic (no restrictions)",
+  "doi": null,
+  "is_synthetic": true,
+  "notes": "Labeled synthetic known-truth corpus. Not observed history.",
+  "dimensions": {
+    "languages_total": 112,
+    "concepts_total": 110,
+    "eligible_languages": 112,
+    "eligible_concepts": 110,
+    "lexemes": 11333,
+    "judgments": 11333,
+    "observed_cells": 11333,
+    "attestations": 140
+  },
+  "true_history": {
+    "root_age": 6000.0,
+    "gain": 0.00035,
+    "loss": 0.00085,
+    "clock_rate": 1.0
+  },
+  "attestation_observation_types": {
+    "inscription": 35,
+    "trade": 29,
+    "attestation": 41,
+    "reconstruction": 35
+  }
+}
