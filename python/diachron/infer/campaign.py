@@ -14,7 +14,11 @@ coordinates for the geographic model.
 
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
+from contextlib import nullcontext
 from dataclasses import asdict, dataclass, field
+import multiprocessing
+from functools import partial
 from pathlib import Path
 
 import numpy as np
@@ -205,6 +209,54 @@ def build_model(study: StudyData, config: ModelConfig) -> PosteriorModel:
     )
 
 
+def _run_chain(
+    c: int, *, model: PosteriorModel, tip_labels: list[str], warmup: int,
+    iterations: int, thin: int, root_age_init: float, base_seed: int,
+    checkpoint_dir: str | None, resume: bool,
+) -> Chain:
+    rng = np.random.default_rng(base_seed + c)
+    dates = {taxon: date.center() for taxon, date in model.tip_dates.items()}
+    start = random_starting_tree(tip_labels, root_age_init, rng, dates)
+    cfg = ChainConfig(
+        seed=base_seed + 7919 * (c + 1), warmup=warmup, iterations=iterations, thin=thin,
+    )
+    state = ChainState(
+        gain=0.0005, loss=0.001, clock_rate=1.0,
+        borrow_rates=[0.02] * len(model.borrow_candidates),
+        clock_multipliers=[1.0] * start.n_nodes if model.config.relaxed_clock_sigma > 0 else [],
+    )
+    ckpt = None
+    lock = nullcontext()
+    if checkpoint_dir is not None:
+        directory = Path(checkpoint_dir)
+        directory.mkdir(parents=True, exist_ok=True)
+        ckpt = directory / f"{model.config.name}_chain{c}.json"
+        lock = ckpt.with_suffix(".lock").open("a")
+    with lock as handle:
+        if handle is not None:
+            import fcntl
+
+            try:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise FileExistsError(f"chain checkpoint is in use: {ckpt}") from exc
+        if ckpt is not None and ckpt.exists():
+            if not resume:
+                raise FileExistsError(f"checkpoint already exists: {ckpt}; use --resume")
+            chain = Chain.resume(model, str(ckpt))
+            if chain.config != cfg or chain.tree.tip_labels != start.tip_labels:
+                raise ValueError(f"checkpoint chain budget, seed, or tip labels differ: {ckpt}")
+        else:
+            chain = Chain(model, start, state, cfg)
+        chain.run(checkpoint_path=ckpt, checkpoint_every=1000)
+    return chain
+
+
+def _persist_chain(index, *, worker, directory, name):
+    worker(index)
+    return str(Path(directory) / f"{name}_chain{index}.json")
+
+
 def run_campaign(
     study: StudyData,
     config: ModelConfig,
@@ -218,43 +270,29 @@ def run_campaign(
     checkpoint_dir: str | None = None,
     progress=None,
     resume: bool = False,
+    jobs: int = 1,
 ) -> list[Chain]:
-    """Run `n_chains` independently initialized chains for one model."""
+    """Run independent chains in a bounded pool, returning fixed index order."""
+    if not 1 <= jobs <= 4 or not 1 <= n_chains <= 8:
+        raise ValueError("campaign requires 1 to 8 chains and 1 to 4 workers")
+    if jobs > 1 and checkpoint_dir is None:
+        raise ValueError("parallel chains require a checkpoint directory")
     model = build_model(study, config)
-    chains: list[Chain] = []
-    for c in range(n_chains):
-        rng = np.random.default_rng(base_seed + c)
-        dates = {taxon: date.center() for taxon, date in model.tip_dates.items()}
-        start = random_starting_tree(study.tip_labels, root_age_init, rng, dates)
-        cfg = ChainConfig(
-            seed=base_seed + 7919 * (c + 1),
-            warmup=warmup,
-            iterations=iterations,
-            thin=thin,
-        )
-        borrow_init = (
-            [0.02] * len(model.borrow_candidates)
-            if config.use_borrowing and study.borrow_candidates
-            else []
-        )
-        state = ChainState(
-            gain=0.0005, loss=0.001, clock_rate=1.0, borrow_rates=borrow_init,
-            clock_multipliers=[1.0] * start.n_nodes if config.relaxed_clock_sigma > 0 else [],
-        )
-        ckpt = (
-            Path(checkpoint_dir) / f"{config.name}_chain{c}.json" if checkpoint_dir else None
-        )
-        if ckpt is not None and ckpt.exists():
-            if not resume:
-                raise FileExistsError(f"checkpoint already exists: {ckpt}; use --resume")
-            chain = Chain.resume(model, str(ckpt))
-            if chain.config != cfg or chain.tree.tip_labels != start.tip_labels:
-                raise ValueError(f"checkpoint chain budget, seed, or tip labels differ: {ckpt}")
-        else:
-            chain = Chain(model, start, state, cfg)
-        chain.run(checkpoint_path=ckpt, checkpoint_every=1000)
-        chains.append(chain)
-        if progress:
+    worker = partial(
+        _run_chain, model=model, tip_labels=study.tip_labels, warmup=warmup,
+        iterations=iterations, thin=thin, root_age_init=root_age_init,
+        base_seed=base_seed, checkpoint_dir=checkpoint_dir, resume=resume,
+    )
+    if jobs == 1:
+        chains = [worker(c) for c in range(n_chains)]
+    else:
+        task = partial(_persist_chain, worker=worker, directory=checkpoint_dir, name=config.name)
+        with ProcessPoolExecutor(
+            max_workers=min(n_chains, jobs), mp_context=multiprocessing.get_context("spawn"),
+        ) as pool:
+            chains = [Chain.resume(model, path) for path in pool.map(task, range(n_chains))]
+    if progress is not None:
+        for c, chain in enumerate(chains):
             progress(config.name, c, chain)
     return chains
 

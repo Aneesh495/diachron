@@ -180,6 +180,7 @@ def cmd_sample(args) -> int:
             out_dir=args.out,
             profile=args.profile,
             resume=args.resume,
+            jobs=args.jobs,
             observed_study=args.study,
             observed_source=args.source,
             catalog=args.catalog,
@@ -346,6 +347,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--out", default="runs/sample")
     sp.add_argument("--profile", choices=("cpu", "full"), default="cpu")
     sp.add_argument("--resume", action="store_true")
+    sp.add_argument("--jobs", type=int, default=1)
     sp.add_argument("--study", choices=("iecor", "abvd"))
     sp.add_argument("--source", type=Path, help="root of pinned CLDF source checkout")
     sp.add_argument("--catalog", type=Path, help="pinned Glottolog archive")
