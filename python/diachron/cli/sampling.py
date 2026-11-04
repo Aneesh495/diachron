@@ -46,6 +46,7 @@ def run_sample(
     thin: int,
     out_dir: str,
     profile: str = "cpu",
+    resume: bool = False,
 ) -> dict:
     if model_name not in _MODEL_CONFIGS:
         raise ValueError(f"unknown model {model_name}; choose from {list(_MODEL_CONFIGS)}")
@@ -64,6 +65,7 @@ def run_sample(
         thin=thin,
         root_age_init=corpus.truth.root_age,
         checkpoint_dir=os.path.join(out_dir, "checkpoints"),
+        resume=resume,
     )
     bundle = campaign_bundle(chains, study, config, source_commit=source_commit())
     bundle_dir = os.path.join(out_dir, model_name)

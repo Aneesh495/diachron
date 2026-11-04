@@ -14,7 +14,8 @@ coordinates for the geographic model.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
 
 import numpy as np
 
@@ -37,6 +38,7 @@ class StudyData:
     dataset: Dataset
     borrow_candidates: list[tuple[int, int]] = None  # type: ignore[assignment]
     minimum_present: int = 1
+    attestations: list[Attestation] = field(default_factory=list)
 
 
 def prepare_study(
@@ -118,6 +120,7 @@ def prepare_study(
         dataset=dataset,
         borrow_candidates=borrow_candidates,
         minimum_present=2 if drop_singletons else 1,
+        attestations=list(attestations or ()),
     )
 
 
@@ -181,6 +184,7 @@ def run_campaign(
     base_seed: int = 1000,
     checkpoint_dir: str | None = None,
     progress=None,
+    resume: bool = False,
 ) -> list[Chain]:
     """Run `n_chains` independently initialized chains for one model."""
     model = build_model(study, config)
@@ -202,10 +206,17 @@ def run_campaign(
         state = ChainState(
             gain=0.0005, loss=0.001, clock_rate=1.0, borrow_rates=borrow_init
         )
-        chain = Chain(model, start, state, cfg)
         ckpt = (
-            f"{checkpoint_dir}/{config.name}_chain{c}.json" if checkpoint_dir else None
+            Path(checkpoint_dir) / f"{config.name}_chain{c}.json" if checkpoint_dir else None
         )
+        if ckpt is not None and ckpt.exists():
+            if not resume:
+                raise FileExistsError(f"checkpoint already exists: {ckpt}; use --resume")
+            chain = Chain.resume(model, str(ckpt))
+            if chain.config != cfg or chain.tree.tip_labels != start.tip_labels:
+                raise ValueError(f"checkpoint chain budget, seed, or tip labels differ: {ckpt}")
+        else:
+            chain = Chain(model, start, state, cfg)
         chain.run(checkpoint_path=ckpt, checkpoint_every=1000)
         chains.append(chain)
         if progress:
@@ -219,7 +230,7 @@ def campaign_bundle(
     config: ModelConfig,
     source_commit: str = "unknown",
 ) -> PosteriorBundle:
-    return bundle_from_chains(
+    bundle = bundle_from_chains(
         chains,
         model_name=config.name,
         dataset_name=study.dataset.name,
@@ -228,3 +239,10 @@ def campaign_bundle(
         tip_labels=study.tip_labels,
         source_commit=source_commit,
     )
+    bundle.context = {
+        "schema_version": 2,
+        "model": asdict(chains[0].model),
+        "attestations": [asdict(a) for a in study.attestations],
+        "dataset_url": study.dataset.source_url,
+    }
+    return bundle

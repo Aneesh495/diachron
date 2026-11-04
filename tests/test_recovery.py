@@ -46,16 +46,16 @@ def test_exact_resume(tmp_path):
 
     partial = Chain(model, start.copy(),
                     ChainState(gain=0.0005, loss=0.001, clock_rate=1.0),
-                    ChainConfig(seed=4321, warmup=200, iterations=150, thin=10))
+                    cfg)
     ckpt = str(tmp_path / "ckpt.json")
-    partial.run(checkpoint_path=ckpt, checkpoint_every=50)
-    partial.checkpoint(ckpt)
+    partial.run(checkpoint_path=ckpt, checkpoint_every=50, until_iteration=353)
 
     resumed = Chain.resume(model, ckpt)
-    resumed.config = cfg  # restore the full target iteration count
     resumed.run()
 
-    assert abs(full._log_post - resumed._log_post) < 1e-9
+    assert full._log_post == resumed._log_post
+    assert full.draws == resumed.draws
+    assert full.rng.snapshot() == resumed.rng.snapshot()
     assert full.tree.parent == resumed.tree.parent
     assert full.tree.heights == resumed.tree.heights
     assert len(full.draws) == len(resumed.draws)
@@ -82,3 +82,17 @@ def test_corrupted_checkpoint_rejected(tmp_path):
 
     with pytest.raises((KeyError, ValueError)):
         Chain.resume(model, ckpt)
+
+
+def test_checkpoint_rejects_missingness_change(tmp_path):
+    from dataclasses import replace
+
+    model, truth = _build_model()
+    tree = random_starting_tree(truth.tip_language_ids, 6000.0, np.random.default_rng(0))
+    chain = Chain(model, tree, ChainState(0.0005, 0.001, 1.0), ChainConfig(1))
+    path = tmp_path / "ckpt.json"
+    chain.checkpoint(path)
+    altered = [list(c) for c in model.columns]
+    altered[0][0] = -1 if altered[0][0] >= 0 else 0
+    with pytest.raises(ValueError, match="model inputs differ"):
+        Chain.resume(replace(model, columns=altered), path)

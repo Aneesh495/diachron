@@ -19,6 +19,7 @@ retained draw is duplicated (gate G12).
 from __future__ import annotations
 
 from dataclasses import dataclass, field, asdict
+import hashlib
 import json
 import math
 import os
@@ -29,7 +30,10 @@ import numpy as np
 from diachron import _core
 from ..models.tree import PhyloTree
 from ..models.posterior import PosteriorModel
+from ..util.gitmeta import source_commit
 from .moves import MoveSet
+
+CHECKPOINT_SCHEMA = 2
 
 
 @dataclass
@@ -61,6 +65,11 @@ class Draw:
     loss: float
     clock_rate: float
     newick: str
+    parent: list[int]
+    heights: list[float]
+    taxon: list[int]
+    geo_sigma2: float
+    borrow_rates: list[float]
 
 
 class Chain:
@@ -71,6 +80,8 @@ class Chain:
         state: ChainState,
         config: ChainConfig,
     ):
+        if config.warmup < 0 or config.iterations < 1 or config.thin < 1:
+            raise ValueError("chain requires positive iterations and thinning, and nonnegative warmup")
         self.model = model
         self.tree = tree
         self.state = state
@@ -82,6 +93,8 @@ class Chain:
         self._accepts = 0
         self._proposals = 0
         self._log_post = self._eval()
+        if not math.isfinite(self._log_post):
+            raise ValueError("chain initial state has nonfinite posterior")
 
     def _eval(self) -> float:
         import numpy as _np
@@ -240,9 +253,18 @@ class Chain:
             max(self.moves.time_window_frac * adjust, 1e-4), 0.9
         )
 
-    def run(self, checkpoint_path: str | None = None, checkpoint_every: int = 1000) -> None:
-        """Run warmup then sampling, checkpointing periodically."""
+    def run(
+        self, checkpoint_path: str | None = None, checkpoint_every: int = 1000,
+        *, until_iteration: int | None = None,
+    ) -> None:
+        """Run to the requested boundary and checkpoint exact retained state."""
+        if checkpoint_every < 1:
+            raise ValueError("checkpoint cadence must be positive")
         total = self.config.warmup + self.config.iterations
+        if until_iteration is not None:
+            if not self.iteration <= until_iteration <= total:
+                raise ValueError("stop iteration outside the configured chain")
+            total = until_iteration
         while self.iteration < total:
             adapt = self.iteration < self.config.warmup
             self._step(adapt)
@@ -258,9 +280,14 @@ class Chain:
                         loss=self.state.loss,
                         clock_rate=self.state.clock_rate,
                         newick=self.tree.newick(),
+                        parent=list(self.tree.parent),
+                        heights=list(self.tree.heights),
+                        taxon=list(self.tree.taxon),
+                        geo_sigma2=self.state.geo_sigma2,
+                        borrow_rates=list(self.state.borrow_rates),
                     )
                 )
-            if checkpoint_path and self.iteration % checkpoint_every == 0:
+            if checkpoint_path and (self.iteration % checkpoint_every == 0 or self.iteration == total):
                 self.checkpoint(checkpoint_path)
 
     @property
@@ -270,6 +297,9 @@ class Chain:
     # --- checkpointing -----------------------------------------------------
     def checkpoint(self, path: str) -> None:
         payload = {
+            "schema": CHECKPOINT_SCHEMA,
+            "source_commit": source_commit(),
+            "model_digest": model_digest(self.model),
             "rng_state": self.rng.snapshot(),
             "iteration": self.iteration,
             "parent": self.tree.parent,
@@ -290,14 +320,26 @@ class Chain:
         d = os.path.dirname(path) or "."
         os.makedirs(d, exist_ok=True)
         fd, tmp = tempfile.mkstemp(dir=d, suffix=".tmp")
-        with os.fdopen(fd, "w") as f:
-            json.dump(payload, f)
-        os.replace(tmp, path)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(payload, f, allow_nan=False)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, path)
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
 
     @classmethod
     def resume(cls, model: PosteriorModel, path: str) -> "Chain":
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             payload = json.load(f)
+        if payload.get("schema") != CHECKPOINT_SCHEMA:
+            raise ValueError("unsupported checkpoint schema")
+        if payload.get("source_commit") != source_commit():
+            raise ValueError("checkpoint executable source differs")
+        if payload.get("model_digest") != model_digest(model):
+            raise ValueError("checkpoint model inputs differ")
         tree = PhyloTree(
             parent=list(payload["parent"]),
             heights=list(payload["heights"]),
@@ -307,6 +349,18 @@ class Chain:
         state = ChainState(**payload["state"])
         config = ChainConfig(**payload["config"])
         chain = cls(model, tree, state, config)
+        iteration = payload["iteration"]
+        draw_iterations = range(config.warmup + config.thin, iteration + 1, config.thin)
+        if (
+            not 0 <= iteration <= config.warmup + config.iterations
+            or [d["iteration"] for d in payload["draws"]] != list(draw_iterations)
+            or payload["n_draws"] != len(payload["draws"])
+            or not 0 <= payload["accepts"] <= payload["proposals"] == iteration
+            or chain._log_post != payload["log_post"]
+        ):
+            raise ValueError("checkpoint iteration, draws, or state score disagree")
+        if not any(payload["rng_state"]):
+            raise ValueError("checkpoint RNG state is zero")
         chain.rng = _core.PyRng.from_state(payload["rng_state"])
         chain.iteration = payload["iteration"]
         chain.moves.scale_lambda = payload["scale_lambda"]
@@ -319,3 +373,9 @@ class Chain:
 
     def scalar_trace(self, name: str) -> np.ndarray:
         return np.array([getattr(d, name) for d in self.draws], dtype=float)
+
+
+def model_digest(model: PosteriorModel) -> str:
+    """Identity of likelihood inputs and configuration, independent of file path."""
+    canonical = json.dumps(asdict(model), sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(canonical.encode()).hexdigest()
