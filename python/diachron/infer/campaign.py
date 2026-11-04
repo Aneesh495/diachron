@@ -41,6 +41,7 @@ class StudyData:
     minimum_present: int = 1
     attestations: list[Attestation] = field(default_factory=list)
     tip_dates: dict[int, TipDate] = field(default_factory=dict)
+    character_ids: list[tuple[str, str]] = field(default_factory=list)
 
 
 def prepare_study(
@@ -49,20 +50,20 @@ def prepare_study(
     *,
     drop_singletons: bool = True,
     include_loans_as_present: bool = True,
+    include_unobserved_languages: bool = False,
 ) -> StudyData:
     """Transform a dataset into model-ready arrays aligned to a taxon order."""
     cm = build_character_matrix(
         dataset,
         drop_singletons=drop_singletons,
         include_loans_as_present=include_loans_as_present,
+        include_unobserved_languages=include_unobserved_languages,
     )
     tip_labels = list(cm.language_ids)
     lang_to_idx = {lid: i for i, lid in enumerate(tip_labels)}
 
-    columns = []
-    for char in cm.variable_characters():
-        col = [char.states[lang_to_idx[lid]] for lid in tip_labels]
-        columns.append(col)
+    characters = cm.variable_characters()
+    columns = [char.states for char in characters]
 
     # Tip coordinates for the geographic model, keyed by taxon index.
     coord_by_lang = {
@@ -128,6 +129,7 @@ def prepare_study(
         minimum_present=2 if drop_singletons else 1,
         attestations=list(attestations or ()),
         tip_dates=tip_dates,
+        character_ids=[(char.concept_id, char.cognate_class) for char in characters],
     )
 
 
