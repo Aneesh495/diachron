@@ -1,22 +1,18 @@
-"""Run the full acceptance campaign into a fresh evidence directory.
+"""Run and record the bounded diagnostic campaign.
 
-`make acceptance RUN_ID=<id> PROFILE=full` executes the declared campaign and
-writes an evidence bundle that `make verify` can check independently. The
-campaign runs the four-chain inference for each required model, computes
-diagnostics, runs posterior predictive and a bounded recovery pilot, and records
-`SOURCE_INPUTS.json`, `DATASETS.json`, `ENVIRONMENT.json`, `COMMANDS.jsonl`,
-`MANIFEST.json`, and `ACCEPTANCE.json`. It refuses to overwrite an existing
-run directory so evidence directories never collide.
-
-The profile name is recorded; a `cpu` quick profile writes a clearly labeled
-diagnostic bundle and cannot set the full acceptance flag.
+Full acceptance fails closed until the observed-data prediction, sensitivity,
+and release gates can be executed and independently verified.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import platform
+from pathlib import Path
+import re
+import subprocess
 import sys
 import time
 
@@ -25,7 +21,7 @@ import numpy as np
 from ..io.corpus import build_primary_corpus
 from ..infer.campaign import prepare_study, run_campaign, campaign_bundle
 from ..models.posterior import ModelConfig
-from ..diagnostics import convergence as cv
+from .sampling import run_diagnose
 from ..util.gitmeta import source_commit, working_tree_clean
 
 
@@ -38,19 +34,30 @@ _MODELS = {
 
 
 def run_acceptance(run_id: str, profile: str = "full") -> int:
+    if profile not in {"cpu", "full"} or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}", run_id):
+        print("invalid profile or run ID", file=sys.stderr)
+        return 2
     evidence_dir = os.path.join("evidence", run_id)
-    if os.path.exists(evidence_dir):
+    try:
+        os.makedirs(evidence_dir, exist_ok=False)
+    except FileExistsError:
         print(f"evidence directory already exists: {evidence_dir}", file=sys.stderr)
         return 2
-    os.makedirs(evidence_dir, exist_ok=True)
+    commit = source_commit()
+    if profile == "full":
+        result = {
+            "run_id": run_id, "profile": profile, "source_commit": commit,
+            "status": "blocked", "full_profile_executed": False,
+            "blocking_gates": ["G06", "G07", "G08", "G10", "G14", "G15"],
+            "reason": "Full acceptance needs the complete observed-data campaign and verifier.",
+        }
+        _write(evidence_dir, "ACCEPTANCE.json", result)
+        print(json.dumps(result, indent=2))
+        return 1
+
     commands_path = os.path.join(evidence_dir, "COMMANDS.jsonl")
     t0 = time.time()
-
-    if profile == "full":
-        n_chains, warmup, iters = 4, 3000, 12000
-    else:
-        n_chains, warmup, iters = 4, 800, 2400
-
+    n_chains, warmup, iters = 4, 400, 1200
     corpus = build_primary_corpus()
     study = prepare_study(corpus.dataset, corpus.attestations)
 
@@ -71,12 +78,17 @@ def run_acceptance(run_id: str, profile: str = "full") -> int:
         "eligible_concepts": corpus.dataset.n_eligible_concepts,
         "attestations": len(corpus.attestations),
     })
-    commit = source_commit()
+    tracked = subprocess.check_output(["git", "ls-files", "-z"]).decode().split("\0")
+    inputs = {
+        name: hashlib.sha256(Path(name).read_bytes()).hexdigest()
+        for name in tracked if name and Path(name).is_file()
+    }
     _write(evidence_dir, "SOURCE_INPUTS.json", {
         "source_commit": commit,
         "working_tree_clean": working_tree_clean(),
         "n_characters": len(study.columns),
         "tip_labels": study.tip_labels,
+        "tracked_file_sha256": inputs,
     })
 
     model_results = {}
@@ -92,13 +104,8 @@ def run_acceptance(run_id: str, profile: str = "full") -> int:
             bundle = campaign_bundle(chains, study, cfg, source_commit=commit)
             bundle.save(os.path.join(evidence_dir, name))
 
-            root = np.array(bundle.scalar("root_age"))
-            diag = {
-                "split_rhat": round(cv.split_rhat(root), 4),
-                "bulk_ess": round(cv.bulk_ess(root), 1),
-                "tail_ess": round(cv.tail_ess(root), 1),
-                "acceptance": [round(c.acceptance_rate, 3) for c in chains],
-            }
+            diag = run_diagnose(os.path.join(evidence_dir, name))
+            diag["acceptance"] = [round(c.acceptance_rate, 3) for c in chains]
             model_results[name] = diag
             cmdf.write(json.dumps({
                 "command": f"run_campaign {name}",
@@ -114,7 +121,8 @@ def run_acceptance(run_id: str, profile: str = "full") -> int:
         "source_commit": commit,
         "models": list(_MODELS),
         "diagnostics": model_results,
-        "full_profile_executed": profile == "full",
+        "status": "diagnostic_completed",
+        "full_profile_executed": False,
         "seconds": round(time.time() - t0, 1),
         "note": "Synthetic known-truth corpus; results are posteriors with uncertainty, not proven history.",
     }
@@ -130,4 +138,4 @@ def run_acceptance(run_id: str, profile: str = "full") -> int:
 
 def _write(directory: str, name: str, obj: dict) -> None:
     with open(os.path.join(directory, name), "w", encoding="utf-8") as f:
-        json.dump(obj, f, indent=2)
+        json.dump(obj, f, indent=2, allow_nan=False)
