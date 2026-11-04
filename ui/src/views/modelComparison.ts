@@ -7,7 +7,9 @@ export function modelComparison(bundles: Record<string, PosteriorBundle>): HTMLE
   summary.textContent = "Compare saved models";
   const table = document.createElement("table");
   const title = table.createCaption();
-  title.textContent = "Root ages are central intervals of displayed draws, in years before present.";
+  const epoch = Object.values(bundles)[0].calendarEpoch;
+  title.textContent = "Root ages are central intervals of displayed draws, " +
+    (epoch ? `in years before ${epoch} CE.` : "in model years.");
   const header = table.createTHead().insertRow();
   for (const text of ["Model", "Root age", "Root split R̂", "Bulk ESS", "Status"]) {
     const cell = document.createElement("th");

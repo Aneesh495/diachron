@@ -93,3 +93,10 @@ jq -r '.files | keys[]' data/manifests/edh.json |
 curl -fsSL --max-time 60 "$edh_base/geography/edhGeographicData.json" -o data/cache/edh-geography.json
 make attestations ATTESTATION_ARGS='edh --source data/cache/edh --geography data/cache/edh-geography.json --out runs/observed/attestations.json'
 ```
+
+IE-CoR's lexical tip distributions use years before 2000 CE. The EDH
+derived records retain their independent 1950 reference year. The
+workbench adds 50 years to EDH ages on the linked IE-CoR timeline and
+keeps the original 1950-based interval in the inspector. The conversion
+is for display. EDH ages do not enter the IE-CoR posterior.
+[IE-CoR dataset paper](https://doi.org/10.1038/s41597-025-05445-3).

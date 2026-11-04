@@ -317,6 +317,7 @@ def campaign_bundle(
         "model": asdict(chains[0].model),
         "attestations": [asdict(a) for a in study.attestations],
         "dataset_url": study.dataset.source_url,
+        "calendar_epoch": 2000 if study.dataset.name == "iecor" else None,
         "language_names": {language.id: language.name for language in study.dataset.languages},
     }
     return bundle

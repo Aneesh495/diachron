@@ -56,12 +56,16 @@ def export_workbench(
         raise ValueError("workbench requires one to eight saved bundles")
     bundles = {}
     first = None
+    calendar_epoch = None
     for name, directory in bundle_dirs.items():
         bundle = PosteriorBundle.load(directory)
         if bundle.context.get("schema_version") != 2:
             raise ValueError("bundle requires replayable model and evidence context")
         if first is None:
             first = bundle
+            calendar_epoch = bundle.context.get(
+                "calendar_epoch", 2000 if bundle.dataset_name == "iecor" else None,
+            )
         if (
             bundle.tip_labels != first.tip_labels or bundle.dataset_name != first.dataset_name
             or bundle.dataset_version != first.dataset_version
@@ -92,6 +96,7 @@ def export_workbench(
                 for chain in retained
             ],
             "rootLocations": _root_locations(bundle, retained),
+            "calendarEpoch": calendar_epoch,
         }
 
     names = first.context.get("language_names", {})
@@ -112,17 +117,23 @@ def export_workbench(
         {"lat": lat, "lon": lon, "kind": "modern-reference", "label": first.tip_labels[int(t)]}
         for t, (lat, lon) in coordinates.items()
     ]
-    attestations = [
-        {
+    attestations = []
+    for a in first.context["attestations"]:
+        if a["language_id"] not in first.tip_labels:
+            continue
+        # EDH age values in frozen bundles use the source cohort's 1950 epoch.
+        # IE-CoR dates use 2000 CE. Convert only for the linked display.
+        source_epoch = 1950 if a["id"].startswith("edh:") else None
+        shift = calendar_epoch - source_epoch if calendar_epoch and source_epoch else 0
+        attestations.append({
             "id": a["id"], "lat": a["latitude"], "lon": a["longitude"], "kind": "attestation",
-            "label": a["language_id"], "ageLow": a["age_low"], "ageHigh": a["age_high"],
+            "label": a["language_id"], "ageLow": a["age_low"] + shift, "ageHigh": a["age_high"] + shift,
+            "sourceAgeLow": a["age_low"], "sourceAgeHigh": a["age_high"], "sourceEpoch": source_epoch,
             "uncertaintyKm": a["location_uncertainty_km"], "region": a["region"],
             "sourceRef": a["source_ref"], "page": a["page"], "bibliography": a["bibliography"],
             "locationKind": a["location_kind"], "locationNote": a["location_uncertainty_note"],
             "languageNote": a["language_assignment_note"], "conflicts": a["conflicting_with"],
-        }
-        for a in first.context["attestations"] if a["language_id"] in first.tip_labels
-    ]
+        })
     matrix = {
         "languageLabels": [names[tip] for tip in first.tip_labels],
         "columns": first.context["model"]["columns"][:400],

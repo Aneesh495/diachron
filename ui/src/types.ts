@@ -28,6 +28,7 @@ export interface PosteriorBundle {
   source_commit: string;
   notes: string;
   rootLocations: RootLocation[];
+  calendarEpoch: number | null;
   converged: boolean;
   rootAgeDiagnostic: { split_rhat: number | null; bulk_ess: number };
 }
@@ -77,6 +78,9 @@ export interface AttestationPoint {
   label: string;
   ageLow: number;
   ageHigh: number;
+  sourceAgeLow: number;
+  sourceAgeHigh: number;
+  sourceEpoch: number | null;
   uncertaintyKm: number | null;
   region: string | null;
   sourceRef: string;

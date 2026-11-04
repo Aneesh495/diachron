@@ -36,7 +36,7 @@ export class TimelineView {
     slider.setAttribute("aria-label", "Years before present");
     slider.min = "0";
     slider.max = String(maxAge);
-    slider.step = "50";
+    slider.step = "1";
     slider.value = String(Math.round(this.store.selection.timeYbp));
     slider.style.width = "100%";
     slider.addEventListener("input", () => {
@@ -57,8 +57,10 @@ export class TimelineView {
     const slider = this.el.querySelector<HTMLInputElement>("input");
     if (slider) slider.value = String(Math.round(this.store.selection.timeYbp));
     const root = this.store.summary.scalarSummary("root_age");
+    const epoch = this.store.bundle.calendarEpoch;
+    const unit = epoch ? `years before ${epoch} CE` : "model years";
     readout.textContent =
-      `time: ${Math.round(this.store.selection.timeYbp)} years before present  |  ` +
+      `time: ${Math.round(this.store.selection.timeYbp)} ${unit}  |  ` +
       `sampled root age: ${root.q50.toFixed(0)} ` +
       `[${root.q05.toFixed(0)}, ${root.q95.toFixed(0)}] (central 90% of shown draws)`;
   }
