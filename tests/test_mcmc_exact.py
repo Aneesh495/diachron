@@ -121,3 +121,67 @@ def test_scale_move_without_jacobian_is_biased():
     # The buggy sampler targets x * Gamma(k, theta)-ish, shifting the mean below
     # the correct 6. We only require that it is detectably different.
     assert abs(biased_mean - k * theta) > 0.3, f"biased mean {biased_mean} too close"
+
+
+def test_production_topology_proposals_recover_exact_ranked_tree_posterior():
+    """Condition on three event ages and enumerate every ranked four-tip tree."""
+    from collections import Counter
+    from itertools import combinations, product
+
+    from diachron import _core
+    from diachron.infer.moves import MoveSet
+    from diachron.models.tree import PhyloTree
+
+    taxa = [0, 1, 2, 3, -1, -1, -1]
+    heights = [0.0, 0.0, 0.0, 0.0, 0.7, 1.6, 3.2]
+    patterns = ([1, 1, 0, 0], [0, 1, 0, 1], [0, 0, 1, 1])
+    gain, loss = 0.4, 0.8
+    prior = [loss / (gain + loss), gain / (gain + loss)]
+
+    def exact_log_target(parent):
+        score = 0.0
+        for pattern in patterns:
+            mass = 0.0
+            for ancestral in product((0, 1), repeat=3):
+                states = list(pattern) + list(ancestral)
+                term = prior[states[6]]
+                for node in range(6):
+                    p = parent[node]
+                    retain = np.exp(-(gain + loss) * (heights[p] - heights[node]))
+                    term *= (1 - retain) * prior[states[node]] + retain * (states[node] == states[p])
+                mass += term
+            score += np.log(mass)
+        return float(score)
+
+    exact = {}
+    for first in combinations(range(4), 2):
+        available = sorted(set(range(4)) - set(first)) + [4]
+        for second in combinations(available, 2):
+            parents = [6] * 6 + [-1]
+            for node in first:
+                parents[node] = 4
+            for node in second:
+                parents[node] = 5
+            exact[tuple(parents)] = exact_log_target(parents)
+    assert len(exact) == 18
+    scale = sum(np.exp(score) for score in exact.values())
+    probabilities = {key: np.exp(value) / scale for key, value in exact.items()}
+
+    move_set = MoveSet()
+    rng = _core.PyRng(30922)
+    state = next(iter(exact))
+    counts = Counter()
+    for step in range(61_000):
+        candidate = PhyloTree(list(state), list(heights), list(taxa))
+        proposal = move_set.nni if rng.uniform() < 0.5 else move_set.spr
+        move = proposal(candidate, rng)
+        if move.valid:
+            dest = tuple(candidate.parent)
+            assert dest in exact
+            log_ratio = exact[dest] - exact[state] + move.log_hastings
+            if np.log(max(rng.uniform(), 1e-300)) < log_ratio:
+                state = dest
+        if step >= 1000:
+            counts[state] += 1
+    assert len(counts) == len(exact)
+    assert max(abs(counts[key] / 60_000 - p) for key, p in probabilities.items()) < 0.015
