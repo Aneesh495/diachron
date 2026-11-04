@@ -1,45 +1,93 @@
 // Map marks come from source records or exported posterior draws.
 import type { Store } from "../store";
 import type { AttestationPoint, GeoPoint } from "../types";
+import { equirectangular, orthographic, longitude180, type Projection } from "../geography";
 
 export class MapView {
   private el: SVGSVGElement;
+  private globe = false;
+  private centerLat = 35;
+  private centerLon = 25;
   constructor(
     private store: Store,
     container: HTMLElement,
     private modernPoints: GeoPoint[],
     private attestations: AttestationPoint[]
   ) {
+    const controls = document.createElement("div");
+    controls.className = "map-controls";
+    const projection = document.createElement("select");
+    projection.setAttribute("aria-label", "Geographic projection");
+    for (const [id, label] of [["map", "World map"], ["globe", "Globe"]]) {
+      const option = document.createElement("option");
+      option.value = id;
+      option.textContent = label;
+      projection.appendChild(option);
+    }
+    const rotations = document.createElement("span");
+    rotations.hidden = true;
+    for (const [label, caption, dlat, dlon] of [
+      ["Rotate west", "←", 0, -30], ["Rotate east", "→", 0, 30],
+      ["Rotate north", "↑", 20, 0], ["Rotate south", "↓", -20, 0],
+    ] as const) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = caption;
+      button.setAttribute("aria-label", label);
+      button.addEventListener("click", () => {
+        this.centerLat = Math.max(-80, Math.min(80, this.centerLat + dlat));
+        this.centerLon = longitude180(this.centerLon + dlon);
+        this.render();
+      });
+      rotations.appendChild(button);
+    }
+    projection.addEventListener("change", () => {
+      this.globe = projection.value === "globe";
+      rotations.hidden = !this.globe;
+      this.render();
+    });
+    controls.append(projection, rotations);
+    container.appendChild(controls);
     this.el = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     this.el.setAttribute("width", "100%");
-    this.el.setAttribute("height", "100%");
     this.el.setAttribute("class", "map-view");
+    this.el.setAttribute("role", "img");
+    this.el.setAttribute("aria-label", "Geographic observations and sampled root locations");
     container.appendChild(this.el);
     this.store.subscribe(() => this.render());
     this.render();
   }
 
-  private project(lat: number, lon: number, w: number, h: number): [number, number] {
-    return [((lon + 180) / 360) * w, ((90 - lat) / 180) * h];
-  }
-
   private render(): void {
     while (this.el.firstChild) this.el.removeChild(this.el.firstChild);
-    const w = this.el.clientWidth || 600;
-    const h = this.el.clientHeight || 400;
+    const w = this.el.parentElement?.clientWidth || 600;
+    const h = Math.max(180, (this.el.parentElement?.clientHeight || 400) - 34);
+    this.el.setAttribute("height", String(h));
+    const globe = this.globe ? orthographic(w, h, this.centerLat, this.centerLon) : null;
+    const project = globe?.project ?? equirectangular(w, h);
     const sel = this.store.selection;
 
-    for (const lon of [-120, -60, 0, 60, 120]) {
-      const [x] = this.project(0, lon, w, h);
-      this.gridline(x, 0, x, h);
+    if (globe) {
+      const sphere = this.svg("circle");
+      sphere.setAttribute("cx", String(w / 2));
+      sphere.setAttribute("cy", String(h / 2));
+      sphere.setAttribute("r", String(globe.radius));
+      sphere.setAttribute("fill", "#f5f8fa");
+      sphere.setAttribute("stroke", "#b8c7d3");
+      sphere.setAttribute("data-globe", "visible");
+      this.el.appendChild(sphere);
     }
-    for (const lat of [-60, -30, 0, 30, 60]) {
-      const [, y] = this.project(lat, 0, w, h);
-      this.gridline(0, y, w, y);
+    for (let lon = -180; lon <= 150; lon += 30) {
+      this.gridline(Array.from({ length: 61 }, (_, i) => project(i * 3 - 90, lon)));
+    }
+    for (let lat = -60; lat <= 60; lat += 30) {
+      this.gridline(Array.from({ length: 121 }, (_, i) => project(lat, i * 3 - 180)));
     }
 
     for (const p of this.modernPoints) {
-      const [x, y] = this.project(p.lat, p.lon, w, h);
+      const location = project(p.lat, p.lon);
+      if (!location) continue;
+      const [x, y] = location;
       const rect = this.svg("rect");
       rect.setAttribute("x", String(x - 3));
       rect.setAttribute("y", String(y - 3));
@@ -60,7 +108,9 @@ export class MapView {
       if (a.lat === null || a.lon === null || sel.timeYbp < a.ageLow || sel.timeYbp > a.ageHigh) continue;
       const taxon = this.store.bundle.tip_labels.indexOf(a.label);
       if (sel.taxa.size > 0 && !sel.taxa.has(taxon)) continue;
-      const [x, y] = this.project(a.lat, a.lon, w, h);
+      const location = project(a.lat, a.lon);
+      if (!location) continue;
+      const [x, y] = location;
       if (a.uncertaintyKm) {
         const ring = this.svg("circle");
         ring.setAttribute("cx", String(x));
@@ -82,17 +132,19 @@ export class MapView {
     }
 
     // Inferred latent cloud for the selected clade's ancestor at this time.
-    this.renderLatentCloud(w, h);
+    this.renderLatentCloud(project);
 
     this.renderLegend(w);
   }
 
-  private renderLatentCloud(w: number, h: number): void {
+  private renderLatentCloud(project: Projection): void {
     const selection = this.store.selection;
     if (selection.taxa.size > 0 && selection.taxa.size !== this.store.bundle.tip_labels.length) return;
     for (const { lat, lon, age } of this.store.bundle.rootLocations) {
       if (Math.abs(age - selection.timeYbp) > 250 || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
-      const [x, y] = this.project(lat, lon, w, h);
+      const location = project(lat, lon);
+      if (!location) continue;
+      const [x, y] = location;
       const dot = this.svg("circle");
       dot.setAttribute("cx", String(x));
       dot.setAttribute("cy", String(y));
@@ -103,14 +155,18 @@ export class MapView {
     }
   }
 
-  private gridline(x1: number, y1: number, x2: number, y2: number): void {
-    const line = this.svg("line");
-    line.setAttribute("x1", String(x1));
-    line.setAttribute("x2", String(x2));
-    line.setAttribute("y1", String(y1));
-    line.setAttribute("y2", String(y2));
-    line.setAttribute("stroke", "#e8edf2");
-    this.el.appendChild(line);
+  private gridline(points: ReturnType<Projection>[]): void {
+    let line = "";
+    let drawing = false;
+    for (const point of points) {
+      if (point) line += `${drawing ? "L" : "M"} ${point[0]} ${point[1]} `;
+      drawing = point !== null;
+    }
+    const grid = this.svg("path");
+    grid.setAttribute("d", line);
+    grid.setAttribute("fill", "none");
+    grid.setAttribute("stroke", "#e8edf2");
+    this.el.appendChild(grid);
   }
 
   private renderLegend(w: number): void {
