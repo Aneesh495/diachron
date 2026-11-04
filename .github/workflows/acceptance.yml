@@ -23,15 +23,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.88.0
 
       - name: Bootstrap and build
         run: |
           python -m venv .venv
           . .venv/bin/activate
-          pip install --upgrade pip
-          pip install maturin pytest hypothesis pyarrow matplotlib scipy pandas numpy
-          maturin develop --release
+          pip install -r requirements-dev.txt
+          maturin develop --locked --release
 
       - name: Run acceptance campaign
         run: |

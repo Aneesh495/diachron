@@ -5,6 +5,7 @@
 # attestations, likelihood-check, sample, diagnose, posterior-predictive,
 # sensitivity, thesis) plus the acceptance/verify/release pipeline.
 
+PYTHON ?= python3
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 MATURIN := .venv/bin/maturin
@@ -39,9 +40,8 @@ help:
 
 .PHONY: bootstrap
 bootstrap:
-	python3 -m venv $(VENV)
-	$(PIP) install --upgrade pip
-	$(PIP) install maturin pytest hypothesis pyarrow matplotlib scipy pandas numpy
+	$(PYTHON) -m venv $(VENV)
+	$(PIP) install -r requirements-dev.txt
 
 .PHONY: doctor
 doctor:
@@ -49,11 +49,11 @@ doctor:
 
 .PHONY: build
 build:
-	$(MATURIN) develop --release
+	$(MATURIN) develop --locked --release
 
 .PHONY: test
 test:
-	cd rust/diachron-core && cargo test --lib
+	cd rust/diachron-core && cargo test --locked --lib
 	$(PY) -m pytest tests -q
 
 .PHONY: data

@@ -7,8 +7,8 @@ name = "diachron"
 version = "0.1.0"
 description = "Posterior inference over language family history under uncertain evidence"
 readme = "README.md"
-requires-python = ">=3.11"
-license = { text = "MIT" }
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
 authors = [{ name = "Aneesh" }]
 dependencies = [
     "numpy>=1.26",
