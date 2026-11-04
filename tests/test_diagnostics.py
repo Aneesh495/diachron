@@ -77,3 +77,16 @@ def test_clade_agreement():
     assert tp.clade_agreement([nw1, nw1], [nw1, nw1]) == 1.0
     # Disjoint topology distributions agree less.
     assert tp.clade_agreement([nw1, nw1], [nw2, nw2]) < 1.0
+
+
+def test_constant_separated_chains_have_no_effective_samples():
+    x = np.broadcast_to(np.arange(4)[:, None], (4, 200))
+    assert np.isinf(cv.split_rhat(x))
+    assert cv.bulk_ess(x) == 0.0
+
+
+def test_rank_folding_detects_different_scale():
+    rng = np.random.default_rng(2901)
+    x = rng.standard_normal((4, 1000)) * np.array([1, 1, 5, 5])[:, None]
+    assert cv.split_rhat(x) < 1.01
+    assert cv.rank_normalized_rhat(x) > 1.1
