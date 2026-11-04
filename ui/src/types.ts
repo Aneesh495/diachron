@@ -28,6 +28,7 @@ export interface PosteriorBundle {
   source_commit: string;
   notes: string;
   rootLocations: RootLocation[];
+  cladeLocations: Record<string, RootLocation[]>;
   calendarEpoch: number | null;
   converged: boolean;
   rootAgeDiagnostic: { split_rhat: number | null; bulk_ess: number };

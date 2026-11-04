@@ -1,6 +1,6 @@
 // Map marks come from source records or exported posterior draws.
 import type { Store } from "../store";
-import type { AttestationPoint, GeoPoint } from "../types";
+import type { AttestationPoint, GeoPoint, RootLocation } from "../types";
 import { equirectangular, orthographic, longitude180, type Projection } from "../geography";
 
 export class MapView {
@@ -137,10 +137,21 @@ export class MapView {
     this.renderLegend(w);
   }
 
+  private selectedLocations(): RootLocation[] {
+    const { selection, bundle } = this.store;
+    if (!selection.taxa.size || selection.taxa.size === bundle.tip_labels.length) {
+      return bundle.rootLocations;
+    }
+    if (selection.clade) {
+      const key = [...selection.clade].sort((a, b) => a - b).join(",");
+      return bundle.cladeLocations[key] ?? [];
+    }
+    return [];
+  }
+
   private renderLatentCloud(project: Projection): void {
     const selection = this.store.selection;
-    if (selection.taxa.size > 0 && selection.taxa.size !== this.store.bundle.tip_labels.length) return;
-    for (const { lat, lon, age } of this.store.bundle.rootLocations) {
+    for (const { lat, lon, age } of this.selectedLocations()) {
       if (Math.abs(age - selection.timeYbp) > 250 || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
       const location = project(lat, lon);
       if (!location) continue;
@@ -173,9 +184,10 @@ export class MapView {
     const items = [
       ["#888", "modern reference (present-day)"],
       ["#e6a23c", "attestation (observed)"],
-      ["#4a6fa5", this.store.bundle.rootLocations.length
-        ? "sampled root (±250 years)"
-        : "root location unavailable"],
+      ["#4a6fa5", this.selectedLocations().length
+        ? (this.store.selection.clade && this.store.selection.clade.size !== this.store.bundle.tip_labels.length
+          ? "sampled clade (±250 years)" : "sampled root (±250 years)")
+        : "location draws unavailable"],
     ];
     items.forEach(([color, label], i) => {
       const y = 16 + i * 16;

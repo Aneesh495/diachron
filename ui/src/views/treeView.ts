@@ -125,7 +125,7 @@ export class TreeView {
         dot.setAttribute("fill", "#333");
         dot.setAttribute("fill-opacity", String(0.15 + 0.85 * support));
         dot.style.cursor = "pointer";
-        dot.addEventListener("click", () => this.store.selectClade(taxa));
+        dot.addEventListener("click", () => this.store.selectClade(taxa, node.height));
         const title = this.svg("title");
         title.textContent = `clade frequency ${(support * 100).toFixed(0)}%, age ${node.height.toFixed(0)} ybp`;
         dot.appendChild(title);
