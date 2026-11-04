@@ -53,7 +53,8 @@ class ChainState:
     geo_sigma2: float = 0.004
     # Per-candidate-edge borrowing intensities; empty unless the borrowing model
     # is active. Stored as a plain list so it serializes in checkpoints.
-    borrow_rates: list = field(default_factory=list)
+    borrow_rates: list[float] = field(default_factory=list)
+    clock_multipliers: list[float] = field(default_factory=list)
 
 
 @dataclass
@@ -70,6 +71,7 @@ class Draw:
     taxon: list[int]
     geo_sigma2: float
     borrow_rates: list[float]
+    clock_multipliers: list[float] = field(default_factory=list)
 
 
 class Chain:
@@ -104,6 +106,7 @@ class Chain:
             self.state.clock_rate,
             self.state.geo_sigma2,
             borrow_rates=self.state.borrow_rates,
+            clock_multipliers=self.state.clock_multipliers,
         )
 
     def _accept(self, log_post_new: float, log_hastings: float) -> bool:
@@ -237,6 +240,19 @@ class Chain:
                     self._log_post = lp
                 else:
                     self.state.geo_sigma2 = old
+        if cfg.relaxed_clock_sigma > 0 and self.rng.uniform() < 0.25:
+            edges = [node for node, parent in enumerate(self.tree.parent) if parent >= 0]
+            node = edges[self.rng.below(len(edges))]
+            multipliers = self.state.clock_multipliers
+            old = multipliers[node]
+            new, result = self.moves.scale_scalar(old, self.rng)
+            if result.valid:
+                multipliers[node] = new
+                lp = self._eval()
+                if self._accept(lp, result.log_hastings):
+                    self._log_post = lp
+                else:
+                    multipliers[node] = old
         if cfg.use_borrowing and self.state.borrow_rates and self.rng.uniform() < 0.25:
             idx = self.rng.below(len(self.state.borrow_rates))
             new, res = self.moves.scale_scalar(self.state.borrow_rates[idx], self.rng)
@@ -296,6 +312,7 @@ class Chain:
                         taxon=list(self.tree.taxon),
                         geo_sigma2=self.state.geo_sigma2,
                         borrow_rates=list(self.state.borrow_rates),
+                        clock_multipliers=list(self.state.clock_multipliers),
                     )
                 )
             if checkpoint_path and (self.iteration % checkpoint_every == 0 or self.iteration == total):

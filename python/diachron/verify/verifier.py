@@ -115,7 +115,7 @@ def _replay(bundle: dict, probe_draws: int) -> tuple[bool, int]:
                 return False, count
             score = model.log_posterior(
                 tree, draw["gain"], draw["loss"], draw["clock_rate"],
-                draw["geo_sigma2"], draw["borrow_rates"],
+                draw["geo_sigma2"], draw["borrow_rates"], draw.get("clock_multipliers"),
             )
             if not math.isfinite(score) or abs(score - draw["log_posterior"]) > 1e-9:
                 return False, count

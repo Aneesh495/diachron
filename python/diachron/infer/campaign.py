@@ -219,7 +219,8 @@ def run_campaign(
             else []
         )
         state = ChainState(
-            gain=0.0005, loss=0.001, clock_rate=1.0, borrow_rates=borrow_init
+            gain=0.0005, loss=0.001, clock_rate=1.0, borrow_rates=borrow_init,
+            clock_multipliers=[1.0] * start.n_nodes if config.relaxed_clock_sigma > 0 else [],
         )
         ckpt = (
             Path(checkpoint_dir) / f"{config.name}_chain{c}.json" if checkpoint_dir else None
