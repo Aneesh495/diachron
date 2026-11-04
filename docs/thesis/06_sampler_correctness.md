@@ -29,11 +29,12 @@ is not vacuous.
 
 ## Node-time slide
 
-An internal node's age is moved by a uniform step within a window, reflected to
-stay strictly between its oldest child and its parent. Because the window is
-recomputed consistently and out-of-window proposals are rejected, the move is
-symmetric and the Hastings term is zero. Branch lengths are derived from node
-ages, so time ordering is maintained automatically.
+Each move proposes a uniform increment. For an internal non-root node,
+the window is a fraction of the current root age, which the move leaves
+fixed. For the root, the window depends on its oldest child. A dated tip
+uses a fixed window from its date density. A proposal that crosses a child
+or parent age is rejected. Because the window is unchanged by an accepted
+move, the reverse increment has the same density.
 
 ## Root scale move
 
@@ -48,14 +49,18 @@ and rejected.
 symmetric selection the move is its own inverse, so the Hastings term is zero. The
 move is rejected if it would make a child older than its parent.
 
-**Bounded SPR.** A node and its parent edge are pruned; the collapsed parent is
-reinserted on a target edge whose time interval spans the pruned node's crown age.
-Targets are restricted to edges outside the pruned subtree and excluding the
-collapsed node and the sibling edge, which is what prevents cycles; the Hastings
-ratio is the ratio of valid-target counts before and after. An earlier version
-omitted these exclusions and could create a cycle, which made likelihood traversal
-blow up; the fix and a 3000-move integrity test that checks for cycles, a single
-root, a stable node count, and valid times are in `tests/test_moves.py`.
+**Time-preserving SPR.** Choose a prunable child. Detach it and collapse
+its parent, keeping the parent's age as a fixed proposal coordinate.
+Choose uniformly among edges of the detached backbone crossing that age.
+The original sibling edge remains available as a self-transition. In the
+reverse direction the same child produces the same detached backbone and
+age, so the target-edge sets and selection probabilities agree. The move
+preserves the number of prunable children and has no height Jacobian.
+
+The ranked-tree test enumerates all 18 four-tip states at three fixed
+event ages. Production NNI and SPR proposals with the exact lexical
+target visit all 18 states and meet a fixed frequency tolerance.
+This conditional test does not establish mixing at full study scale.
 
 ## Checkpointing and exact resumption
 
@@ -63,8 +68,8 @@ The chain's RNG is a serializable xoshiro256** with a four-word state. A
 checkpoint writes the RNG words, tree, parameters, frozen step sizes, iteration
 counters, and retained draws atomically via a temp-file rename. Resuming
 reconstructs an identical chain. A chain interrupted and resumed partway produces
-a trajectory bit-identical to an uninterrupted run: same final log posterior to
-1e-9, same topology, same draw count, and no duplicated retained draw (gate G12,
+a trajectory bit-identical to an uninterrupted run: same final log posterior,
+same topology, identical retained draws, and no duplicated retained draw (gate G12,
 `tests/test_recovery.py`). Adaptation of step sizes runs only during warmup and is
 frozen before any retained sample, so the retained chain targets the stationary
 posterior.

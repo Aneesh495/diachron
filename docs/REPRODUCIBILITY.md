@@ -1,63 +1,55 @@
 # Reproducibility
 
-Everything in Diachron is reproducible from a clean checkout with a pinned
-toolchain. This document lists the exact commands and the seeds and profiles that
-make runs repeatable.
-
-## Toolchain
-
-- Python 3.11 or newer (developed on 3.14).
-- Rust stable (developed on 1.88).
-- Node 18 or newer (developed on 24) for the workbench.
-
-## From a clean checkout
+## Bounded demonstration
 
 ```bash
-make bootstrap     # create .venv and install pinned Python tooling
-make build         # compile the Rust core (maturin develop --release)
-make test          # Rust unit tests + full Python suite
-make demo          # bounded end-to-end demonstration (~8s)
+make bootstrap
+make build
+make test
+make likelihood-check
+make demo
+make verify EVIDENCE=runs/demo VERIFY_ARGS="--expected-commit $(git rev-parse HEAD)"
+make thesis
 ```
 
-## Determinism
+Python tooling is pinned in `requirements-dev.txt`. The build uses
+CPython 3.12 to 3.14 and Rust 1.88.0. The workbench uses Node 24.21.0
+and the committed npm lockfile. The thesis builder writes Markdown and
+standalone HTML under `runs/thesis`.
 
-- MCMC chains are seeded. The campaign uses base seed 1000 with a fixed
-  per-chain multiplier; recovery datasets use 20000 plus the dataset index. All
-  seeds are recorded in the posterior bundle and the evidence directory.
-- The RNG is a serializable xoshiro256**; a chain resumed from a checkpoint
-  reproduces the exact trajectory it would have taken uninterrupted.
-- The synthetic corpora are produced by `numpy.random.default_rng` with fixed
-  seeds (primary 20240601, second 20240602), so the data regenerates identically.
+## Observed diagnostic
 
-## Profiles
-
-- CPU diagnostic: short chains for quick feedback; cannot set the acceptance flag.
-- Full acceptance: `make acceptance RUN_ID=<id> PROFILE=full` runs the declared
-  campaign into `evidence/<id>` and records `SOURCE_INPUTS.json`,
-  `DATASETS.json`, `ENVIRONMENT.json`, `COMMANDS.jsonl`, `ACCEPTANCE.json`, and
-  `MANIFEST.json`.
-
-## Independent verification
+Acquire the pinned inputs from [Observed data](OBSERVED_DATA.md), then run
 
 ```bash
-make verify EVIDENCE=evidence/<id>
+.venv/bin/diachron sample --study iecor --model dated --chains 4 --jobs 4 \
+  --warmup 400 --iterations 1200 --thin 10 --out runs/observed-iecor \
+  --source data/cache/iecor --catalog data/cache/glottolog53.zip \
+  --edh-source data/cache/edh --edh-geography data/cache/edh-geography.json
+
+.venv/bin/diachron diagnose --bundle runs/observed-iecor/dated
+.venv/bin/diachron verify --evidence runs/observed-iecor/dated \
+  --expected-commit "$(git rev-parse HEAD)" \
+  --source data/cache/iecor --catalog data/cache/glottolog53.zip \
+  --edh-source data/cache/edh --edh-geography data/cache/edh-geography.json
 ```
 
-The verifier recomputes decisive quantities (draw digests, likelihood replay,
-diagnostics) from the raw records and rejects a bundle that does not hold up. It
-is implemented separately from the summarizer that wrote the evidence.
+The bundle stores exact tree arrays, rates, input columns and attestation
+context. Verification checks recorded source identity, replays stored scores
+and, with the pinned inputs supplied, rebuilds the observation context.
+An honest bundle may pass replay and miss convergence.
 
-## Artifact formats
+## Profiles and recovery
 
-- Posterior bundle: `bundle.json` (model, dataset identity, per-chain draws) plus
-  `MANIFEST.json` (draw digest and source commit).
-- Workbench data: `workbench.json`, written by `diachron export-workbench`.
-- Evidence directory: the JSON records listed under Profiles, plus per-model
-  bundles and checkpoints.
+`make acceptance RUN_ID=<id> PROFILE=cpu` runs the synthetic diagnostic
+into a new evidence directory. The full profile records a blocked status
+until the complete observed campaign and verifier are available.
 
-## Recovery runbook
+To resume a sampling command, keep its source checkout and its original
+arguments, including output directory, and add `--resume`. The chain
+rejects stale source, inputs or budget. Per-chain checkpoints preserve
+the RNG words, tree state, frozen step sizes and retained draw order.
 
-If a chain is interrupted, its last checkpoint is in the run's `checkpoints`
-directory. Resuming is automatic in the campaign driver; a corrupt or
-schema-mismatched checkpoint is rejected rather than silently accepted. See
-`docs/notes/07_convergence.md` for how non-convergence is reported.
+Run `diachron recovery --datasets 200 --out <new-directory>` for the revised
+known-truth protocol. The public results include raw per-dataset draws and
+clade masses under [Recovery](results/recovery_200.md).
