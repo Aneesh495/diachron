@@ -41,17 +41,13 @@ def _honest_bundle(tmp_path):
 
 def _run_verifier(evidence_dir: str) -> dict:
     """Invoke the real verifier as a subprocess and return its JSON result."""
-    code = (
-        "import json,sys;"
-        "from diachron.verify.verifier import verify_evidence;"
-        f"print(json.dumps(verify_evidence({evidence_dir!r})))"
-    )
     proc = subprocess.run(
-        [sys.executable, "-c", code],
-        capture_output=True, text=True, check=False,
+        [sys.executable, "-m", "diachron.cli.main", "verify", "--evidence", evidence_dir],
+        capture_output=True, text=True, check=False, timeout=30,
     )
-    assert proc.returncode == 0, proc.stderr
-    return json.loads(proc.stdout.strip().splitlines()[-1])
+    result = json.loads(proc.stdout)
+    assert proc.returncode == (0 if result["ok"] else 1), proc.stderr
+    return result
 
 
 def test_honest_bundle_accepted(tmp_path):
@@ -64,9 +60,9 @@ def test_honest_bundle_accepted(tmp_path):
 @pytest.mark.parametrize(
     "control_fn,expected_substring",
     [
-        (controls.control_fabricated_likelihood, "log_posterior_plausible"),
-        (controls.control_rehashed_altered_result, "ages_nonnegative"),
-        (controls.control_missing_to_absent, "geographic_honesty"),
+        (controls.control_fabricated_likelihood, "posterior_replay"),
+        (controls.control_rehashed_altered_result, "attestation_intervals"),
+        (controls.control_missing_to_absent, "posterior_replay"),
         (controls.control_modern_as_ancient, "geographic_honesty"),
         (controls.control_corrupted_digest, "draw_digest"),
     ],

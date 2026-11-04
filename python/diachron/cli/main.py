@@ -267,7 +267,7 @@ def cmd_acceptance(args) -> int:
 def cmd_verify(args) -> int:
     from ..verify.verifier import verify_evidence
 
-    result = verify_evidence(args.evidence)
+    result = verify_evidence(args.evidence, expected_commit=args.expected_commit)
     _print(result)
     return 0 if result["ok"] else 1
 
@@ -377,6 +377,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     vp = sub.add_parser("verify")
     vp.add_argument("--evidence", required=True)
+    vp.add_argument("--expected-commit", help="trusted executable source commit")
     vp.set_defaults(func=cmd_verify)
 
     sub.add_parser("release").set_defaults(func=cmd_release)

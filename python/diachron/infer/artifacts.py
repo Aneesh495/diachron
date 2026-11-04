@@ -40,7 +40,7 @@ class PosteriorBundle:
     def save(self, directory: str) -> None:
         os.makedirs(directory, exist_ok=True)
         with open(os.path.join(directory, "bundle.json"), "w", encoding="utf-8") as f:
-            json.dump(asdict(self), f)
+            json.dump(asdict(self), f, allow_nan=False)
         # A separate checksum over the draws, so tampering with results is
         # detectable independently of the bundle's own fields.
         digest = self.draw_digest()
@@ -53,6 +53,7 @@ class PosteriorBundle:
                     "draws_per_chain": self.draws_per_chain,
                     "draw_digest": digest,
                     "source_commit": self.source_commit,
+                    "context_sha256": _digest(self.context),
                 },
                 f,
                 indent=2,
@@ -60,14 +61,7 @@ class PosteriorBundle:
 
     def draw_digest(self) -> str:
         """A stable hash of the draw payload, used to detect result tampering."""
-        h = hashlib.sha256()
-        for chain in self.chains:
-            for d in chain:
-                h.update(
-                    f"{d['iteration']}|{d['log_posterior']:.9g}|{d['root_age']:.9g}|"
-                    f"{d['gain']:.9g}|{d['loss']:.9g}|{d['clock_rate']:.9g}|{d['newick']}".encode()
-                )
-        return h.hexdigest()
+        return _digest(self.chains)
 
     @classmethod
     def load(cls, directory: str) -> "PosteriorBundle":
@@ -103,3 +97,8 @@ def bundle_from_chains(
         chains=draw_lists,
         source_commit=source_commit,
     )
+
+
+def _digest(value) -> str:
+    serialized = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(serialized.encode()).hexdigest()
