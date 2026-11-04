@@ -22,6 +22,7 @@
 //! Multifurcations are handled directly: an internal node simply has more than
 //! two children and the product runs over all of them.
 
+use crate::linalg::Mat;
 use crate::subst::SubstModel;
 use crate::tree::Tree;
 
@@ -41,82 +42,103 @@ pub fn log_likelihood(
     tips: &TipStates,
     root_prior: &[f64],
 ) -> f64 {
-    let n_states = model.n_states();
-    assert_eq!(root_prior.len(), n_states);
-    let n_nodes = tree.nodes.len();
+    PruningPlan::new(tree, model, 1.0).score(tips.states, root_prior)
+}
 
-    // Conditional likelihood vectors, one length-n_states block per node.
-    let mut cond = vec![0.0f64; n_nodes * n_states];
-    // Accumulated log scale per node.
-    let mut logscale = vec![0.0f64; n_nodes];
+/// Tree traversal and transitions shared across sites of one rate category.
+pub(crate) struct PruningPlan<'a> {
+    pub(crate) tree: &'a Tree,
+    pub(crate) order: Vec<usize>,
+    pub(crate) transitions: Vec<Mat>,
+    n_states: usize,
+}
 
-    for node in tree.postorder() {
-        let base = node * n_states;
-        if tree.is_tip(node) {
-            let taxon = tree.nodes[node].taxon.expect("tip without taxon");
-            match tips.states[taxon] {
-                Some(s) => {
-                    for k in 0..n_states {
-                        cond[base + k] = if k == s { 1.0 } else { 0.0 };
-                    }
-                }
-                None => {
-                    // Missing: consistent with every state.
-                    for k in 0..n_states {
-                        cond[base + k] = 1.0;
-                    }
-                }
-            }
-            logscale[node] = 0.0;
-        } else {
-            // Start from all-ones and multiply in each child's contribution.
-            for k in 0..n_states {
-                cond[base + k] = 1.0;
-            }
-            let mut child_scale = 0.0;
-            for &child in &tree.nodes[node].children {
-                let t = tree.nodes[child].branch_len;
-                let p = model.transition(t);
-                let cbase = child * n_states;
-                // partial[i] = sum_j P_ij(t) * L_child(j)
-                for i in 0..n_states {
-                    let mut acc = 0.0;
-                    for j in 0..n_states {
-                        acc += p.at(i, j) * cond[cbase + j];
-                    }
-                    cond[base + i] *= acc;
-                }
-                child_scale += logscale[child];
-            }
-            // Rescale to keep entries O(1).
-            let mut maxv = 0.0f64;
-            for k in 0..n_states {
-                if cond[base + k] > maxv {
-                    maxv = cond[base + k];
-                }
-            }
-            if maxv > 0.0 {
-                for k in 0..n_states {
-                    cond[base + k] /= maxv;
-                }
-                logscale[node] = child_scale + maxv.ln();
-            } else {
-                // Entire subtree is impossible under the model+data.
-                logscale[node] = f64::NEG_INFINITY;
-            }
+impl<'a> PruningPlan<'a> {
+    pub(crate) fn new(tree: &'a Tree, model: &dyn SubstModel, rate: f64) -> Self {
+        Self {
+            tree,
+            order: tree.postorder(),
+            transitions: tree
+                .nodes
+                .iter()
+                .map(|node| model.transition(node.branch_len * rate))
+                .collect(),
+            n_states: model.n_states(),
         }
     }
 
-    // Combine at the root with the prior.
-    let rbase = tree.root * n_states;
-    let mut site = 0.0;
-    for k in 0..n_states {
-        site += root_prior[k] * cond[rbase + k];
+    pub(crate) fn score(&self, states: &[Option<usize>], root_prior: &[f64]) -> f64 {
+        let tree = self.tree;
+        let n_states = self.n_states;
+        assert_eq!(root_prior.len(), n_states);
+        let n_nodes = tree.nodes.len();
+        // Conditional likelihood vectors, one length-n_states block per node.
+        let mut cond = vec![0.0f64; n_nodes * n_states];
+        // Accumulated log scale per node.
+        let mut logscale = vec![0.0f64; n_nodes];
+
+        for &node in &self.order {
+            let base = node * n_states;
+            if tree.is_tip(node) {
+                let taxon = tree.nodes[node].taxon.expect("tip without taxon");
+                match states[taxon] {
+                    Some(s) => {
+                        for k in 0..n_states {
+                            cond[base + k] = if k == s { 1.0 } else { 0.0 };
+                        }
+                    }
+                    None => {
+                        // Missing: consistent with every state.
+                        for k in 0..n_states {
+                            cond[base + k] = 1.0;
+                        }
+                    }
+                }
+                logscale[node] = 0.0;
+            } else {
+                // Start from all-ones and multiply in each child's contribution.
+                for k in 0..n_states {
+                    cond[base + k] = 1.0;
+                }
+                let mut child_scale = 0.0;
+                for &child in &tree.nodes[node].children {
+                    let p = &self.transitions[child];
+                    let cbase = child * n_states;
+                    // partial[i] = sum_j P_ij(t) * L_child(j)
+                    for i in 0..n_states {
+                        let mut acc = 0.0;
+                        for j in 0..n_states {
+                            acc += p.at(i, j) * cond[cbase + j];
+                        }
+                        cond[base + i] *= acc;
+                    }
+                    child_scale += logscale[child];
+                    // Scale after each child so a wide polytomy stays finite too.
+                    let block = &mut cond[base..base + n_states];
+                    let maxv = block.iter().copied().fold(0.0, f64::max);
+                    if maxv <= 0.0 {
+                        return f64::NEG_INFINITY;
+                    }
+                    for value in block {
+                        *value /= maxv;
+                    }
+                    child_scale += maxv.ln();
+                }
+                logscale[node] = child_scale;
+            }
+        }
+
+        // Combine at the root with the prior.
+        let rbase = tree.root * n_states;
+        let mut site = 0.0;
+        for k in 0..n_states {
+            site += root_prior[k] * cond[rbase + k];
+        }
+        if site <= 0.0 {
+            return f64::NEG_INFINITY;
+        }
+        site.ln() + logscale[tree.root]
     }
-    if site <= 0.0 {
-        return f64::NEG_INFINITY;
-    }
-    site.ln() + logscale[tree.root]
 }
 
 /// Log-likelihood of a block of characters that share the same tree and model,
@@ -127,13 +149,8 @@ pub fn log_likelihood_block(
     columns: &[Vec<Option<usize>>],
     root_prior: &[f64],
 ) -> f64 {
-    columns
-        .iter()
-        .map(|col| {
-            let tips = TipStates { states: col };
-            log_likelihood(tree, model, &tips, root_prior)
-        })
-        .sum()
+    let plan = PruningPlan::new(tree, model, 1.0);
+    columns.iter().map(|col| plan.score(col, root_prior)).sum()
 }
 
 #[cfg(test)]
@@ -164,7 +181,11 @@ mod tests {
         let states = vec![Some(1usize), Some(1usize)];
         let tips = TipStates { states: &states };
         let got = log_likelihood(&tree, &model, &tips, &pi);
-        assert!((got - expected.ln()).abs() < 1e-10, "{got} vs {}", expected.ln());
+        assert!(
+            (got - expected.ln()).abs() < 1e-10,
+            "{got} vs {}",
+            expected.ln()
+        );
     }
 
     #[test]
@@ -181,6 +202,21 @@ mod tests {
         // Missing marginalizes over tip B, so its likelihood is strictly larger
         // than pinning B to a specific state.
         assert!(ll_missing > ll_absent, "{ll_missing} !> {ll_absent}");
+    }
+
+    #[test]
+    fn scaling_stable_on_wide_polytomy() {
+        let mut tree = Tree::new();
+        let root = tree.add_node(None, 0.0, None);
+        let n = 2000;
+        for taxon in 0..n {
+            tree.add_node(Some(root), 100.0, Some(taxon));
+        }
+        let model = BinaryGainLoss::new(0.5, 0.5);
+        let columns = vec![vec![Some(1); n], vec![Some(0); n]];
+        let expected = -((2 * n) as f64) * 2.0f64.ln();
+        let score = log_likelihood_block(&tree, &model, &columns, &[0.5, 0.5]);
+        assert!((score - expected).abs() < 1e-8, "{score} vs {expected}");
     }
 
     #[test]
