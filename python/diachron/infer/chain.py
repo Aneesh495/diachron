@@ -97,16 +97,13 @@ class Chain:
             raise ValueError("chain initial state has nonfinite posterior")
 
     def _eval(self) -> float:
-        import numpy as _np
-
-        br = _np.array(self.state.borrow_rates) if self.state.borrow_rates else None
         return self.model.log_posterior(
             self.tree,
             self.state.gain,
             self.state.loss,
             self.state.clock_rate,
             self.state.geo_sigma2,
-            borrow_rates=br,
+            borrow_rates=self.state.borrow_rates,
         )
 
     def _accept(self, log_post_new: float, log_hastings: float) -> bool:

@@ -25,7 +25,7 @@ import numpy as np
 
 from diachron import _core
 from .tip_dates import TipDate
-from .priors import coalescent_log_prior, calibration_log_density, lognormal_logpdf
+from .priors import coalescent_log_prior, calibration_log_density, exponential_logpdf, lognormal_logpdf
 
 
 @dataclass
@@ -58,6 +58,7 @@ class ModelConfig:
     clock_prior_log_sd: float = 0.5  # dimensionless multiplier centered at one
     diffusion_prior_median: float = 0.004  # degree squared / year
     diffusion_prior_log_sd: float = 2.0
+    borrowing_prior_rate: float = 10.0
 
     @staticmethod
     def tree_only() -> "ModelConfig":
@@ -118,12 +119,22 @@ class PosteriorModel:
     def character_scores(
         self, tree, gain: float, loss: float, clock_rate: float,
         columns: list[list[int]] | None = None,
+        borrow_rates: list[float] | None = None,
     ) -> list[float]:
         """Per-character likelihood under the observed-mask selection process."""
+        contacts = []
+        if self.config.use_borrowing and borrow_rates is not None:
+            if len(borrow_rates) != len(self.borrow_candidates):
+                raise ValueError("borrowing intensity count must match the fixed candidate network")
+            contacts = [
+                (donor, recipient, intensity)
+                for (donor, recipient), intensity in zip(self.borrow_candidates, borrow_rates)
+                if intensity > 0.0
+            ]
         return _core.binary_character_scores(
             *tree.to_core_arrays(), gain * clock_rate, loss * clock_rate,
             self.columns if columns is None else columns, self._site_rates,
-            self.minimum_present if self.config.ascertainment else 0,
+            self.minimum_present if self.config.ascertainment else 0, contacts,
         )
 
     def character_log_likelihood(self, tree, gain: float, loss: float, clock_rate: float) -> float:
@@ -197,66 +208,6 @@ class PosteriorModel:
             return 0.0
         return _brownian_tree_loglik(tree, self.tip_coords, geo_sigma2)
 
-    def borrowing_log_density(self, tree, borrow_rates: np.ndarray) -> float:
-        """Contribution of the bounded contact channel.
-
-        Each candidate edge has a borrowing intensity in `borrow_rates`. The
-        channel is penalized by an exponential prior so the model prefers no
-        borrowing unless the data support it; the likelihood effect enters by
-        allowing a recipient to match a donor's class beyond what the tree
-        explains. Here we score the prior on the intensities and the number of
-        candidate matches, keeping the model finite and identifiable.
-        """
-        if not self.config.use_borrowing or len(self.borrow_candidates) == 0:
-            return 0.0
-        from .priors import exponential_logpdf
-
-        lp = 0.0
-        # Prior: exponential pulling each borrowing intensity toward zero, so the
-        # model prefers no borrowing unless the data support it.
-        for rate in borrow_rates:
-            lp += exponential_logpdf(max(rate, 1e-12), 10.0)
-
-        # Likelihood contribution. For each candidate (donor, recipient) edge, a
-        # borrowing intensity b in [0, 1) lets the recipient's state copy the
-        # donor's beyond what the tree explains. We score the observed co-presence
-        # of cognate classes on that edge under a simple mixture: with probability
-        # b a character's recipient state is a copy of the donor's, and with
-        # probability 1 - b it follows the tree (which we approximate by the
-        # marginal co-presence rate). This keeps the model finite and
-        # identifiable: a near-zero intensity recovers the no-borrowing model, and
-        # the data can only push b up when the pair shares more classes than the
-        # background rate.
-        n_chars = len(self.columns)
-        if n_chars == 0:
-            return lp
-        # Background co-presence rate across all observed tip pairs (tree-level
-        # expectation proxy), computed once per call from the character columns.
-        for (donor, recipient), rate in zip(self.borrow_candidates, borrow_rates):
-            b = min(max(float(rate), 0.0), 0.999)
-            shared = 0
-            comparable = 0
-            for col in self.columns:
-                ds = col[donor]
-                rs = col[recipient]
-                if ds < 0 or rs < 0:
-                    continue  # missing on either end
-                comparable += 1
-                if ds == 1 and rs == 1:
-                    shared += 1
-            if comparable == 0:
-                continue
-            frac_shared = shared / comparable
-            # Mixture log-likelihood of the observed shared fraction: borrowing
-            # explains shared presence, the background rate explains the rest.
-            background = 0.5  # neutral background co-presence under the prior
-            p = b + (1.0 - b) * background
-            p = min(max(p, 1e-6), 1 - 1e-6)
-            # Binomial-style log score of the shared count under p.
-            lp += shared * np.log(p) + (comparable - shared) * np.log(1 - p)
-            _ = frac_shared
-        return lp
-
     def log_posterior(
         self,
         tree,
@@ -274,13 +225,18 @@ class PosteriorModel:
         if not math.isfinite((gain + loss) * clock_rate) or min(gain, loss) * clock_rate == 0:
             return float("-inf")
 
-        lp = self.character_log_likelihood(tree, gain, loss, clock_rate)
+        if self.config.use_borrowing:
+            if borrow_rates is None or len(borrow_rates) != len(self.borrow_candidates):
+                return float("-inf")
+            if any(not math.isfinite(b) or b < 0 for b in borrow_rates):
+                return float("-inf")
+        lp = sum(self.character_scores(tree, gain, loss, clock_rate, borrow_rates=borrow_rates))
         if not np.isfinite(lp):
             return float("-inf")
         lp += self.calibration_log_density(tree)
         lp += self.geography_log_density(tree, geo_sigma2)
-        if borrow_rates is not None:
-            lp += self.borrowing_log_density(tree, borrow_rates)
+        if self.config.use_borrowing:
+            lp += sum(exponential_logpdf(rate, self.config.borrowing_prior_rate) for rate in borrow_rates)
 
         # Tree prior (coalescent) and clock prior.
         lp += coalescent_log_prior(tree.heights, tree.parent, self.config.pop_size)

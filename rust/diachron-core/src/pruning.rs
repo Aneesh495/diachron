@@ -159,7 +159,7 @@ pub fn log_likelihood_block(
 /// directly, so near-constant trees do not lose precision to subtraction.
 fn retained_probability(
     plan: &PruningPlan<'_>,
-    observed: &[bool],
+    multiplicity: &[usize],
     min_present: usize,
     prior: &[f64],
 ) -> f64 {
@@ -171,9 +171,9 @@ fn retained_probability(
     for &node in &plan.order {
         let mut mass = [[0.0; BUCKETS]; 2];
         if let Some(taxon) = plan.tree.nodes[node].taxon {
-            let scored = observed[taxon];
-            mass[0][if scored { ANY_ZERO } else { 0 }] = 1.0;
-            mass[1][usize::from(scored)] = 1.0;
+            let copies = multiplicity[taxon];
+            mass[0][if copies > 0 { ANY_ZERO } else { 0 }] = 1.0;
+            mass[1][copies] = 1.0;
         } else {
             mass[0][0] = 1.0;
             mass[1][0] = 1.0;
@@ -218,8 +218,9 @@ fn log_mean_exp(log_probs: &[f64]) -> f64 {
     max + (total / log_probs.len() as f64).ln()
 }
 
-/// Per-site equal-weight rate mixture. When selection is enabled, mix the
-/// probabilities of both the pattern and its selection event before dividing.
+/// Equal-weight site rates and a finite contact mixture with baseline weight 1.
+/// At most one edge copies per character. Ascertainment conditions the mixture
+/// after summing both the pattern mass and selection mass over components.
 pub fn binary_mixture_scores(
     tree: &Tree,
     model: &dyn SubstModel,
@@ -227,6 +228,7 @@ pub fn binary_mixture_scores(
     root_prior: &[f64],
     rate_categories: &[f64],
     min_present: usize,
+    contacts: &[(usize, usize, f64)],
 ) -> Vec<f64> {
     use std::collections::HashMap;
 
@@ -236,32 +238,77 @@ pub fn binary_mixture_scores(
         .collect();
     let mut normalizers = HashMap::new();
     let mut mixtures = vec![0.0; plans.len()];
+    let weight_sum = 1.0 + contacts.iter().map(|(_, _, w)| w).sum::<f64>();
+    let mut working_column = vec![None; tree.n_tips()];
+    let mut components = vec![0.0; contacts.len() + 1];
+    let score = |column: &[Option<usize>], mixtures: &mut [f64]| {
+        for (result, plan) in mixtures.iter_mut().zip(&plans) {
+            *result = plan.score(column, root_prior);
+        }
+        log_mean_exp(mixtures)
+    };
     columns
         .iter()
         .map(|column| {
             let log_normalizer = if min_present == 0 {
-                0.0
+                weight_sum.ln()
             } else {
                 let present = column.iter().filter(|s| **s == Some(1)).count();
                 if present < min_present || !column.contains(&Some(0)) {
                     return f64::NEG_INFINITY;
                 }
-                let observed: Vec<_> = column.iter().map(Option::is_some).collect();
+                let observed: Vec<_> = column
+                    .iter()
+                    .map(|state| usize::from(state.is_some()))
+                    .collect();
                 *normalizers.entry(observed.clone()).or_insert_with(|| {
-                    let retained: f64 = plans
-                        .iter()
-                        .map(|plan| retained_probability(plan, &observed, min_present, root_prior))
-                        .sum();
-                    (retained / plans.len() as f64).ln()
+                    let retained = |multiplicity: &[usize]| {
+                        plans
+                            .iter()
+                            .map(|plan| {
+                                retained_probability(plan, multiplicity, min_present, root_prior)
+                            })
+                            .sum::<f64>()
+                    };
+                    let base = retained(&observed);
+                    let mut sum = base;
+                    let mut counts = observed.clone();
+                    for &(donor, recipient, intensity) in contacts {
+                        if observed[recipient] == 0 {
+                            sum += intensity * base;
+                        } else {
+                            counts[donor] += 1;
+                            counts[recipient] = 0;
+                            sum += intensity * retained(&counts);
+                            counts[donor] -= 1;
+                            counts[recipient] = 1;
+                        }
+                    }
+                    (sum / plans.len() as f64).ln()
                 })
             };
             if !log_normalizer.is_finite() {
                 return f64::NEG_INFINITY;
             }
-            for (result, plan) in mixtures.iter_mut().zip(&plans) {
-                *result = plan.score(column, root_prior);
+            let base = score(column, &mut mixtures);
+            components[0] = base;
+            for (&(donor, recipient, intensity), component) in
+                contacts.iter().zip(&mut components[1..])
+            {
+                let log_mass = match (column[donor], column[recipient]) {
+                    (_, None) => base,
+                    (Some(d), Some(r)) if d != r => f64::NEG_INFINITY,
+                    (_, observed) => {
+                        working_column.copy_from_slice(column);
+                        working_column[donor] = observed;
+                        working_column[recipient] = None;
+                        score(&working_column, &mut mixtures)
+                    }
+                };
+                *component = log_mass + intensity.ln();
             }
-            log_mean_exp(&mixtures) - log_normalizer
+            let log_weighted_sum = log_mean_exp(&components) + (components.len() as f64).ln();
+            log_weighted_sum - log_normalizer
         })
         .collect()
 }
