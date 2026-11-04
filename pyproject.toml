@@ -1,0 +1,33 @@
+[build-system]
+requires = ["maturin>=1.6,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "diachron"
+version = "0.1.0"
+description = "Posterior inference over language family history under uncertain evidence"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Aneesh" }]
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "pandas>=2.0",
+    "pyarrow>=14",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "hypothesis>=6", "matplotlib>=3.8"]
+
+[project.scripts]
+diachron = "diachron.cli.main:main"
+
+[tool.maturin]
+# Mixed Rust/Python layout: the pure-Python package lives under
+# `python/diachron`, and the compiled extension is installed as the submodule
+# `diachron._core`.
+manifest-path = "rust/diachron-core/Cargo.toml"
+features = ["python"]
+python-source = "python"
+module-name = "diachron._core"
