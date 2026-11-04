@@ -1,0 +1,19 @@
+%% Testing and acceptance: how gates map to checks and evidence.
+flowchart LR
+  unit[Rust unit tests\n21 passing]
+  oracle[Likelihood oracle\nG02: 1200 cases]
+  exact[Exact MCMC targets\nG03]
+  ascer[Ascertainment sim\nG04]
+  resume[Exact resume\nG12]
+  recov[Recovery study\nG05]
+  pred[Held-out prediction\nG07]
+  sens[Sensitivity 12 configs\nG08]
+  conv[Convergence diagnostics\nG06]
+  verj[Semantic verifier\nG13]
+  thesis[Claim ledger\nG14]
+
+  unit --> oracle --> exact --> ascer --> resume
+  recov --> pred --> sens --> conv
+  resume --> verj
+  conv --> verj
+  verj --> thesis

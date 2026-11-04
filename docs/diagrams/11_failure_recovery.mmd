@@ -1,0 +1,19 @@
+%% Failure and recovery paths across checkpointing and verification.
+flowchart TB
+  run[Chain running]
+  ckpt[(Checkpoint JSON\nRNG words + tree + params + draws)]
+  interrupt{Interruption?}
+  resume[resume: reconstruct identical chain]
+  corrupt{Checkpoint valid?}
+  reject[reject: missing RNG / stale schema]
+  evidence[(Evidence bundle)]
+  verifier[Independent verifier]
+  semfail[reject for semantic reason:\ndigest mismatch, replay fail, dishonest geo]
+
+  run --> ckpt
+  ckpt --> interrupt
+  interrupt -- yes --> corrupt
+  corrupt -- yes --> resume --> run
+  corrupt -- no --> reject
+  run --> evidence --> verifier
+  verifier -- tampered/inconsistent --> semfail

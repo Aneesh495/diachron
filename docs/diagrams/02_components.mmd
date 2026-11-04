@@ -1,0 +1,42 @@
+%% Component map across the Rust core, Python layer, and UI.
+flowchart LR
+  subgraph Rust["Rust core (diachron-core)"]
+    linalg[linalg: expm]
+    subst[subst: CTMC models]
+    pruning[pruning: Felsenstein]
+    enumerate[enumerate: oracle]
+    rng[rng: serializable]
+    mcmc[mcmc: moves]
+    geo[geo: sphere]
+  end
+  subgraph Py["Python (diachron)"]
+    io[io: ingest + transform]
+    models[models: posterior]
+    infer[infer: chain + campaign]
+    diagnostics[diagnostics]
+    pygeo[geo: region CTMC]
+    ppc[ppc + sensitivity]
+    registry[registry + inspector]
+    verify[verify]
+    cli[cli]
+  end
+  subgraph UI["TypeScript workbench"]
+    views[tree / map / timeline / matrix]
+  end
+
+  subst --> pruning
+  linalg --> subst
+  enumerate -. validates .-> pruning
+  pruning --> models
+  rng --> infer
+  mcmc --> infer
+  geo --> models
+  io --> models
+  models --> infer
+  infer --> diagnostics
+  pygeo --> models
+  infer --> ppc
+  infer --> registry
+  infer --> verify
+  cli --> infer
+  infer --> views

@@ -1,0 +1,16 @@
+%% Pruning messages: conditional likelihood vectors flow up the tree.
+flowchart BT
+  t0["tip L0\nL = indicator(state) or ones if missing"]
+  t1["tip L1"]
+  t2["tip L2"]
+  t3["tip L3"]
+  i0["internal\nL_v(s) = prod_c sum_j P_sj(t_c) L_c(j)\nrescale by max, accumulate log scale"]
+  i1["internal (same recursion)"]
+  root["root\nlog sum_s pi(s) L_root(s) + sum of log scales"]
+
+  t0 --> i0
+  t1 --> i0
+  t2 --> i1
+  t3 --> i1
+  i0 --> root
+  i1 --> root

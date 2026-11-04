@@ -1,0 +1,11 @@
+%% Character evolution: the two-state CTMC for a cognate class.
+stateDiagram-v2
+  [*] --> Absent: root prior pi0
+  [*] --> Present: root prior pi1
+  Absent --> Present: gain rate
+  Present --> Absent: loss rate
+  note right of Present
+    P(t) closed form:
+    e = exp(-(gain+loss) t)
+    stationary pi1 = gain/(gain+loss)
+  end note
