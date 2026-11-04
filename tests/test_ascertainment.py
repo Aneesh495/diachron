@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import math
 import numpy as np
+import pytest
 
 from diachron import _core
 from diachron.models.ascertainment import log_prob_constant_patterns
@@ -127,3 +128,53 @@ def test_changing_states_changes_likelihood():
     # And the clade-matching pattern [1,1,0,0] beats the clade-crossing [1,0,1,0]:
     # the tree favors cognate sharing within a clade.
     assert lls[0] > lls[1], f"clade-matching {lls[0]} not > clade-crossing {lls[1]}"
+
+
+def test_mixture_ascertainment_matches_independently_enumerated_selected_patterns():
+    from itertools import product
+
+
+    parent = [-1, 0, 0, 0, 0]
+    lengths = [0.0, 0.3, 0.8, 1.1, 0.9]
+    heights = [2.0, 1.7, 1.2, 0.9, 1.1]
+    taxon = [-1, 0, 1, 2, 3]
+    gain, loss = 0.4, 0.9
+    prior = [loss / (gain + loss), gain / (gain + loss)]
+    rates = [0.15, 1.85]
+    for observed in ((0, 1, 2), (0, 2, 3), (0, 1, 2, 3)):
+        for minimum_present in (1, 2):
+            columns = []
+            probabilities = []
+            for pattern in product((0, 1), repeat=len(observed)):
+                if sum(pattern) < minimum_present or 0 not in pattern:
+                    continue
+                column = [-1] * 4
+                for tip, state in zip(observed, pattern):
+                    column[tip] = state
+                columns.append(column)
+                # For this star the root is the only unknown ancestral state.
+                # Independently sum it out using the closed-form binary CTMC.
+                components = []
+                for rate in rates:
+                    prob = 0.0
+                    for ancestor, root_mass in enumerate(prior):
+                        mass = root_mass
+                        for tip, state in zip(observed, pattern):
+                            persist = math.exp(-(gain + loss) * rate * lengths[tip + 1])
+                            mass *= prior[state] * (1 - persist) + (ancestor == state) * persist
+                        prob += mass
+                    components.append(prob)
+                probabilities.append(sum(components) / len(components))
+            expected = [math.log(p / sum(probabilities)) for p in probabilities]
+            actual = _core.binary_character_scores(
+                parent, lengths, heights, taxon, 0, gain, loss, columns, rates, minimum_present,
+            )
+            assert actual == pytest.approx(expected, abs=1e-12)
+
+
+def test_tree_with_disconnected_cycle_rejected_before_pruning():
+    with pytest.raises(ValueError, match="unreachable nodes or a cycle"):
+        _core.binary_character_scores(
+            [-1, 0, 3, 2], [0.0, 1.0, 1.0, 1.0], [1.0, 0.0, 1.0, 0.0],
+            [-1, 0, -1, -1], 0, 0.4, 0.8, [[1]], [1.0], 0,
+        )

@@ -36,6 +36,7 @@ class StudyData:
     tip_coords: dict[int, tuple[float, float]]
     dataset: Dataset
     borrow_candidates: list[tuple[int, int]] = None  # type: ignore[assignment]
+    minimum_present: int = 1
 
 
 def prepare_study(
@@ -111,6 +112,7 @@ def prepare_study(
         tip_coords=tip_coords,
         dataset=dataset,
         borrow_candidates=borrow_candidates,
+        minimum_present=2 if drop_singletons else 1,
     )
 
 
@@ -155,6 +157,7 @@ def build_model(study: StudyData, config: ModelConfig) -> PosteriorModel:
         config=config,
         columns=study.columns,
         n_states=2,
+        minimum_present=study.minimum_present,
         calibrations=study.calibrations,
         tip_coords=study.tip_coords,
         borrow_candidates=candidates if config.use_borrowing else [],
