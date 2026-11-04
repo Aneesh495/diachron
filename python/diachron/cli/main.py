@@ -223,7 +223,7 @@ def cmd_recovery(args) -> int:
 
     result = run_recovery_study(n_datasets=args.datasets, out_dir=args.out)
     _print(result)
-    return 0
+    return 1 if result["failed"] else 0
 
 
 def cmd_predict(args) -> int:
