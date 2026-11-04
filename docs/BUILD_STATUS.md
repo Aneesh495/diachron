@@ -20,12 +20,12 @@ correctness oracles.
 | G06 | Four-chain inference with convergence | unverified | `make sample` + `make diagnose` |
 | G07 | Held-out concept/language prediction | path verified | `make predict` + ppc; p-values show tree fits sharing, model misses missingness |
 | G08 | 12+ sensitivity configurations | path verified | `make sensitivity`: 12 configs; root age is calibration-dependent, stable to tree prior/ascertainment |
-| G09 | Geographic honesty in UI/exports/thesis | unverified | UI + export labels |
+| G09 | Geographic honesty in UI/exports/thesis | passed (UI/export) | map view 3-kind legend (modern/attestation/inferred), exporter tags kinds; thesis pending |
 | G10 | Borrowing recoverability limits | unverified | `tests/test_borrowing.py` |
-| G11 | Interactive workbench on real artifacts | unverified | `ui/` + serve path |
+| G11 | Interactive workbench on real artifacts | passed | `ui/` renders 4 linked views on saved bundles; headless screenshot in docs/screenshots |
 | G12 | Exact-state recovery, stale schema rejection | passed (resume) | `tests/test_recovery.py`: exact resume + corrupt-checkpoint reject |
 | G13 | Semantic verifier negative controls | passed (1 control) | `tests/test_integration.py`: tampered root age rejected via digest; more controls pending |
-| G14 | Thesis claim-to-evidence closure | unverified | `docs/thesis/` |
+| G14 | Thesis claim-to-evidence closure | passed | `docs/thesis/`: 15 chapters + claims.json (9 claims, all resolve to evidence) |
 | G15 | Clean-checkout release + hosted publication | unverified | release pipeline |
 
 ## Toolchain (verified this session)
