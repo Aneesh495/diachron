@@ -26,6 +26,7 @@ export interface PosteriorBundle {
   chains: Draw[][];
   source_commit: string;
   notes: string;
+  rootLocations: RootLocation[];
 }
 
 // A parsed phylogenetic tree node. `provenance` records whether a node's
@@ -63,8 +64,31 @@ export interface GeoPoint {
   kind: GeoKind;
   label: string;
   uncertaintyKm?: number;
-  ageLow?: number;
-  ageHigh?: number;
+}
+
+export interface AttestationPoint {
+  id: string;
+  lat: number | null;
+  lon: number | null;
+  kind: "attestation";
+  label: string;
+  ageLow: number;
+  ageHigh: number;
+  uncertaintyKm: number | null;
+  region: string | null;
+  sourceRef: string;
+  page: string | null;
+  bibliography: string[];
+  locationKind: string | null;
+  locationNote: string | null;
+  languageNote: string | null;
+  conflicts: string[];
+}
+
+export interface RootLocation {
+  lat: number;
+  lon: number;
+  age: number;
 }
 
 // The current selection, propagated across all linked views.

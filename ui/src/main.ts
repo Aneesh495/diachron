@@ -6,8 +6,9 @@
 // borrowing-aware results side by side. Everything reads saved artifacts; the
 // workbench never starts a chain.
 
-import type { PosteriorBundle, GeoPoint } from "./types";
+import type { AttestationPoint, PosteriorBundle, GeoPoint } from "./types";
 import { Store } from "./store";
+import { AttestationView } from "./views/attestationView";
 import { TreeView } from "./views/treeView";
 import { MapView } from "./views/mapView";
 import { TimelineView } from "./views/timelineView";
@@ -16,7 +17,7 @@ import { MatrixView, type MatrixData } from "./views/matrixView";
 interface WorkbenchData {
   bundles: Record<string, PosteriorBundle>;
   modernPoints: GeoPoint[];
-  attestations: GeoPoint[];
+  attestations: AttestationPoint[];
   matrix: MatrixData;
 }
 
@@ -28,6 +29,7 @@ export async function loadWorkbench(dataUrl: string): Promise<WorkbenchData> {
 
 export function mount(root: HTMLElement, data: WorkbenchData): void {
   const modelNames = Object.keys(data.bundles);
+  if (!modelNames.length) throw new Error("No saved posterior models");
   let current = modelNames[0];
   let store = new Store(data.bundles[current]);
 
@@ -50,6 +52,7 @@ export function mount(root: HTMLElement, data: WorkbenchData): void {
   header.appendChild(syntheticFlag);
 
   const select = document.createElement("select");
+  select.setAttribute("aria-label", "Posterior model");
   for (const name of modelNames) {
     const opt = document.createElement("option");
     opt.value = name;
@@ -82,6 +85,7 @@ export function mount(root: HTMLElement, data: WorkbenchData): void {
     new TreeView(store, panels[0]);
     new MapView(store, panels[1], data.modernPoints, data.attestations);
     new TimelineView(store, panels[2]);
+    new AttestationView(store, panels[2], data.attestations);
     new MatrixView(store, panels[3], data.matrix);
   };
   build();

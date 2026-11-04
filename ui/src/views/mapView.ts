@@ -1,21 +1,6 @@
-// Map view: an equirectangular projection that keeps three kinds of geographic
-// information visually distinct, which is the geographic-honesty requirement
-// (gate G09):
-//
-// * modern reference points (hollow grey squares): a language's catalog
-//   coordinate, explicitly a present-day reference, never a historical homeland;
-// * attestations (filled amber diamonds): dated, located observations, with an
-//   uncertainty ring;
-// * inferred latent locations (blue clouds): the posterior over a lineage's
-//   location at the current timeline position, drawn as a density of sampled
-//   points with a credible-region hull rather than a single crisp pin.
-//
-// A broad or multimodal posterior stays a cloud; it is never collapsed to one
-// homeland pin. The legend states which marks are observed and which inferred.
-
+// Map marks come from source records or exported posterior draws.
 import type { Store } from "../store";
-import type { GeoPoint } from "../types";
-import { parseNewick } from "../newick";
+import type { AttestationPoint, GeoPoint } from "../types";
 
 export class MapView {
   private el: SVGSVGElement;
@@ -23,7 +8,7 @@ export class MapView {
     private store: Store,
     container: HTMLElement,
     private modernPoints: GeoPoint[],
-    private attestations: GeoPoint[]
+    private attestations: AttestationPoint[]
   ) {
     this.el = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     this.el.setAttribute("width", "100%");
@@ -35,17 +20,7 @@ export class MapView {
   }
 
   private project(lat: number, lon: number, w: number, h: number): [number, number] {
-    // Equirectangular over the region spanned by the data, with a small margin.
-    const all = [...this.modernPoints, ...this.attestations];
-    const lats = all.map((p) => p.lat);
-    const lons = all.map((p) => p.lon);
-    const minLat = Math.min(...lats) - 2;
-    const maxLat = Math.max(...lats) + 2;
-    const minLon = Math.min(...lons) - 2;
-    const maxLon = Math.max(...lons) + 2;
-    const x = ((lon - minLon) / (maxLon - minLon)) * w;
-    const y = h - ((lat - minLat) / (maxLat - minLat)) * h;
-    return [x, y];
+    return [((lon + 180) / 360) * w, ((90 - lat) / 180) * h];
   }
 
   private render(): void {
@@ -54,7 +29,15 @@ export class MapView {
     const h = this.el.clientHeight || 400;
     const sel = this.store.selection;
 
-    // Modern reference points.
+    for (const lon of [-120, -60, 0, 60, 120]) {
+      const [x] = this.project(0, lon, w, h);
+      this.gridline(x, 0, x, h);
+    }
+    for (const lat of [-60, -30, 0, 30, 60]) {
+      const [, y] = this.project(lat, 0, w, h);
+      this.gridline(0, y, w, y);
+    }
+
     for (const p of this.modernPoints) {
       const [x, y] = this.project(p.lat, p.lon, w, h);
       const rect = this.svg("rect");
@@ -63,7 +46,8 @@ export class MapView {
       rect.setAttribute("width", "6");
       rect.setAttribute("height", "6");
       rect.setAttribute("fill", "none");
-      rect.setAttribute("stroke", "#888");
+      const taxon = this.store.bundle.tip_labels.indexOf(p.label);
+      rect.setAttribute("stroke", sel.taxa.has(taxon) ? "#182739" : "#888");
       rect.setAttribute("stroke-width", "1");
       const title = this.svg("title");
       title.textContent = `modern reference: ${p.label} (present-day coordinate)`;
@@ -71,9 +55,11 @@ export class MapView {
       this.el.appendChild(rect);
     }
 
-    // Attestations active at or before the current timeline position.
+    // An interval marks the years in which the observation could have occurred.
     for (const a of this.attestations) {
-      if (a.ageLow !== undefined && a.ageLow > sel.timeYbp) continue;
+      if (a.lat === null || a.lon === null || sel.timeYbp < a.ageLow || sel.timeYbp > a.ageHigh) continue;
+      const taxon = this.store.bundle.tip_labels.indexOf(a.label);
+      if (sel.taxa.size > 0 && !sel.taxa.has(taxon)) continue;
       const [x, y] = this.project(a.lat, a.lon, w, h);
       if (a.uncertaintyKm) {
         const ring = this.svg("circle");
@@ -102,74 +88,50 @@ export class MapView {
   }
 
   private renderLatentCloud(w: number, h: number): void {
-    const sel = this.store.selection;
-    if (!sel.clade || sel.clade.size === 0) return;
-    // For each posterior tree, estimate the selected clade's ancestral location
-    // as the mean of its member tips' modern coordinates weighted toward the
-    // root-ward direction. This is an illustration of posterior spread from the
-    // sampled trees, not a claim of a recovered homeland; it is labeled inferred.
-    const coordByTaxon = new Map<number, [number, number]>();
-    this.modernPoints.forEach((p, i) => coordByTaxon.set(i, [p.lat, p.lon]));
-
-    const cloud: Array<[number, number]> = [];
-    const draws = this.store.bundle.chains.flat();
-    const sampleEvery = Math.max(1, Math.floor(draws.length / 120));
-    for (let i = 0; i < draws.length; i += sampleEvery) {
-      const tree = parseNewick(draws[i].newick, this.store.bundle.tip_labels);
-      // Mean location of the selected taxa, jittered by the draw's root age to
-      // convey temporal-depth uncertainty.
-      let lat = 0;
-      let lon = 0;
-      let n = 0;
-      for (const taxon of sel.clade) {
-        const c = coordByTaxon.get(taxon);
-        if (c) {
-          lat += c[0];
-          lon += c[1];
-          n += 1;
-        }
-      }
-      if (n === 0) continue;
-      lat /= n;
-      lon /= n;
-      // Depth-scaled jitter: older inferred ancestors are less certain.
-      const jitter = 0.3 + (draws[i].root_age / 8000) * 0.8;
-      const seed = (i * 2654435761) % 1000;
-      lat += (Math.sin(seed) * jitter);
-      lon += (Math.cos(seed) * jitter);
-      cloud.push([lat, lon]);
-      void tree;
-    }
-
-    for (const [lat, lon] of cloud) {
+    const selection = this.store.selection;
+    if (selection.taxa.size > 0 && selection.taxa.size !== this.store.bundle.tip_labels.length) return;
+    for (const { lat, lon, age } of this.store.bundle.rootLocations) {
+      if (Math.abs(age - selection.timeYbp) > 250 || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
       const [x, y] = this.project(lat, lon, w, h);
       const dot = this.svg("circle");
       dot.setAttribute("cx", String(x));
       dot.setAttribute("cy", String(y));
-      dot.setAttribute("r", "2.5");
+      dot.setAttribute("r", "3");
       dot.setAttribute("fill", "#4a6fa5");
-      dot.setAttribute("fill-opacity", "0.25");
+      dot.setAttribute("fill-opacity", "0.35");
       this.el.appendChild(dot);
     }
+  }
+
+  private gridline(x1: number, y1: number, x2: number, y2: number): void {
+    const line = this.svg("line");
+    line.setAttribute("x1", String(x1));
+    line.setAttribute("x2", String(x2));
+    line.setAttribute("y1", String(y1));
+    line.setAttribute("y2", String(y2));
+    line.setAttribute("stroke", "#e8edf2");
+    this.el.appendChild(line);
   }
 
   private renderLegend(w: number): void {
     const items = [
       ["#888", "modern reference (present-day)"],
       ["#e6a23c", "attestation (observed)"],
-      ["#4a6fa5", "inferred latent location (posterior)"],
+      ["#4a6fa5", this.store.bundle.rootLocations.length
+        ? "sampled root (±250 years)"
+        : "root location unavailable"],
     ];
     items.forEach(([color, label], i) => {
       const y = 16 + i * 16;
       const sw = this.svg("rect");
-      sw.setAttribute("x", String(w - 220));
+      sw.setAttribute("x", String(Math.max(4, w - 175)));
       sw.setAttribute("y", String(y - 8));
       sw.setAttribute("width", "10");
       sw.setAttribute("height", "10");
       sw.setAttribute("fill", color);
       this.el.appendChild(sw);
       const txt = this.svg("text");
-      txt.setAttribute("x", String(w - 205));
+      txt.setAttribute("x", String(Math.max(19, w - 160)));
       txt.setAttribute("y", String(y + 1));
       txt.setAttribute("font-size", "9");
       txt.setAttribute("fill", "#333");
