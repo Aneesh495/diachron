@@ -9,6 +9,7 @@ from pathlib import Path
 
 from ..models.posterior import Calibration, ModelConfig, PosteriorModel
 from ..models.tree import PhyloTree
+from ..models.tip_dates import TipDate
 
 
 def _sha256(value) -> str:
@@ -23,6 +24,7 @@ def _model(raw: dict) -> PosteriorModel:
         Calibration(**{**c, "clade_taxa": tuple(c["clade_taxa"])}) for c in raw["calibrations"]
     ]
     kwargs["tip_coords"] = {int(k): tuple(v) for k, v in raw["tip_coords"].items()}
+    kwargs["tip_dates"] = {int(k): TipDate(**v) for k, v in raw.get("tip_dates", {}).items()}
     kwargs["tip_regions"] = {int(k): v for k, v in raw["tip_regions"].items()}
     if kwargs["region_model"] is not None:
         from ..geo.regions import RegionModel

@@ -119,7 +119,7 @@ class Chain:
 
     def _step(self, adapt: bool) -> None:
         """One Metropolis-within-Gibbs step: pick a move and accept/reject."""
-        move_kind = self.rng.below(6)
+        move_kind = self.rng.below(7 if self.model.tip_dates else 6)
         self._proposals += 1
         accepted = False
 
@@ -178,6 +178,20 @@ class Chain:
                     accepted = True
                 else:
                     self.tree.heights = snapshot
+        elif move_kind == 6:  # additive dated-tip move
+            taxon = sorted(self.model.tip_dates)[self.rng.below(len(self.model.tip_dates))]
+            node = self.tree.taxon.index(taxon)
+            date = self.model.tip_dates[taxon]
+            old = self.tree.heights[node]
+            proposed = old + (2.0 * self.rng.uniform() - 1.0) * date.window()
+            if 0.0 < proposed < self.tree.heights[self.tree.parent[node]]:
+                self.tree.heights[node] = proposed
+                lp = self._eval()
+                if self._accept(lp, 0.0):
+                    self._log_post = lp
+                    accepted = True
+                else:
+                    self.tree.heights[node] = old
         else:  # topology: NNI or SPR
             parent_snap = list(self.tree.parent)
             height_snap = list(self.tree.heights)

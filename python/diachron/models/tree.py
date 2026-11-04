@@ -120,7 +120,8 @@ def tree_from_truth(truth) -> PhyloTree:
 
 
 def random_starting_tree(
-    tip_labels: list[str], root_age: float, rng: np.random.Generator
+    tip_labels: list[str], root_age: float, rng: np.random.Generator,
+    tip_ages: dict[int, float] | None = None,
 ) -> PhyloTree:
     """A random ultrametric starting tree for a chain, independent of the truth.
 
@@ -128,6 +129,12 @@ def random_starting_tree(
     chain's own RNG, so chains start from genuinely different topologies.
     """
     n = len(tip_labels)
+    if n < 2:
+        raise ValueError("a study requires at least two tips")
+    tip_ages = tip_ages or {}
+    oldest = max(tip_ages.values(), default=0.0)
+    if oldest >= root_age:
+        raise ValueError("starting root age must exceed all dated tips")
     parent = [-1] * (2 * n - 1)
     heights = [0.0] * (2 * n - 1)
     taxon = [-1] * (2 * n - 1)
@@ -152,7 +159,9 @@ def random_starting_tree(
         active.append(node)
         k -= 1
     root = active[0]
-    scale = root_age / heights[root] if heights[root] > 0 else 1.0
-    heights = [h * scale for h in heights]
+    scale = (root_age - oldest) / heights[root]
+    heights = [oldest + h * scale for h in heights]
+    for tip in range(n):
+        heights[tip] = tip_ages.get(tip, 0.0)
     labels = {t: tip_labels[t] for t in range(n)}
     return PhyloTree(parent=parent, heights=heights, taxon=taxon, tip_labels=labels)

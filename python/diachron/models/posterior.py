@@ -24,6 +24,7 @@ import math
 import numpy as np
 
 from diachron import _core
+from .tip_dates import TipDate
 from .priors import coalescent_log_prior, calibration_log_density, lognormal_logpdf
 
 
@@ -101,6 +102,7 @@ class PosteriorModel:
 
     # Two when singleton positives were filtered, one for variable-only data.
     minimum_present: int = 1
+    tip_dates: dict[int, TipDate] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         alpha = self.config.rate_alpha
@@ -128,13 +130,16 @@ class PosteriorModel:
         return sum(self.character_scores(tree, gain, loss, clock_rate))
 
     def calibration_log_density(self, tree) -> float:
-        if not self.config.use_calibration or not self.calibrations:
+        if not self.config.use_calibration:
             return 0.0
         # taxon -> node index, built once per evaluation.
         taxon_to_node = {
             tree.taxon[i]: i for i in range(tree.n_nodes) if tree.taxon[i] >= 0
         }
-        total = 0.0
+        total = sum(
+            date.log_density(tree.heights[taxon_to_node[taxon]])
+            for taxon, date in self.tip_dates.items()
+        )
         need_mrca = False
         for cal in self.calibrations:
             if len(cal.clade_taxa) == 1:

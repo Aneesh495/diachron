@@ -121,6 +121,20 @@ def load_cldf_wordlist(
     lon_col = _find_column(lang_table, "#longitude")
     languages: list[Language] = []
     for row in _read_csv(base_dir, lang_table["url"]):
+        date = row.get("distribution") if profile == "iecor" else None
+        parameters = {}
+        if date == "Normal":
+            parameters = dict(
+                date_distribution="normal", date_mean=float(row["normalMean"]),
+                date_sd=float(row["normalStDev"]), date_offset=0.0,
+            )
+        elif date == "Offset log normal":
+            parameters = dict(
+                date_distribution="offset_lognormal", date_mean=float(row["logNormalMean"]),
+                date_sd=float(row["logNormalStDev"]), date_offset=float(row["logNormalOffset"]),
+            )
+        elif date:
+            raise DataError(f"unknown source date distribution: {date}")
         languages.append(
             Language(
                 id=row[lang_id_col],
@@ -131,6 +145,7 @@ def load_cldf_wordlist(
                 family=(row.get("Family") or None) if profile else None,
                 is_historical=_flag(row.get("historical")) is True if profile == "iecor" else False,
                 source_classification=(row.get("Clade") or None) if profile == "iecor" else None,
+                **parameters,
             )
         )
 

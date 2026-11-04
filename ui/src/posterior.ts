@@ -31,7 +31,7 @@ export class PosteriorSummary {
     this.trees = [];
     for (const chain of bundle.chains) {
       for (const draw of chain) {
-        this.trees.push(parseNewick(draw.newick, bundle.tip_labels));
+        this.trees.push(parseNewick(draw.newick, bundle.tip_labels, draw.root_age));
       }
     }
     this.cladeSupport = this.computeCladeSupport();

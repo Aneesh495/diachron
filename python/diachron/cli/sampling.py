@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import time
 
 import numpy as np
@@ -47,12 +48,42 @@ def run_sample(
     out_dir: str,
     profile: str = "cpu",
     resume: bool = False,
+    observed_study: str | None = None,
+    observed_source: Path | None = None,
+    catalog: Path | None = None,
+    edh_source: Path | None = None,
+    edh_geography: Path | None = None,
 ) -> dict:
     if model_name not in _MODEL_CONFIGS:
         raise ValueError(f"unknown model {model_name}; choose from {list(_MODEL_CONFIGS)}")
-    corpus = build_primary_corpus()
-    study = prepare_study(corpus.dataset, corpus.attestations)
+    if n_chains < 1 or n_chains > 8 or thin < 1 or iterations < 1 or warmup < 0:
+        raise ValueError("invalid bounded chain budget")
     config = _MODEL_CONFIGS[model_name]()
+    if observed_study is None:
+        if any((observed_source, catalog, edh_source, edh_geography)):
+            raise ValueError("source and catalog arguments require --study")
+        corpus = build_primary_corpus()
+        study = prepare_study(corpus.dataset, corpus.attestations)
+        root_age_init = corpus.truth.root_age
+    else:
+        from ..io.freeze import load_study
+        from ..io.types import Attestation
+
+        if observed_source is None or catalog is None:
+            raise ValueError("--study requires --source and --catalog")
+        if observed_study == "abvd" and config.use_calibration:
+            raise ValueError("the ABVD subset supports tree_only without independent dates")
+        if bool(edh_source) != bool(edh_geography) or (edh_source and observed_study != "iecor"):
+            raise ValueError("EDH requires both source inputs and the IE-CoR study")
+        dataset, _, report = load_study(observed_study, observed_source, catalog)
+        attestations = []
+        if edh_source:
+            from ..io.epidoc import load_edh
+
+            evidence = load_edh(edh_source, edh_geography)
+            attestations = [Attestation(**record) for record in evidence["attestations"]]
+        study = prepare_study(dataset, attestations)
+        root_age_init = 8000.0 if observed_study == "iecor" else 3500.0
     warmup, iterations = _profile_budget(profile, warmup, iterations)
 
     t0 = time.time()
@@ -63,11 +94,13 @@ def run_sample(
         warmup=warmup,
         iterations=iterations,
         thin=thin,
-        root_age_init=corpus.truth.root_age,
+        root_age_init=root_age_init,
         checkpoint_dir=os.path.join(out_dir, "checkpoints"),
         resume=resume,
     )
     bundle = campaign_bundle(chains, study, config, source_commit=source_commit())
+    if observed_study:
+        bundle.context["frozen_study"] = report
     bundle_dir = os.path.join(out_dir, model_name)
     bundle.save(bundle_dir)
     elapsed = time.time() - t0
@@ -76,6 +109,9 @@ def run_sample(
     return {
         "model": model_name,
         "profile": profile,
+        "study": study.dataset.name,
+        "is_synthetic": study.dataset.is_synthetic,
+        "dated_tips": len(chains[0].model.tip_dates),
         "chains": n_chains,
         "warmup": warmup,
         "iterations": iterations,

@@ -11,6 +11,7 @@ iteration and chain arguments; nothing here spawns unbounded work.
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 import json
 import os
 import platform
@@ -166,18 +167,28 @@ def cmd_likelihood_check(args) -> int:
 
 def cmd_sample(args) -> int:
     """Run a bounded MCMC campaign and save the posterior bundle."""
+    from ..io.types import DataError
     from .sampling import run_sample
 
-    result = run_sample(
-        model_name=args.model,
-        n_chains=args.chains,
-        warmup=args.warmup,
-        iterations=args.iterations,
-        thin=args.thin,
-        out_dir=args.out,
-        profile=args.profile,
-        resume=args.resume,
-    )
+    try:
+        result = run_sample(
+            model_name=args.model,
+            n_chains=args.chains,
+            warmup=args.warmup,
+            iterations=args.iterations,
+            thin=args.thin,
+            out_dir=args.out,
+            profile=args.profile,
+            resume=args.resume,
+            observed_study=args.study,
+            observed_source=args.source,
+            catalog=args.catalog,
+            edh_source=args.edh_source,
+            edh_geography=args.edh_geography,
+        )
+    except (DataError, OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     _print(result)
     return 0
 
@@ -332,6 +343,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--out", default="runs/sample")
     sp.add_argument("--profile", choices=("cpu", "full"), default="cpu")
     sp.add_argument("--resume", action="store_true")
+    sp.add_argument("--study", choices=("iecor", "abvd"))
+    sp.add_argument("--source", type=Path, help="root of pinned CLDF source checkout")
+    sp.add_argument("--catalog", type=Path, help="pinned Glottolog archive")
+    sp.add_argument("--edh-source", type=Path, help="directory containing pinned EDH XML files")
+    sp.add_argument("--edh-geography", type=Path, help="pinned EDH gazetteer")
     sp.set_defaults(func=cmd_sample)
 
     gp = sub.add_parser("diagnose")
