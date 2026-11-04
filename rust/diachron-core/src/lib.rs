@@ -23,6 +23,7 @@ pub mod mcmc;
 pub mod geo;
 pub mod rates;
 pub mod chain;
+pub mod eigen;
 
 #[cfg(feature = "python")]
 mod bindings;
