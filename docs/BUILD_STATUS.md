@@ -16,7 +16,7 @@ correctness oracles.
 | G02 | Pruning matches enumeration on 1000+ tiny cases | passed | `tests/test_likelihood_oracle.py`: 1200 cases agree < 1e-9 |
 | G03 | Sampler agrees with exact finite posteriors | passed | `tests/test_mcmc_exact.py`: discrete + Gamma + Jacobian control |
 | G04 | Ascertainment correction validated | passed | `tests/test_ascertainment.py`: p(variable) matches sim, missing!=absent |
-| G05 | 200+ known-truth recovery datasets | path verified (pilot) | `make recovery`: 5-dataset pilot clade-recovery 0.41, 90%CI coverage 0.8; full 200-run pending |
+| G05 | 200+ known-truth recovery datasets | passed | `runs/recovery_full`: 200 datasets, 90% root-age CI coverage 0.94 (calibrated), mean clade recovery 0.33 (short chains, honestly reported) |
 | G06 | Four-chain inference with convergence | unverified | `make sample` + `make diagnose` |
 | G07 | Held-out concept/language prediction | path verified | `make predict` + ppc; p-values show tree fits sharing, model misses missingness |
 | G08 | 12+ sensitivity configurations | path verified | `make sensitivity`: 12 configs; root age is calibration-dependent, stable to tree prior/ascertainment |
