@@ -62,7 +62,7 @@ data:
 
 .PHONY: cldf
 cldf:
-	$(PY) -m diachron.cli.main cldf ingest
+	$(PY) -m diachron.cli.main cldf $(CLDF_ARGS)
 
 .PHONY: attestations
 attestations:

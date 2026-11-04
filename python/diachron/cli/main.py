@@ -75,6 +75,25 @@ def cmd_data(args) -> int:
 def cmd_cldf(args) -> int:
     """Ingest a CLDF wordlist directory into typed tables."""
     from ..io.cldf import load_cldf_wordlist
+    from ..io.types import DataError
+
+    if args.action == "freeze":
+        from pathlib import Path
+        from ..io.freeze import load_study, write_study
+
+        if not all((args.study, args.source, args.catalog, args.out)):
+            print("provide --study, --source, --catalog and --out", file=sys.stderr)
+            return 2
+        try:
+            dataset, crosswalk, report = load_study(
+                args.study, Path(args.source), Path(args.catalog),
+            )
+            write_study(Path(args.out), dataset, crosswalk, report)
+        except (DataError, OSError, ValueError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        _print(report)
+        return 0
 
     if not args.metadata:
         print("provide --metadata path to a CLDF *-metadata.json", file=sys.stderr)
@@ -263,8 +282,12 @@ def build_parser() -> argparse.ArgumentParser:
     dp.set_defaults(func=cmd_data)
 
     cp = sub.add_parser("cldf")
-    cp.add_argument("action", nargs="?", default="ingest")
+    cp.add_argument("action", nargs="?", choices=("ingest", "freeze"), default="ingest")
     cp.add_argument("--metadata", default=None)
+    cp.add_argument("--study", choices=("iecor", "abvd"))
+    cp.add_argument("--source", help="root of the pinned source checkout")
+    cp.add_argument("--catalog", help="pinned Glottolog languoid ZIP")
+    cp.add_argument("--out", help="new directory for the frozen Arrow tables")
     cp.set_defaults(func=cmd_cldf)
 
     ap = sub.add_parser("attestations")

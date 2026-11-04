@@ -56,6 +56,8 @@ class Language:
     # Age of the variety's attestation in years before present, when the tip is
     # dated (e.g. an extinct documented language). None for contemporary tips.
     tip_age: Optional[float] = None
+    is_historical: bool = False
+    source_classification: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -75,6 +77,8 @@ class Lexeme:
     original: Optional[str] = None
     transliteration_source: Optional[str] = None
     source_ref: Optional[str] = None
+    source_value: Optional[str] = None
+    loan_annotation: Optional[bool] = None
 
 
 @dataclass(frozen=True)
@@ -97,6 +101,12 @@ class CognateJudgment:
     is_partial: bool = False
     annotator: Optional[str] = None
     source_ref: Optional[str] = None
+    id: Optional[str] = None
+    doubtful: Optional[bool] = None
+    segment_slice: Optional[str] = None
+    detection_method: Optional[str] = None
+    loan_event: Optional[str] = None
+    loan_source: Optional[str] = None
 
 
 @dataclass(frozen=True)

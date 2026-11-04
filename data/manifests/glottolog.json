@@ -1,0 +1,10 @@
+{
+  "version": "5.3",
+  "doi": "10.5281/zenodo.18840935",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "archive_url": "https://cdstar.eva.mpg.de/bitstreams/EAEA0-608B-9919-A962-0/glottolog_languoid.csv.zip",
+  "archive": {
+    "bytes": 589571,
+    "sha256": "47fcc04c18f3f6bff43198b5be14f1f6954600c90573373df9ecf6fc12622bfb"
+  }
+}

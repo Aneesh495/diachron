@@ -1,0 +1,58 @@
+{
+  "version": "v1.2.1",
+  "git_commit": "dd1ebc997bc38c824fb18a1ef234bbf2c229420b",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "doi": null,
+  "url": "https://github.com/lexibank/iecor/releases/tag/v1.2.1",
+  "metadata": "cldf/cldf-metadata.json",
+  "files": {
+    "LICENSE": {
+      "bytes": 18652,
+      "sha256": "945fbcb37deca05bccd7c3ca0e261679f1f5373515504fdbad68f6f3cf6f49b9"
+    },
+    "cldf/clades.csv": {
+      "bytes": 1824,
+      "sha256": "74eca649e4f5cc1b677b4a7f59742013c3fdd865d9b18761877bde751b36bf74"
+    },
+    "cldf/cldf-metadata.json": {
+      "bytes": 23877,
+      "sha256": "41adabb86a0e06b81cf135e8e0840f01831be6c4bef98c4c4ba32fc18021bc0b"
+    },
+    "cldf/cognates.csv": {
+      "bytes": 994393,
+      "sha256": "f2d3b7b9732c47a1d33e493e26ccb468f960aba7c8343b648c9c870d33cd7855"
+    },
+    "cldf/cognatesets.csv": {
+      "bytes": 3334328,
+      "sha256": "46a69f3708130dd9d05765d2ffbc494f323268327884f44b77d1cccdf6a18ef9"
+    },
+    "cldf/forms.csv": {
+      "bytes": 2676481,
+      "sha256": "d282e7407d9fd4f9d660e4fcca443f21b353ea746c15ebbf1577830e3f3a9723"
+    },
+    "cldf/languages.csv": {
+      "bytes": 64007,
+      "sha256": "6a41f6c7f8335c352f6950451b47426d2a4f605caba9e04682b7c67fffb8d113"
+    },
+    "cldf/loans.csv": {
+      "bytes": 46045,
+      "sha256": "66bfc1ad0e99f0b55c2c2d93cebae9f7ca807e8d543a663d9d1583d51c383139"
+    },
+    "cldf/parameters.csv": {
+      "bytes": 259782,
+      "sha256": "9979742e60ae807e0b234b00fd1211ad2f4cbb37794c58ef607eebbd1604a041"
+    },
+    "cldf/sources.bib": {
+      "bytes": 133272,
+      "sha256": "1f1eebddc31e5cf9b28116cb882a24d08f2508386a4af90a9437021a48152fbe"
+    }
+  },
+  "selection": {
+    "family": "Indo-European",
+    "required_varieties": 100,
+    "min_judged_concepts": 80,
+    "distinct_glottocodes": false,
+    "max_varieties": null,
+    "selection_seed": null
+  }
+}
