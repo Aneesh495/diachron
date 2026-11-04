@@ -156,6 +156,15 @@ def _observed_context_matches(
     )
 
 
+def _read_json(path: Path, max_bytes: int) -> dict:
+    if path.stat().st_size > max_bytes:
+        raise ValueError(f"artifact exceeds size limit: {path.name}")
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError(f"expected JSON object: {path.name}")
+    return value
+
+
 def verify_evidence(
     evidence_dir: str, expected_commit: str | None = None, probe_draws: int = 16,
     *, observed_source: Path | None = None, catalog: Path | None = None,
@@ -182,8 +191,8 @@ def verify_evidence(
     for directory in bundle_dirs:
         name = str(directory.relative_to(root)) if directory != root else directory.name
         try:
-            bundle = json.loads((directory / "bundle.json").read_text(encoding="utf-8"))
-            manifest = json.loads((directory / "MANIFEST.json").read_text(encoding="utf-8"))
+            bundle = _read_json(directory / "bundle.json", 128 * 1024 * 1024)
+            manifest = _read_json(directory / "MANIFEST.json", 1024 * 1024)
             context = bundle.get("context", {})
             if context.get("schema_version") != 2:
                 record(f"{name}:schema", False, "exact model inputs and draw state required")
@@ -215,7 +224,7 @@ def verify_evidence(
     acceptance_path = root / "ACCEPTANCE.json"
     if acceptance_path.is_file():
         try:
-            acceptance = json.loads(acceptance_path.read_text(encoding="utf-8"))
+            acceptance = _read_json(acceptance_path, 1024 * 1024)
             if acceptance["profile"] == "full":
                 record("full_acceptance", False, "the complete campaign verifier is unavailable")
         except (OSError, KeyError, TypeError, ValueError) as exc:
