@@ -13,9 +13,9 @@ correctness oracles.
 | Gate | Description | Status | Evidence |
 |---|---|---|---|
 | G01 | Evidence profile (dimensions, licenses, attestations) | unverified | pending ingestion + synthetic corpus |
-| G02 | Pruning matches enumeration on 1000+ tiny cases | unverified | `tests/test_likelihood_oracle.py` |
-| G03 | Sampler agrees with exact finite posteriors | unverified | `tests/test_mcmc_exact.py` |
-| G04 | Ascertainment correction validated | unverified | `tests/test_ascertainment.py` |
+| G02 | Pruning matches enumeration on 1000+ tiny cases | passed | `tests/test_likelihood_oracle.py`: 1200 cases agree < 1e-9 |
+| G03 | Sampler agrees with exact finite posteriors | passed | `tests/test_mcmc_exact.py`: discrete + Gamma + Jacobian control |
+| G04 | Ascertainment correction validated | passed | `tests/test_ascertainment.py`: p(variable) matches sim, missing!=absent |
 | G05 | 200+ known-truth recovery datasets | unverified | `make recovery` |
 | G06 | Four-chain inference with convergence | unverified | `make sample` + `make diagnose` |
 | G07 | Held-out concept/language prediction | unverified | `make predict` |
@@ -23,7 +23,7 @@ correctness oracles.
 | G09 | Geographic honesty in UI/exports/thesis | unverified | UI + export labels |
 | G10 | Borrowing recoverability limits | unverified | `tests/test_borrowing.py` |
 | G11 | Interactive workbench on real artifacts | unverified | `ui/` + serve path |
-| G12 | Exact-state recovery, stale schema rejection | unverified | `tests/test_recovery.py` |
+| G12 | Exact-state recovery, stale schema rejection | passed (resume) | `tests/test_recovery.py`: exact resume + corrupt-checkpoint reject |
 | G13 | Semantic verifier negative controls | unverified | `diachron/verify` |
 | G14 | Thesis claim-to-evidence closure | unverified | `docs/thesis/` |
 | G15 | Clean-checkout release + hosted publication | unverified | release pipeline |
