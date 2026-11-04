@@ -39,8 +39,10 @@ class PosteriorBundle:
 
     def save(self, directory: str) -> None:
         os.makedirs(directory, exist_ok=True)
+        payload = json.dumps(asdict(self), allow_nan=False)
         with open(os.path.join(directory, "bundle.json"), "w", encoding="utf-8") as f:
-            json.dump(asdict(self), f, allow_nan=False)
+            f.write(payload)
+        serialized_context = json.loads(payload)["context"]
         # A separate checksum over the draws, so tampering with results is
         # detectable independently of the bundle's own fields.
         digest = self.draw_digest()
@@ -53,7 +55,7 @@ class PosteriorBundle:
                     "draws_per_chain": self.draws_per_chain,
                     "draw_digest": digest,
                     "source_commit": self.source_commit,
-                    "context_sha256": _digest(self.context),
+                    "context_sha256": _digest(serialized_context),
                 },
                 f,
                 indent=2,
