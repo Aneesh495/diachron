@@ -61,7 +61,10 @@ def prepare_study(
         columns.append(col)
 
     # Tip coordinates for the geographic model, keyed by taxon index.
-    coord_by_lang = {lang.id: (lang.latitude, lang.longitude) for lang in dataset.languages}
+    coord_by_lang = {
+        lang.id: (lang.latitude, lang.longitude)
+        for lang in dataset.languages if not lang.is_historical
+    }
     tip_coords: dict[int, tuple[float, float]] = {}
     for t, lid in enumerate(tip_labels):
         lat, lon = coord_by_lang.get(lid, (None, None))

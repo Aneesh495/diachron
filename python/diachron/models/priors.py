@@ -48,8 +48,8 @@ def coalescent_log_prior(heights: list[float], parent: list[int], pop_size: floa
     coalescence is exponential with that rate. This is a standard tree prior; it
     is implemented here so the density entering the posterior is explicit.
 
-    Returns the log density of the internal node ages. Assumes tips at known
-    ages (usually 0) and internal nodes strictly ordered above them.
+    Each labeled pair has hazard 1 / N; the total survival hazard uses the
+    number of possible pairs. Tip sampling times are conditioned on here.
     """
     n_nodes = len(heights)
     # A node is internal (a coalescence) if it is some other node's parent;
@@ -61,7 +61,7 @@ def coalescent_log_prior(heights: list[float], parent: list[int], pop_size: floa
     events = [
         (heights[i], "coal" if is_parent[i] else "sample") for i in range(n_nodes)
     ]
-    events.sort(key=lambda e: e[0])
+    events.sort(key=lambda e: (e[0], e[1] == "coal"))
 
     lp = 0.0
     lineages = 0
@@ -74,13 +74,13 @@ def coalescent_log_prior(heights: list[float], parent: list[int], pop_size: floa
             lp += -rate * dt
         if kind == "sample":
             lineages += 1
-        else:  # coalescence reduces lineage count by one and contributes a rate
-            if lineages >= 2:
-                rate = lineages * (lineages - 1) / (2.0 * pop_size)
-                lp += math.log(rate) if rate > 0 else float("-inf")
+        else:
+            if lineages < 2:
+                return float("-inf")
+            lp -= math.log(pop_size)
             lineages -= 1
         prev_time = time
-    return lp
+    return lp if lineages == 1 else float("-inf")
 
 
 def calibration_log_density(node_age: float, low: float, high: float, kind: str = "uniform") -> float:

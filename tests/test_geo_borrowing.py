@@ -99,3 +99,14 @@ def test_borrowing_responds_to_shared_cognates():
     # likelihood part should favor high; the prior penalizes high but the strong
     # co-presence signal should make high competitive or preferred.
     assert high > low
+
+
+def test_planar_geography_keeps_observed_contrast_when_other_subtree_is_missing():
+    import math
+
+    from diachron.models.posterior import _brownian_tree_loglik
+    from diachron.models.tree import PhyloTree
+
+    tree = PhyloTree([3, 3, 4, 4, -1], [0.0, 0.0, 0.0, 2.0, 5.0], [0, 1, 2, -1, -1])
+    actual = _brownian_tree_loglik(tree, {0: (2.0, 1.0), 2: (3.0, 4.0)}, 0.5)
+    assert abs(actual - (-1.0 - math.log(10 * math.pi))) < 1e-12
