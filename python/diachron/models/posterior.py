@@ -61,6 +61,7 @@ class ModelConfig:
     borrowing_prior_rate: float = 10.0
     relaxed_clock_sigma: float = 0.0
     geo_region_count: int = 0
+    geography_error_degrees: float = 0.0
 
     @staticmethod
     def tree_only() -> "ModelConfig":
@@ -114,6 +115,9 @@ class PosteriorModel:
     def __post_init__(self) -> None:
         if not math.isfinite(self.config.relaxed_clock_sigma) or self.config.relaxed_clock_sigma < 0.0:
             raise ValueError("clock dispersion must be finite and nonnegative")
+        error = self.config.geography_error_degrees
+        if not math.isfinite(error) or error < 0:
+            raise ValueError("geographic observation error must be finite and nonnegative")
         alpha = self.config.rate_alpha
         if alpha is not None and (
             not np.isfinite(alpha) or alpha <= 0 or not 1 <= self.config.rate_categories <= 32
@@ -221,7 +225,9 @@ class PosteriorModel:
         # Continuous spherical/Brownian path.
         if not self.tip_coords:
             return 0.0
-        return _brownian_tree_loglik(tree, self.tip_coords, geo_sigma2)
+        return _brownian_tree_loglik(
+            tree, self.tip_coords, geo_sigma2, self.config.geography_error_degrees,
+        )
 
     def log_posterior(
         self,
@@ -310,12 +316,14 @@ def _mrca(tree, taxa: tuple[int, ...], taxon_to_node: dict[int, int]) -> int | N
     return min(common, key=lambda n: tree.heights[n])
 
 
-def _brownian_tree_loglik(tree, tip_coords: dict[int, tuple[float, float]], sigma2: float) -> float:
-    return _planar_messages(tree, tip_coords, sigma2)[0]
+def _brownian_tree_loglik(
+    tree, tip_coords: dict[int, tuple[float, float]], sigma2: float, error: float = 0.0,
+) -> float:
+    return _planar_messages(tree, tip_coords, sigma2, error)[0]
 
 
 def _planar_messages(
-    tree, tip_coords: dict[int, tuple[float, float]], sigma2: float,
+    tree, tip_coords: dict[int, tuple[float, float]], sigma2: float, error: float,
 ) -> tuple[float, dict[int, tuple[float, float, float]]]:
     """Planar Gaussian contrasts over observed latitude and longitude pairs.
 
@@ -332,7 +340,7 @@ def _planar_messages(
         if tree.is_tip(node):
             coords = tip_coords.get(tree.taxon[node])
             if coords is not None:
-                messages[node] = (*coords, 0.0)
+                messages[node] = (*coords, error ** 2)
             continue
 
         combined = None
@@ -364,10 +372,10 @@ def _planar_messages(
 
 
 def planar_location_marginals(
-    tree, tip_coords: dict[int, tuple[float, float]], sigma2: float,
+    tree, tip_coords: dict[int, tuple[float, float]], sigma2: float, error: float = 0.0,
 ) -> dict[int, tuple[float, float, float]]:
     """Condition every node's location on the complete set of scored tips."""
-    _, upward = _planar_messages(tree, tip_coords, sigma2)
+    _, upward = _planar_messages(tree, tip_coords, sigma2, error)
     if tree.root not in upward:
         return {}
     posterior = {tree.root: upward[tree.root]}

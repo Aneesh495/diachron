@@ -66,7 +66,8 @@ def _clade_locations(bundle: PosteriorBundle, chains: list[list[dict]]) -> tuple
     clade_samples = {key: [] for key in selected}
     rng = np.random.default_rng(20261104)
     for tree, diffusion, clades in samples:
-        marginals = planar_location_marginals(tree, coords, diffusion)
+        error = model["config"].get("geography_error_degrees", 0.0)
+        marginals = planar_location_marginals(tree, coords, diffusion, error)
         if not marginals:
             continue
 

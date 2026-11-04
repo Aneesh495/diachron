@@ -151,7 +151,7 @@ def _spatial_dispersion(points: np.ndarray) -> float:
     return float(np.mean(np.sum((points - points.mean(axis=0)) ** 2, axis=1)))
 
 
-def _replicate_geography(tree, observed_tips, sigma2, rng):
+def _replicate_geography(tree, observed_tips, sigma2, error, rng):
     positions = np.zeros((tree.n_nodes, 2))
     branches = tree.branch_lengths()
     children = tree.children()
@@ -163,7 +163,7 @@ def _replicate_geography(tree, observed_tips, sigma2, rng):
         if parent >= 0:
             positions[node] = positions[parent] + rng.normal(0.0, np.sqrt(sigma2 * branches[node]), 2)
         if tree.taxon[node] in observed_tips:
-            points.append(positions[node])
+            points.append(positions[node] + rng.normal(0.0, error, 2) if error else positions[node])
     return _spatial_dispersion(np.array(points))
 
 
@@ -205,7 +205,8 @@ def run_posterior_predictive(bundle_dir: str, n_draws: int = 40, seed: int = 0) 
         summary = stats.all_statistics(replicate)
         if spatial:
             summary["planar_dispersion_degree2"] = _replicate_geography(
-                tree, {int(t) for t in coords}, draw["geo_sigma2"], rng,
+                tree, {int(t) for t in coords}, draw["geo_sigma2"],
+                config.get("geography_error_degrees", 0.0), rng,
             )
         for name in predicted:
             predicted[name].append(summary[name])

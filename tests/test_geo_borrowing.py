@@ -183,3 +183,15 @@ def test_location_marginals_match_independent_gaussian_precision_system():
     result = planar_location_marginals(tree, observed, sigma2)
     assert np.allclose([result[i][:2] for i in latent], mean, atol=1e-12)
     assert np.allclose([result[i][2] for i in latent], covariance.diagonal(), atol=1e-12)
+
+
+def test_location_error_changes_known_gaussian_root_variance():
+    from diachron.models.posterior import planar_location_marginals
+    from diachron.models.tree import PhyloTree
+
+    tree = PhyloTree([2, 2, -1], [0.0, 0.0, 4.0], [0, 1, -1])
+    positions = {0: (42.0, 20.0), 1: (44.0, 26.0)}
+    precise = planar_location_marginals(tree, positions, 0.5)[tree.root]
+    uncertain = planar_location_marginals(tree, positions, 0.5, error=3.0)[tree.root]
+    assert precise == (43.0, 23.0, 1.0)
+    assert uncertain == (43.0, 23.0, 5.5)

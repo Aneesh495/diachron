@@ -51,6 +51,7 @@ def run_sample(
     profile: str = "cpu",
     resume: bool = False,
     jobs: int = 1,
+    geography_error: float | None = None,
     observed_study: str | None = None,
     observed_source: Path | None = None,
     catalog: Path | None = None,
@@ -62,6 +63,10 @@ def run_sample(
     if n_chains < 1 or n_chains > 8 or thin < 1 or iterations < 1 or warmup < 0:
         raise ValueError("invalid bounded chain budget")
     config = _MODEL_CONFIGS[model_name]()
+    if geography_error is not None:
+        if not config.use_geography:
+            raise ValueError("--geography-error applies to the geographic model")
+        config.geography_error_degrees = geography_error
     if observed_study is None:
         if any((observed_source, catalog, edh_source, edh_geography)):
             raise ValueError("source and catalog arguments require --study")
