@@ -159,7 +159,9 @@ impl ReversibleModel {
     /// Transition matrix P(t) = U exp(Lambda t) U^{-1}, row-major.
     pub fn transition(&self, t: f64) -> Vec<f64> {
         let n = self.n;
-        let exp_lambda: Vec<f64> = self.eigvals.iter().map(|&l| (l * t).exp()).collect();
+        let exp_lambda: Vec<f64> = self.eigvals.iter().map(|&l| {
+            if l >= 0.0 { 1.0 } else { (l * t).exp() }
+        }).collect();
         // P = U * diag(exp_lambda) * U_inv.
         let mut p = vec![0.0; n * n];
         for i in 0..n {

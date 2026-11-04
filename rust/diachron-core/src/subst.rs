@@ -17,6 +17,7 @@
 //! stated stationary distribution. Time is in the clock's rate units; branch
 //! lengths carry the calendar scaling elsewhere.
 
+use crate::eigen::ReversibleModel;
 use crate::linalg::{expm, Mat};
 
 /// A substitution model exposes its state count, stationary distribution, and a
@@ -28,6 +29,81 @@ pub trait SubstModel {
     fn transition(&self, t: f64) -> Mat;
     /// The instantaneous rate matrix Q (rows sum to zero).
     fn rate_matrix(&self) -> Mat;
+}
+
+/// Reversible exchangeability model with an explicit expected event rate.
+pub struct Gtr {
+    model: ReversibleModel,
+    generator: Mat,
+    rate: f64,
+}
+
+impl Gtr {
+    pub fn new(pi: Vec<f64>, exchange: &[f64], rate: f64) -> Option<Self> {
+        let n = pi.len();
+        if !(2..=32).contains(&n)
+            || exchange.len() != n * n
+            || (pi.iter().sum::<f64>() - 1.0).abs() > 1e-9
+            || pi.iter().any(|p| !p.is_finite() || *p <= 0.0)
+            || !rate.is_finite()
+            || rate <= 0.0
+        {
+            return None;
+        }
+        let mut q = Mat::zeros(n);
+        for i in 0..n {
+            let mut outgoing = 0.0;
+            for j in 0..n {
+                if i != j {
+                    let value = exchange[i * n + j];
+                    if !value.is_finite() || value < 0.0 || value != exchange[j * n + i] {
+                        return None;
+                    }
+                    let qij = value * pi[j];
+                    q.set(i, j, qij);
+                    outgoing += qij;
+                }
+            }
+            q.set(i, i, -outgoing);
+        }
+        let mean: f64 = pi.iter().enumerate().map(|(i, p)| -p * q.at(i, i)).sum();
+        if !mean.is_finite() || mean <= 0.0 {
+            return None;
+        }
+        q.scale(rate / mean);
+        Some(Self {
+            model: ReversibleModel::new(pi, exchange),
+            generator: q,
+            rate,
+        })
+    }
+}
+
+impl SubstModel for Gtr {
+    fn n_states(&self) -> usize {
+        self.model.n_states()
+    }
+
+    fn stationary(&self) -> Vec<f64> {
+        self.model.stationary().to_vec()
+    }
+
+    fn transition(&self, duration: f64) -> Mat {
+        let n = self.n_states();
+        if duration == 0.0 {
+            return Mat::identity(n);
+        }
+        let data = self.model.transition(duration * self.rate);
+        let rows = data
+            .chunks_exact(n)
+            .map(<[f64]>::to_vec)
+            .collect::<Vec<_>>();
+        Mat::from_rows(&rows)
+    }
+
+    fn rate_matrix(&self) -> Mat {
+        self.generator.clone()
+    }
 }
 
 /// Binary gain/loss model. State 0 = absent, state 1 = present.
@@ -59,10 +135,7 @@ impl SubstModel for BinaryGainLoss {
     }
 
     fn rate_matrix(&self) -> Mat {
-        Mat::from_rows(&[
-            vec![-self.gain, self.gain],
-            vec![self.loss, -self.loss],
-        ])
+        Mat::from_rows(&[vec![-self.gain, self.gain], vec![self.loss, -self.loss]])
     }
 
     fn transition(&self, t: f64) -> Mat {
@@ -72,13 +145,13 @@ impl SubstModel for BinaryGainLoss {
         }
         // Closed form for the 2-state chain; avoids expm and is exact.
         let z = self.gain + self.loss;
-        let e = (-z * t).exp();
+        let change = -(-z * t).exp_m1();
         let pi0 = self.loss / z; // stationary absent
         let pi1 = self.gain / z; // stationary present
-        // P(t) = Pi + e * (I - Pi) structure for a reversible 2-state chain.
+                                 // P(t) = Pi + e * (I - Pi) structure for a reversible 2-state chain.
         Mat::from_rows(&[
-            vec![pi0 + pi1 * e, pi1 - pi1 * e],
-            vec![pi0 - pi0 * e, pi1 + pi0 * e],
+            vec![1.0 - pi1 * change, pi1 * change],
+            vec![pi0 * change, 1.0 - pi0 * change],
         ])
     }
 }
