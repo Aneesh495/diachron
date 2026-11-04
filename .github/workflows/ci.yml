@@ -1,0 +1,76 @@
+name: ci
+
+# Lightweight CI on ordinary pushes: build, static checks, deterministic
+# correctness tests, a real integration path, verifier negative controls,
+# packaging, and docs. Resource-heavy campaigns run separately (see
+# acceptance.yml) and are not certified by this workflow.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  # Cancel superseded runs on the same ref without hiding failures on others.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/diachron-core/target
+          key: cargo-${{ hashFiles('rust/diachron-core/Cargo.lock') }}
+
+      - name: Create venv and install tooling
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install --upgrade pip
+          pip install maturin pytest hypothesis pyarrow matplotlib scipy pandas numpy
+
+      - name: Rust unit tests
+        run: cd rust/diachron-core && cargo test --lib
+
+      - name: Build extension
+        run: . .venv/bin/activate && maturin develop --release
+
+      - name: Python correctness suite
+        run: . .venv/bin/activate && python -m pytest tests -q
+
+      - name: Likelihood oracle (G02)
+        run: . .venv/bin/activate && python -m diachron.cli.main likelihood-check --cases 1000
+
+      - name: Bounded integration demo
+        run: . .venv/bin/activate && python -m diachron.cli.main demo
+
+  ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install and typecheck workbench
+        run: |
+          cd ui
+          npm install
+          npm run typecheck
+          npm run build
