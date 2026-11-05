@@ -49,6 +49,7 @@ class StudyData:
     attestations: list[Attestation] = field(default_factory=list)
     tip_dates: dict[int, TipDate] = field(default_factory=dict)
     character_ids: list[tuple[str, str]] = field(default_factory=list)
+    required_clades: list[list[int]] = field(default_factory=list)
 
 
 def prepare_study(
@@ -184,12 +185,18 @@ def build_model(study: StudyData, config: ModelConfig) -> PosteriorModel:
     if config.use_geography and config.geo_region_count:
         from ..geo.regions import RegionModel, assign_regions
 
-        # Fixed European/West Asian anchors for synthetic sensitivity runs.
+        # Fixed anchors are declared model assumptions, never ancient borders.
         fine = [
             ("Atlantic", (50.0, -5.0)), ("Central Europe", (48.0, 16.0)),
             ("Balkans", (42.0, 23.0)), ("Steppe", (48.0, 35.0)),
             ("Anatolia", (39.0, 35.0)), ("Caucasus", (43.0, 45.0)),
         ]
+        if study.dataset.name == "iecor":
+            fine = [
+                ("Atlantic anchor", (50.0, -5.0)), ("Central European anchor", (45.0, 20.0)),
+                ("Caucasus anchor", (43.0, 45.0)), ("Iranian anchor", (33.0, 55.0)),
+                ("North Indian anchor", (27.0, 78.0)), ("South Indian anchor", (14.0, 79.0)),
+            ]
         if config.geo_region_count not in (3, 6):
             raise ValueError("regional sensitivity supports three or six fixed anchors")
         anchors = fine if config.geo_region_count == 6 else fine[::2]
@@ -198,6 +205,7 @@ def build_model(study: StudyData, config: ModelConfig) -> PosteriorModel:
     return PosteriorModel(
         config=config,
         columns=study.columns,
+        required_clades=study.required_clades,
         n_states=2,
         minimum_present=study.minimum_present,
         tip_dates=study.tip_dates if config.use_calibration else {},
@@ -218,8 +226,12 @@ def _run_chain(
     rng = np.random.default_rng(base_seed + c)
     dates = {taxon: date.center() for taxon, date in model.tip_dates.items()}
     if initialization == "distance":
-        start = distance_starting_tree(tip_labels, model.columns, root_age_init, rng, dates)
+        start = distance_starting_tree(
+            tip_labels, model.columns, root_age_init, rng, dates, model.required_clades,
+        )
     else:
+        if model.required_clades:
+            raise ValueError("clade-constrained campaigns require distance initialization")
         start = random_starting_tree(tip_labels, root_age_init, rng, dates)
     cfg = ChainConfig(
         seed=base_seed + 7919 * (c + 1), warmup=warmup, iterations=iterations, thin=thin,

@@ -147,10 +147,10 @@ def run_diagnose(bundle_dir: str) -> dict:
         chains = np.array(bundle.scalar(name))
         scalars[name] = {
             "mean": float(np.mean(chains)),
-            "split_rhat": finite(round(cv.split_rhat(chains), 4)),
-            "rank_rhat": finite(round(cv.rank_normalized_rhat(chains), 4)),
-            "bulk_ess": round(cv.bulk_ess(chains), 1),
-            "tail_ess": round(cv.tail_ess(chains), 1),
+            "split_rhat": finite(cv.split_rhat(chains)),
+            "rank_rhat": finite(cv.rank_normalized_rhat(chains)),
+            "bulk_ess": float(cv.bulk_ess(chains)),
+            "tail_ess": float(cv.tail_ess(chains)),
             "mcse_mean": finite(float(cv.mcse_mean(chains))),
         }
     out["scalars"] = scalars

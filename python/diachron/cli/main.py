@@ -226,10 +226,39 @@ def cmd_ppc(args) -> int:
     return 0
 
 
+def _observed_inputs(args):
+    if args.study is None:
+        return None, [], None
+    from ..io.freeze import load_study
+    from ..io.epidoc import load_edh
+    from ..io.types import Attestation
+
+    if args.source is None or args.catalog is None:
+        raise ValueError("observed campaign requires --source and --catalog")
+    if bool(args.edh_source) != bool(args.edh_geography):
+        raise ValueError("provide both EDH inputs")
+    dataset, _, frozen = load_study(args.study, args.source, args.catalog)
+    attestations = []
+    if args.edh_source:
+        report = load_edh(args.edh_source, args.edh_geography)
+        attestations = [Attestation(**raw) for raw in report["attestations"]]
+    return dataset, attestations, frozen
+
+
 def cmd_sensitivity(args) -> int:
     from ..sensitivity.run import run_sensitivity
+    from ..io.types import DataError
 
-    result = run_sensitivity(out_dir=args.out)
+    try:
+        dataset, attestations, frozen = _observed_inputs(args)
+        result = run_sensitivity(
+            out_dir=args.out, dataset=dataset, attestations=attestations, frozen_study=frozen,
+            n_chains=args.chains, warmup=args.warmup, iterations=args.iterations,
+            jobs=args.jobs, resume=args.resume,
+        )
+    except (DataError, OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     _print(result)
     return 0
 
@@ -436,6 +465,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     sn = sub.add_parser("sensitivity")
     sn.add_argument("--out", default="runs/sensitivity")
+    sn.add_argument("--study", choices=("iecor",))
+    sn.add_argument("--source", type=Path)
+    sn.add_argument("--catalog", type=Path)
+    sn.add_argument("--edh-source", type=Path)
+    sn.add_argument("--edh-geography", type=Path)
+    sn.add_argument("--chains", type=int, default=2)
+    sn.add_argument("--warmup", type=int, default=500)
+    sn.add_argument("--iterations", type=int, default=1500)
+    sn.add_argument("--jobs", type=int, default=1)
+    sn.add_argument("--resume", action="store_true")
     sn.set_defaults(func=cmd_sensitivity)
 
     rp = sub.add_parser("recovery")

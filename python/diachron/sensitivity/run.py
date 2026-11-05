@@ -17,15 +17,17 @@ reports which ones do.
 from __future__ import annotations
 
 import json
-import os
+from pathlib import Path
+import hashlib
 from dataclasses import asdict, dataclass, replace
 
 import numpy as np
 
 from ..io.corpus import build_primary_corpus
-from ..infer.campaign import prepare_study, run_campaign, campaign_bundle
+from ..infer.campaign import run_campaign, campaign_bundle
 from ..models.posterior import ModelConfig
-from ..util.gitmeta import source_commit
+from ..util.gitmeta import source_commit, working_tree_clean
+from .interventions import prepare_sensitivity_study
 
 
 @dataclass
@@ -76,70 +78,114 @@ def _declared_configs() -> list[SensitivityConfig]:
         SensitivityConfig("borrowing_tighter_prior", "contact",
                           lambda: replace(ModelConfig.borrowing(), borrowing_prior_rate=30.0)),
     ])
+    configs.extend([
+        SensitivityConfig("broad_all_tip_dates", "calibration", ModelConfig.dated),
+        SensitivityConfig("alternative_cognacy_merge", "cognacy", ModelConfig.dated),
+        SensitivityConfig("catalog_monophyly", "taxonomy", ModelConfig.dated),
+        SensitivityConfig("geographic_error_5deg", "geography",
+                          lambda: replace(ModelConfig.geography(), geography_error_degrees=5.0)),
+        SensitivityConfig("diffusion_wide_prior", "geography",
+                          lambda: replace(ModelConfig.geography(), diffusion_prior_log_sd=3.0)),
+    ])
     return configs
 
 
-def run_sensitivity(out_dir: str = "runs/sensitivity",
-                    warmup: int = 500, iterations: int = 1500) -> dict:
-    os.makedirs(out_dir, exist_ok=False)
-    corpus = build_primary_corpus()
-
-    rows = []
-    for sc in _declared_configs():
-        # Data levers change how the study is prepared.
-        drop_singletons = sc.name != "include_singletons"
-        include_loans = sc.name != "remove_loans"
-        attestations = corpus.attestations
-        if sc.name == "half_calibrations":
-            attestations = sorted(attestations, key=lambda att: att.id)[::2]
-        study = prepare_study(
-            corpus.dataset, attestations,
-            drop_singletons=drop_singletons,
-            include_loans_as_present=include_loans,
-        )
-        config = sc.build()
-        if config.use_calibration and study.calibrations:
-            cal = study.calibrations[0]
-            start_age = (cal.age_low + cal.age_high) / 2.0
-        else:
-            start_age = 6000.0
-        chains = run_campaign(
-            study, config, n_chains=2, warmup=warmup, iterations=iterations, thin=10,
-            root_age_init=start_age, base_seed=40000,
-        )
-        bundle = campaign_bundle(chains, study, config)
-        root = np.array([d for ch in bundle.scalar("root_age") for d in ch])
-        rows.append({
-            "config": sc.name,
-            "lever": sc.lever,
-            "root_age_mean": float(root.mean()),
-            "root_age_sd": float(root.std()),
-            "n_chars": len(study.columns),
-            "n_attestations": len(attestations),
-            "model": asdict(config),
-            "root_quantiles_05_50_95": np.quantile(root, [0.05, 0.5, 0.95]).tolist(),
-        })
-        with open(os.path.join(out_dir, "configurations.jsonl"), "a", encoding="utf-8") as raw:
-            raw.write(json.dumps(rows[-1], allow_nan=False) + "\n")
-
-    # Stability verdict: which levers move the root-age estimate materially.
-    baseline = next(r for r in rows if r["config"] == "pop_size_3000")
-    for r in rows:
-        r["root_shift_vs_baseline"] = abs(r["root_age_mean"] - baseline["root_age_mean"])
-    sensitive = [r["config"] for r in rows
-                 if r["root_shift_vs_baseline"] > 0.15 * max(baseline["root_age_mean"], 1)]
-
-    result = {
-        "gate": "G08",
-        "source_commit": source_commit(),
-        "is_synthetic": True,
-        "profile": "two-chain sensitivity diagnostic",
-        "n_configs": len(rows),
-        "configs": rows,
-        "baseline": "pop_size_3000",
-        "levers_that_shift_root_age": sensitive,
-        "note": "Shifts are descriptive for short chains. Small shifts do not establish robustness.",
+def run_sensitivity(
+    out_dir: str = "runs/sensitivity", warmup: int = 500, iterations: int = 1500,
+    *, dataset=None, attestations=None, frozen_study=None, n_chains: int = 2,
+    jobs: int = 1, resume: bool = False,
+) -> dict:
+    if dataset is None:
+        corpus = build_primary_corpus()
+        dataset, attestations = corpus.dataset, corpus.attestations
+    attestations = list(attestations or [])
+    if not dataset.is_synthetic and not working_tree_clean():
+        raise ValueError("observed sensitivity requires a clean committed checkout")
+    commit = source_commit()
+    configurations = _declared_configs()
+    # Keep the earlier synthetic diagnostic protocol reproducible.
+    if dataset.is_synthetic:
+        configurations = configurations[:15]
+    fingerprint = json.dumps(
+        {"dataset": asdict(dataset), "attestations": [asdict(row) for row in attestations]},
+        sort_keys=True, separators=(",", ":"), allow_nan=False,
+    )
+    plan = {
+        "schema": 1, "source_commit": commit, "study": dataset.name,
+        "input_sha256": hashlib.sha256(fingerprint.encode()).hexdigest(),
+        "frozen_study": frozen_study, "chains": n_chains, "warmup": warmup,
+        "iterations": iterations, "thin": 10, "jobs": jobs, "initialization": "distance",
+        "configurations": [{"name": setting.name, "lever": setting.lever,
+                            "model": asdict(setting.build())} for setting in configurations],
     }
-    with open(os.path.join(out_dir, "sensitivity.json"), "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2)
+    out = Path(out_dir)
+    plan_path = out / "SENSITIVITY_PLAN.json"
+    if out.exists():
+        if not resume or not plan_path.is_file():
+            raise FileExistsError("sensitivity output exists; resume with the same plan")
+        if json.loads(plan_path.read_text()) != plan:
+            raise ValueError("sensitivity source, input or budget differs")
+    else:
+        out.mkdir(parents=True)
+        _write(plan_path, plan)
+    rows = []
+    for setting in configurations:
+        study, intervention = prepare_sensitivity_study(dataset, attestations, setting.name)
+        config = setting.build()
+        if config.use_calibration and study.calibrations:
+            calibration = study.calibrations[0]
+            start_age = (calibration.age_low + calibration.age_high) / 2
+        else:
+            start_age = 8000.0 if dataset.name == "iecor" else 6000.0
+        directory = out / setting.name
+        chains = run_campaign(
+            study, config, n_chains=n_chains, warmup=warmup, iterations=iterations, thin=10,
+            root_age_init=start_age, base_seed=40000, jobs=jobs, resume=resume,
+            checkpoint_dir=str(directory / "checkpoints"),
+        )
+        bundle = campaign_bundle(chains, study, config, source_commit=commit)
+        bundle.context["sensitivity"] = intervention
+        if frozen_study is not None:
+            bundle.context["frozen_study"] = frozen_study
+        bundle.save(str(directory / config.name))
+        from ..cli.sampling import run_diagnose
+
+        diagnostic = run_diagnose(str(directory / config.name))
+        _write(directory / "diagnostics.json", diagnostic)
+        root = np.array(bundle.scalar("root_age")).flatten()
+        rows.append({
+            "config": setting.name, "lever": setting.lever,
+            "root_age_mean": float(root.mean()), "root_age_sd": float(root.std()),
+            "n_chars": len(study.columns), "n_attestations": len(study.attestations),
+            "model": asdict(config), "intervention": intervention,
+            "root_quantiles_05_50_95": np.quantile(root, [0.05, 0.5, 0.95]).tolist(),
+            "converged": diagnostic["converged"],
+        })
+        _write(out / "PROGRESS.json", {
+            "source_commit": commit, "completed_configurations": [row["config"] for row in rows],
+            "status": "running", "required_configurations": len(configurations),
+        })
+    baseline = next(row for row in rows if row["config"] == "pop_size_3000")
+    for row in rows:
+        row["root_shift_vs_baseline"] = abs(row["root_age_mean"] - baseline["root_age_mean"])
+    result = {
+        "gate": "G08", "source_commit": commit, "is_synthetic": dataset.is_synthetic,
+        "study": dataset.name, "profile": "saved-chain sensitivity campaign",
+        "n_configs": len(rows), "configs": rows, "baseline": "pop_size_3000",
+        "all_converged": all(row["converged"] for row in rows),
+        "levers_that_shift_root_age": [row["config"] for row in rows if
+            row["root_shift_vs_baseline"] > .15 * max(baseline["root_age_mean"], 1)],
+        "note": "Shifts are descriptive. Unconverged fits do not establish robustness.",
+    }
+    _write(out / "sensitivity.json", result)
+    _write(out / "PROGRESS.json", {
+        "source_commit": commit, "status": "completed",
+        "completed_configurations": [row["config"] for row in rows],
+    })
     return result
+
+
+def _write(path: Path, value) -> None:
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    temporary.replace(path)

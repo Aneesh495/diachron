@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 
 from ..models.tree import PhyloTree
+from ..models.constraints import validate_clades
 
 
 def lexical_distances(columns: list[list[int]]) -> np.ndarray:
@@ -27,6 +28,7 @@ def lexical_distances(columns: list[list[int]]) -> np.ndarray:
 def distance_starting_tree(
     labels: list[str], columns: list[list[int]], root_age: float,
     rng: np.random.Generator, tip_ages: dict[int, float],
+    required_clades: list[list[int]] | None = None,
 ) -> PhyloTree:
     """Average-linkage seed from a bootstrap of the supplied training columns.
 
@@ -40,6 +42,8 @@ def distance_starting_tree(
         raise ValueError("distance initialization supports two to 1000 taxa")
     if not np.isfinite(root_age) or root_age <= max(tip_ages.values(), default=0.0):
         raise ValueError("initial root must predate every sampled tip")
+    constraints = validate_clades(required_clades or [], n)
+    members = [1 << taxon for taxon in range(n)]
     bootstrap = rng.integers(0, len(columns), size=len(columns))
     distance = lexical_distances([columns[index] for index in bootstrap])
     # Tiny independent tie-breaking noise preserves the order of distinct distances.
@@ -55,7 +59,22 @@ def distance_starting_tree(
     oldest = [tip_ages.get(taxon, 0.0) for taxon in range(n)] + [0.0] * (n - 1)
     active = np.ones(n, dtype=bool)
     for node in range(n, 2 * n - 1):
-        a, b = np.unravel_index(np.argmin(distance), distance.shape)
+        if constraints:
+            permitted = []
+            active_indices = np.flatnonzero(active).tolist()
+            for pos, a in enumerate(active_indices):
+                for b in active_indices[pos + 1:]:
+                    merged_members = members[a] | members[b]
+                    if all(not (merged_members & clade) or merged_members & clade in (
+                        merged_members, clade,
+                    ) for clade in constraints):
+                        permitted.append((distance[a, b], a, b))
+            if not permitted:
+                raise ValueError("no clustering satisfies the declared clades")
+            _, a, b = min(permitted)
+            members[a] |= members[b]
+        else:
+            a, b = np.unravel_index(np.argmin(distance), distance.shape)
         if not np.isfinite(distance[a, b]):
             raise ValueError("initial clustering exhausted finite distances")
         left, right = cluster_node[a], cluster_node[b]
