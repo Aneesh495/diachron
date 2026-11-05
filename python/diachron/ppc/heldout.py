@@ -155,6 +155,7 @@ def run_heldout_prediction(
                 bundle.context["frozen_study"] = frozen_study
             bundle.context["held_out_partition"] = {
                 "kind": split, "identifiers": sorted(held), "character_ids": study.character_ids,
+                "seed": seed,
             }
             bundle.save(str(split_out / config.name))
             values = _predictive_log_scores(chains, outcomes, conditioners)

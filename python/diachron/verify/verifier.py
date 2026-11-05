@@ -125,7 +125,9 @@ def _replay(bundle: dict, probe_draws: int) -> tuple[bool, int]:
 def _observed_context_matches(
     bundle: dict, source: Path, catalog: Path, edh_source: Path | None, edh_geography: Path | None,
 ) -> bool:
-    from dataclasses import asdict
+    from dataclasses import asdict, replace
+
+    import numpy as np
 
     from ..infer.campaign import prepare_study
     from ..io.epidoc import load_edh
@@ -139,10 +141,42 @@ def _observed_context_matches(
         cohort = load_edh(edh_source, edh_geography)
         observations = cohort["attestations"]
     model = bundle["context"]["model"]
+    partition = bundle["context"].get("held_out_partition")
+    if partition is not None:
+        seed = partition["seed"]
+        if not isinstance(seed, int) or not 0 <= seed < 2 ** 32:
+            return False
+        rng = np.random.default_rng(seed)
+        expected = {}
+        for kind, identifiers in (
+            ("concept", sorted(c.id for c in dataset.concepts)),
+            ("language", sorted(lang.id for lang in dataset.languages)),
+        ):
+            expected[kind] = set(rng.choice(
+                identifiers, size=max(1, len(identifiers) // 5), replace=False,
+            ).tolist())
+        kind = partition["kind"]
+        held = expected[kind]
+        if partition["identifiers"] != sorted(held):
+            return False
+        forms = [
+            form for form in dataset.lexemes
+            if (form.concept_id if kind == "concept" else form.language_id) not in held
+        ]
+        form_ids = {form.id for form in forms}
+        dataset = replace(
+            dataset, lexemes=forms,
+            judgments=[judgment for judgment in dataset.judgments if judgment.lexeme_id in form_ids],
+        )
     rebuilt = prepare_study(
         dataset, [Attestation(**att) for att in observations],
         drop_singletons=model["minimum_present"] == 2,
+        include_unobserved_languages=partition is not None,
     )
+    if partition is not None and partition["character_ids"] != [
+        list(identifier) for identifier in rebuilt.character_ids
+    ]:
+        return False
     dates = {str(t): asdict(date) for t, date in rebuilt.tip_dates.items()}
     if not model["config"]["use_calibration"]:
         dates = {}
