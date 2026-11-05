@@ -127,3 +127,6 @@ verify:
 .PHONY: release
 release:
 	$(PY) -m diachron.cli.main release
+
+sampler-check:
+	.venv/bin/diachron sampler-check

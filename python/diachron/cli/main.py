@@ -165,6 +165,14 @@ def cmd_likelihood_check(args) -> int:
     return 0 if result["passed"] else 1
 
 
+def cmd_sampler_check(args) -> int:
+    from ..verify.tiny_posterior import run_tiny_posterior_audit
+
+    result = run_tiny_posterior_audit(iterations=args.iterations, seed=args.seed)
+    _print(result)
+    return 0 if result["passed"] else 1
+
+
 def cmd_sample(args) -> int:
     """Run a bounded MCMC campaign and save the posterior bundle."""
     from ..io.types import DataError
@@ -425,6 +433,11 @@ def build_parser() -> argparse.ArgumentParser:
     lp.add_argument("--cases", type=int, default=1000)
     lp.add_argument("--seed", type=int, default=0)
     lp.set_defaults(func=cmd_likelihood_check)
+
+    sc = sub.add_parser("sampler-check")
+    sc.add_argument("--iterations", type=int, default=200000)
+    sc.add_argument("--seed", type=int, default=7159)
+    sc.set_defaults(func=cmd_sampler_check)
 
     sp = sub.add_parser("sample")
     sp.add_argument("--model", default="dated")
