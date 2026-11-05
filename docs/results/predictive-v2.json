@@ -1,0 +1,135 @@
+{
+  "study": "diachron_primary",
+  "is_synthetic": true,
+  "split_seed": 0,
+  "profile": "two-chain predictive diagnostic",
+  "experiments": {
+    "concept": {
+      "n_train_characters": 1258,
+      "n_scored_characters": 318,
+      "held_out_ids": [
+        "diachron_primary_C001",
+        "diachron_primary_C003",
+        "diachron_primary_C007",
+        "diachron_primary_C017",
+        "diachron_primary_C024",
+        "diachron_primary_C028",
+        "diachron_primary_C030",
+        "diachron_primary_C046",
+        "diachron_primary_C050",
+        "diachron_primary_C057",
+        "diachron_primary_C059",
+        "diachron_primary_C061",
+        "diachron_primary_C064",
+        "diachron_primary_C066",
+        "diachron_primary_C075",
+        "diachron_primary_C079",
+        "diachron_primary_C089",
+        "diachron_primary_C091",
+        "diachron_primary_C099",
+        "diachron_primary_C100",
+        "diachron_primary_C103",
+        "diachron_primary_C105"
+      ],
+      "models": {
+        "tree_only": {
+          "mean_log_score_per_character": -24.335501814609856,
+          "mean_concept_delta_vs_tree": 0.0,
+          "concept_bootstrap_interval_95": [
+            0.0,
+            0.0
+          ]
+        },
+        "dated": {
+          "mean_log_score_per_character": -24.289720188876046,
+          "mean_concept_delta_vs_tree": 0.04751663395546785,
+          "concept_bootstrap_interval_95": [
+            0.024419207468230123,
+            0.07068237920728962
+          ]
+        },
+        "geography": {
+          "mean_log_score_per_character": -24.509408553394564,
+          "mean_concept_delta_vs_tree": -0.17633347968062568,
+          "concept_bootstrap_interval_95": [
+            -0.21115105685930774,
+            -0.13772098028350913
+          ]
+        },
+        "borrowing": {
+          "mean_log_score_per_character": -24.312337954678192,
+          "mean_concept_delta_vs_tree": 0.02422582384303461,
+          "concept_bootstrap_interval_95": [
+            -0.011437739395322824,
+            0.061438376713044356
+          ]
+        }
+      },
+      "scope": "Conditioned on held-out characters meeting the same selection rule."
+    },
+    "language": {
+      "n_train_characters": 1429,
+      "n_scored_characters": 1429,
+      "held_out_ids": [
+        "diachron_primary_L000",
+        "diachron_primary_L011",
+        "diachron_primary_L024",
+        "diachron_primary_L037",
+        "diachron_primary_L039",
+        "diachron_primary_L043",
+        "diachron_primary_L046",
+        "diachron_primary_L049",
+        "diachron_primary_L059",
+        "diachron_primary_L061",
+        "diachron_primary_L062",
+        "diachron_primary_L069",
+        "diachron_primary_L071",
+        "diachron_primary_L074",
+        "diachron_primary_L075",
+        "diachron_primary_L077",
+        "diachron_primary_L082",
+        "diachron_primary_L090",
+        "diachron_primary_L098",
+        "diachron_primary_L100",
+        "diachron_primary_L101",
+        "diachron_primary_L105"
+      ],
+      "models": {
+        "tree_only": {
+          "mean_log_score_per_character": -4.876465704939963,
+          "mean_concept_delta_vs_tree": 0.0,
+          "concept_bootstrap_interval_95": [
+            0.0,
+            0.0
+          ]
+        },
+        "dated": {
+          "mean_log_score_per_character": -5.000576077876362,
+          "mean_concept_delta_vs_tree": -0.12675223151578632,
+          "concept_bootstrap_interval_95": [
+            -0.1543964248574381,
+            -0.09771434694537513
+          ]
+        },
+        "geography": {
+          "mean_log_score_per_character": -5.046934209273056,
+          "mean_concept_delta_vs_tree": -0.17989018247595115,
+          "concept_bootstrap_interval_95": [
+            -0.20602843374184024,
+            -0.1550159853996693
+          ]
+        },
+        "borrowing": {
+          "mean_log_score_per_character": -4.929839794868014,
+          "mean_concept_delta_vs_tree": -0.05089702485499158,
+          "concept_bootstrap_interval_95": [
+            -0.08415127838645912,
+            -0.02147983859405495
+          ]
+        }
+      },
+      "scope": "Predicts held-out taxa on training-defined classes, with external geography and dates available."
+    }
+  },
+  "source_commit": "11fe5e485071f3984dec09090525354d89a0e4da"
+}
