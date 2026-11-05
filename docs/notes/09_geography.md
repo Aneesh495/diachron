@@ -1,28 +1,27 @@
-# Note 9: Geography
+# Note 9: Geographic inference
 
-Geography is the part of the platform most at risk of overclaiming, so its design
-is mostly about what it refuses to do.
+Modern catalog coordinates enter as present-day reference points. Historical
+varieties do not inherit those points as ancient observations. EDH records
+retain reported origin or findspot, source dates, locality precision and
+unresolved language assignment. Their current role is evidence inspection;
+they do not enter the IE-CoR geographic likelihood.
 
-It refuses to treat a modern catalog coordinate as an ancient boundary. Tip
-coordinates enter as uncertain present-day references, and the observation type of
-an attestation (inscription, reconstruction, trade, or general attestation) is
-recorded because an isolated inscription is not a population centroid. It refuses
-to apply a single historical map; the region model and the Brownian model are
-compared rather than one being declared correct because it looks coherent. And it
-refuses to collapse a broad or multimodal location posterior to a single homeland
-pin: the workbench draws the inferred location as a density whose spread grows
-with inferred temporal depth, and the legend keeps modern, attested, and inferred
-marks distinct.
+The planar model integrates Gaussian lineage locations by pruning. Its units
+are degrees squared per year, so it is a local approximation with latitude
+and dateline limitations. A fixed tip observation error can be added in
+degrees. The regional alternative uses a distance-decayed reversible CTMC
+over three or six fixed anchors. Anchor choice and reference error are model
+assumptions that need sensitivity checks.
 
-The region model treats location as a discrete latent state over coarse named
-regions and reuses the discrete pruning likelihood, which is the right granularity
-when the evidence cannot resolve coordinates. The Brownian model diffuses
-coordinates continuously and integrates out internal locations exactly by Gaussian
-pruning. A reported result is the comparison of their posterior predictions, not a
-single map.
+Offline workbench export samples conditional Gaussian locations at the root
+and frequently sampled clades from retained tree and diffusion states. These
+are model draws, rather than decorative jitter. Independent precision-matrix
+calculations check the ancestral Gaussian marginals. The workbench separates
+these clouds from modern reference marks and sourced historical localities.
 
-The influence check is the sharpest honesty tool: an apparently stable homeland
-that moves when one influential language or attestation is removed was never
-stable. A geographic conclusion survives this note only if it survives that
-removal, and the platform is built to run it rather than to assume the estimate is
-robust.
+A broad cloud is not proof of historical spread. Several clade or root modes
+can also reflect unconverged chains. Current observed fits fail convergence,
+so the exported clouds are diagnostic model distributions. A historical
+multimodality claim requires chain agreement, a specified mode analysis and
+sensitivity to the location model and influential observations. That claim
+remains open.
