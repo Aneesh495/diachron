@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "protocol": "observed-sensitivity-1",
+  "chains": 4,
+  "warmup": 3000,
+  "iterations": 12000,
+  "thin": 10,
+  "configurations": [
+    {
+      "name": "pop_size_1000",
+      "lever": "tree_prior",
+      "base_model": "dated",
+      "overrides": {
+        "pop_size": 1000.0
+      }
+    },
+    {
+      "name": "pop_size_3000",
+      "lever": "tree_prior",
+      "base_model": "dated",
+      "overrides": {}
+    },
+    {
+      "name": "pop_size_9000",
+      "lever": "tree_prior",
+      "base_model": "dated",
+      "overrides": {
+        "pop_size": 9000.0
+      }
+    },
+    {
+      "name": "ascertainment_off",
+      "lever": "ascertainment",
+      "base_model": "dated",
+      "overrides": {
+        "ascertainment": false
+      }
+    },
+    {
+      "name": "include_singletons",
+      "lever": "data",
+      "base_model": "dated",
+      "overrides": {}
+    },
+    {
+      "name": "remove_loans",
+      "lever": "data",
+      "base_model": "dated",
+      "overrides": {}
+    },
+    {
+      "name": "half_calibrations",
+      "lever": "calibration",
+      "base_model": "dated",
+      "overrides": {}
+    },
+    {
+      "name": "no_calibration",
+      "lever": "calibration",
+      "base_model": "tree_only",
+      "overrides": {}
+    },
+    {
+      "name": "gamma_rate_heterogeneity",
+      "lever": "clock",
+      "base_model": "dated",
+      "overrides": {
+        "rate_alpha": 0.7
+      }
+    },
+    {
+      "name": "relaxed_clock",
+      "lever": "clock",
+      "base_model": "relaxed",
+      "overrides": {}
+    },
+    {
+      "name": "planar_geography",
+      "lever": "geography",
+      "base_model": "geography",
+      "overrides": {}
+    },
+    {
+      "name": "regional_geography_3",
+      "lever": "geography",
+      "base_model": "geography",
+      "overrides": {
+        "geo_region_count": 3
+      }
+    },
+    {
+      "name": "regional_geography_6",
+      "lever": "geography",
+      "base_model": "geography",
+      "overrides": {
+        "geo_region_count": 6
+      }
+    },
+    {
+      "name": "borrowing_default",
+      "lever": "contact",
+      "base_model": "borrowing",
+      "overrides": {}
+    },
+    {
+      "name": "borrowing_tighter_prior",
+      "lever": "contact",
+      "base_model": "borrowing",
+      "overrides": {
+        "borrowing_prior_rate": 30.0
+      }
+    },
+    {
+      "name": "broad_all_tip_dates",
+      "lever": "calibration",
+      "base_model": "dated",
+      "overrides": {}
+    },
+    {
+      "name": "alternative_cognacy_merge",
+      "lever": "cognacy",
+      "base_model": "dated",
+      "overrides": {}
+    },
+    {
+      "name": "catalog_monophyly",
+      "lever": "taxonomy",
+      "base_model": "dated",
+      "overrides": {}
+    },
+    {
+      "name": "geographic_error_5deg",
+      "lever": "geography",
+      "base_model": "geography",
+      "overrides": {
+        "geography_error_degrees": 5.0
+      }
+    },
+    {
+      "name": "diffusion_wide_prior",
+      "lever": "geography",
+      "base_model": "geography",
+      "overrides": {
+        "diffusion_prior_log_sd": 3.0
+      }
+    }
+  ],
+  "synthetic_diagnostic_first_configurations": 15
+}

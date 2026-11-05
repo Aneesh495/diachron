@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "git_checkout_attributes": {
+    "iecor": {
+      "path": "cldf/.gitattributes",
+      "bytes": 19,
+      "sha256": "9ebfe081d56a414fc1008021d455e31c22068e671f88938c3c3f90fbbe80227b",
+      "rule": "*.csv text eol=crlf"
+    },
+    "abvd": {
+      "path": "cldf/.gitattributes",
+      "bytes": 19,
+      "sha256": "9ebfe081d56a414fc1008021d455e31c22068e671f88938c3c3f90fbbe80227b",
+      "rule": "*.csv text eol=crlf"
+    }
+  }
+}
