@@ -255,6 +255,20 @@ def verify_evidence(
         except (DataError, OSError, KeyError, IndexError, TypeError, ValueError, RecursionError) as exc:
             record(f"{name}:artifact_error", False, str(exc))
 
+    if (root / "heldout.json").is_file():
+        try:
+            from .prediction import verify_prediction
+            if observed_source is None:
+                record("prediction:observed_inputs", False, "provide pinned lexical inputs for score replay")
+            else:
+                from ..io.freeze import load_study
+
+                name = _read_json(root / "heldout.json", 1024 * 1024)["study"]
+                dataset, _, _ = load_study(name, observed_source, catalog)
+                checks.extend(verify_prediction(root, dataset))
+        except (DataError, OSError, KeyError, IndexError, TypeError, ValueError) as exc:
+            record("prediction:artifact_error", False, str(exc))
+
     acceptance_path = root / "ACCEPTANCE.json"
     if acceptance_path.is_file():
         try:
