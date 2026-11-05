@@ -90,3 +90,12 @@ def test_rank_folding_detects_different_scale():
     x = rng.standard_normal((4, 1000)) * np.array([1, 1, 5, 5])[:, None]
     assert cv.split_rhat(x) < 1.01
     assert cv.rank_normalized_rhat(x) > 1.1
+
+
+def test_clade_concordance_exposes_disjoint_chain_topologies():
+    first = "((a:1,b:1):1,(c:1,d:1):1);"
+    second = "((a:1,c:1):1,(b:1,d:1):1);"
+    result = tp.between_chain_clades([[first] * 10, [second] * 10])
+    assert result["clades_compared"] == 4
+    assert result["maximum_chain_delta"] == 1.0
+    assert result["mean_frequency_sd"] > 0.7

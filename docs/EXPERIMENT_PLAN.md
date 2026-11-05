@@ -109,3 +109,10 @@ acceptance counts, runtime and source identity remain visible. The full
 campaign retains at least four chains, 3000 warmup iterations and 12000
 sampling iterations per posterior model. Pilot diagnostics do not satisfy
 the full inference gate.
+
+For protocol 3 full runs, compare nontrivial clades whose mean frequency
+across chains is at least 0.1. Require the mean between-chain frequency
+standard deviation below 0.01 and maximum frequency difference below
+0.1, in addition to the declared scalar criteria and topology movement.
+This guards against a large collection of rarely seen splits diluting
+between-chain disagreement.
