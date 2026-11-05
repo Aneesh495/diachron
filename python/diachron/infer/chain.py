@@ -124,7 +124,7 @@ class Chain:
         """One Metropolis-within-Gibbs step: pick a move and accept/reject."""
         move_names = (
             "gain", "loss", "clock", "node_time", "root_scale", "topology",
-            "rate_clock_ridge", "time_clock_scale",
+            "rate_clock_ridge", "time_clock_scale", "root_age",
         )
         if self.model.tip_dates:
             move_names += ("tip_date",)
@@ -213,7 +213,18 @@ class Chain:
                 else:
                     self.state.clock_rate = old_clock
                     self.tree.heights = old_heights
-        elif move_kind == 8:  # additive dated-tip move
+        elif move_kind == 8:
+            root = self.tree.root
+            old = self.tree.heights[root]
+            res = self.moves.root_age_scale(self.tree, self.rng)
+            if res.valid:
+                lp = self._eval()
+                if self._accept(lp, res.log_hastings):
+                    self._log_post = lp
+                    accepted = True
+                else:
+                    self.tree.heights[root] = old
+        elif move_kind == 9:  # additive dated-tip move
             taxon = sorted(self.model.tip_dates)[self.rng.below(len(self.model.tip_dates))]
             node = self.tree.taxon.index(taxon)
             date = self.model.tip_dates[taxon]

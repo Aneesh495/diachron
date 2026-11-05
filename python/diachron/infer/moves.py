@@ -57,6 +57,20 @@ class MoveSet:
         # product of the three original coordinates changes by exp(-d).
         return values, MoveResult(-math.log(factor), True)
 
+    def root_age_scale(self, tree: PhyloTree, rng) -> MoveResult:
+        """Scale only the root's positive gap above its oldest child."""
+        node = tree.root
+        lower = max(tree.heights[child] for child in tree.children()[node])
+        gap = tree.heights[node] - lower
+        if gap <= 0:
+            return MoveResult(0.0, False)
+        factor = math.exp(self.scale_lambda * (rng.uniform() - 0.5))
+        proposed = lower + gap * factor
+        if not math.isfinite(proposed) or proposed <= lower:
+            return MoveResult(0.0, False)
+        tree.heights[node] = proposed
+        return MoveResult(math.log(factor), True)
+
     def time_clock_scale(self, tree: PhyloTree, clock: float, rng) -> tuple[float, MoveResult]:
         """Scale all internal ages and inversely scale the global clock."""
         old_root = tree.root_age()

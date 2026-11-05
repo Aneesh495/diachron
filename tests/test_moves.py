@@ -138,3 +138,23 @@ def test_local_time_window_remains_useful_between_close_events():
     result = MoveSet().slide_node_time(tree, 3, HalfStep())
     assert result.valid
     assert tree.heights[3] == 999.55
+
+
+def test_root_gap_scale_reverses_without_moving_other_dates():
+    class Choice:
+        def __init__(self, value):
+            self.value = value
+
+        def uniform(self):
+            return self.value
+
+    from diachron.models.tree import PhyloTree
+
+    tree = PhyloTree([2, 2, 4, 4, -1], [3.0, 0.0, 8.0, 1.0, 12.0], [0, 1, -1, 2, -1])
+    original = list(tree.heights)
+    moves = MoveSet()
+    forward = moves.root_age_scale(tree, Choice(0.8))
+    reverse = moves.root_age_scale(tree, Choice(0.2))
+    assert forward.valid and reverse.valid
+    assert abs(forward.log_hastings + reverse.log_hastings) < 1e-15
+    assert np.allclose(tree.heights, original, atol=1e-15)
