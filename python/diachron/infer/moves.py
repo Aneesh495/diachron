@@ -45,6 +45,28 @@ class MoveSet:
         # the log Jacobian of the transform x -> x*factor, which is log(factor).
         return new, MoveResult(math.log(factor), True)
 
+    def rate_clock_ridge(
+        self, gain: float, loss: float, clock: float, rng,
+    ) -> tuple[tuple[float, float, float], MoveResult]:
+        """Move along constant effective gain and loss with a log-symmetric step."""
+        factor = math.exp(self.scale_lambda * (rng.uniform() - 0.5))
+        values = (gain / factor, loss / factor, clock * factor)
+        if any(not math.isfinite(value) or value <= 0 for value in values):
+            return (gain, loss, clock), MoveResult(0.0, False)
+        # In log coordinates the proposal translates by (-d,-d,d). The
+        # product of the three original coordinates changes by exp(-d).
+        return values, MoveResult(-math.log(factor), True)
+
+    def time_clock_scale(self, tree: PhyloTree, clock: float, rng) -> tuple[float, MoveResult]:
+        """Scale all internal ages and inversely scale the global clock."""
+        old_root = tree.root_age()
+        result = self.scale_root(tree, rng)
+        if not result.valid:
+            return clock, result
+        factor = tree.root_age() / old_root
+        proposed = clock / factor
+        return proposed, MoveResult(result.log_hastings - math.log(factor), True)
+
     # --- node time slide ---------------------------------------------------
     def slide_node_time(self, tree: PhyloTree, node: int, rng) -> MoveResult:
         if tree.is_tip(node):
@@ -54,7 +76,8 @@ class MoveSet:
         lower = max((tree.heights[c] for c in kids), default=0.0)
         parent = tree.parent[node]
         upper = tree.heights[parent] if parent >= 0 else math.inf
-        window = self.time_window_frac * max(lower if parent < 0 else tree.root_age(), 1.0)
+        span = upper - lower if parent >= 0 else max(lower, 1.0)
+        window = self.time_window_frac * span
         step = (rng.uniform() - 0.5) * 2.0 * window
         proposed = tree.heights[node] + step
         if proposed <= lower + 1e-9 or (upper != math.inf and proposed >= upper - 1e-9):

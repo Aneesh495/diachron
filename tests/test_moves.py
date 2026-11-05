@@ -125,3 +125,16 @@ def test_root_slide_uses_same_window_in_both_directions():
     assert moves.slide_node_time(tree, 4, Step(0.75)).valid
     assert moves.slide_node_time(tree, 4, Step(0.25)).valid
     assert tree.root_age() == 200
+
+
+def test_local_time_window_remains_useful_between_close_events():
+    class HalfStep:
+        def uniform(self):
+            return 0.75
+
+    from diachron.models.tree import PhyloTree
+
+    tree = PhyloTree([3, 3, 4, 4, -1], [999.0, 998.0, 0.0, 999.5, 1000.0], [0, 1, 2, -1, -1])
+    result = MoveSet().slide_node_time(tree, 3, HalfStep())
+    assert result.valid
+    assert tree.heights[3] == 999.55
