@@ -10,11 +10,13 @@ from pathlib import Path
 import numpy as np
 from scipy.special import logsumexp
 
-from ..infer.campaign import prepare_study, run_campaign
+from ..infer.campaign import prepare_study, run_campaign, campaign_bundle
 from ..io.characters import build_character_matrix
 from ..io.corpus import build_primary_corpus
 from ..models.posterior import ModelConfig
 from ..models.tree import PhyloTree
+from ..io.types import Dataset, Attestation
+from ..util.gitmeta import source_commit
 
 _MODELS = (
     ModelConfig.tree_only, ModelConfig.dated, ModelConfig.geography, ModelConfig.borrowing,
@@ -104,11 +106,21 @@ def _summary(character_ids, scores, baseline, rng):
     }
 
 
-def run_heldout_prediction(out_dir: str = "runs/predict", seed: int = 0) -> dict:
+def run_heldout_prediction(
+    out_dir: str = "runs/predict", seed: int = 0, *,
+    dataset: Dataset | None = None, attestations: list[Attestation] | None = None,
+    n_chains: int = 2, warmup: int = 600, iterations: int = 1800,
+    jobs: int = 1, frozen_study: dict | None = None,
+) -> dict:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=False)
-    corpus = build_primary_corpus()
-    dataset = corpus.dataset
+    if dataset is None:
+        corpus = build_primary_corpus()
+        dataset = corpus.dataset
+        attestations = corpus.attestations
+    attestations = attestations or []
+    root_age_init = 8000.0 if dataset.name == "iecor" else 6000.0
+    commit = source_commit()
     rng = np.random.default_rng(seed)
     experiments = {
         "concept": (_concept_split, _select({c.id for c in dataset.concepts}, rng)),
@@ -116,11 +128,13 @@ def run_heldout_prediction(out_dir: str = "runs/predict", seed: int = 0) -> dict
     }
     report = {
         "study": dataset.name, "is_synthetic": dataset.is_synthetic, "split_seed": seed,
-        "profile": "two-chain predictive diagnostic",
+        "profile": "held-out predictive campaign",
+        "source_commit": commit,
+        "budget": {"chains": n_chains, "warmup": warmup, "iterations": iterations, "thin": 10},
         "experiments": {},
     }
     for split, (builder, held) in experiments.items():
-        study, char_ids, outcomes, conditioners = builder(dataset, corpus.attestations, held)
+        study, char_ids, outcomes, conditioners = builder(dataset, attestations, held)
         results = {}
         scores = {}
         split_out = out / split
@@ -132,15 +146,22 @@ def run_heldout_prediction(out_dir: str = "runs/predict", seed: int = 0) -> dict
         for build in _MODELS:
             config = build()
             chains = run_campaign(
-                study, config, n_chains=2, warmup=600, iterations=1800, thin=10,
-                root_age_init=corpus.truth.root_age, base_seed=5000,
+                study, config, n_chains=n_chains, warmup=warmup, iterations=iterations, thin=10,
+                root_age_init=root_age_init, base_seed=5000, jobs=jobs,
                 checkpoint_dir=str(split_out / "checkpoints"),
             )
+            bundle = campaign_bundle(chains, study, config, source_commit=commit)
+            if frozen_study is not None:
+                bundle.context["frozen_study"] = frozen_study
+            bundle.context["held_out_partition"] = {
+                "kind": split, "identifiers": sorted(held), "character_ids": study.character_ids,
+            }
+            bundle.save(str(split_out / config.name))
             values = _predictive_log_scores(chains, outcomes, conditioners)
             scores[config.name] = values
             results[config.name] = _summary(char_ids, values, scores["tree_only"], rng)
             (split_out / f"{config.name}.json").write_text(
-                json.dumps({"model": config.name, "log_scores": values}, indent=2)
+                json.dumps({"model": config.name, "log_scores": values, "source_commit": commit}, indent=2)
             )
         report["experiments"][split] = {
             "n_train_characters": len(study.columns), "n_scored_characters": len(char_ids),

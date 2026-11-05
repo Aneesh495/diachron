@@ -231,8 +231,33 @@ def cmd_recovery(args) -> int:
 
 def cmd_predict(args) -> int:
     from ..ppc.heldout import run_heldout_prediction
+    from ..io.types import DataError
 
-    result = run_heldout_prediction(out_dir=args.out)
+    dataset = None
+    attestations = []
+    frozen = None
+    try:
+        if args.study is not None:
+            from ..io.freeze import load_study
+            from ..io.epidoc import load_edh
+            from ..io.types import Attestation
+
+            if args.source is None or args.catalog is None:
+                raise ValueError("observed prediction requires --source and --catalog")
+            dataset, _, frozen = load_study(args.study, args.source, args.catalog)
+            if bool(args.edh_source) != bool(args.edh_geography):
+                raise ValueError("provide both EDH inputs")
+            if args.edh_source:
+                cohort = load_edh(args.edh_source, args.edh_geography)
+                attestations = [Attestation(**raw) for raw in cohort["attestations"]]
+        result = run_heldout_prediction(
+            out_dir=args.out, dataset=dataset, attestations=attestations,
+            n_chains=args.chains, warmup=args.warmup, iterations=args.iterations,
+            jobs=args.jobs, frozen_study=frozen,
+        )
+    except (DataError, OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     _print(result)
     return 0
 
@@ -397,6 +422,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     pr = sub.add_parser("predict")
     pr.add_argument("--out", default="runs/predict")
+    pr.add_argument("--study", choices=("iecor",))
+    pr.add_argument("--source", type=Path)
+    pr.add_argument("--catalog", type=Path)
+    pr.add_argument("--edh-source", type=Path)
+    pr.add_argument("--edh-geography", type=Path)
+    pr.add_argument("--chains", type=int, default=2)
+    pr.add_argument("--warmup", type=int, default=600)
+    pr.add_argument("--iterations", type=int, default=1800)
+    pr.add_argument("--jobs", type=int, default=1)
     pr.set_defaults(func=cmd_predict)
 
     tp = sub.add_parser("thesis")
