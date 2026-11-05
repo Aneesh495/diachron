@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import replace
+from dataclasses import asdict, replace
+import hashlib
 import json
 from pathlib import Path
 
@@ -16,7 +17,7 @@ from ..io.corpus import build_primary_corpus
 from ..models.posterior import ModelConfig
 from ..models.tree import PhyloTree
 from ..io.types import Dataset, Attestation
-from ..util.gitmeta import source_commit
+from ..util.gitmeta import source_commit, working_tree_clean
 
 _MODELS = (
     ModelConfig.tree_only, ModelConfig.dated, ModelConfig.geography, ModelConfig.borrowing,
@@ -81,9 +82,9 @@ def _predictive_log_scores(chains, patterns, conditioning):
             draw = draws[index]
             tree = PhyloTree(draw.parent, draw.heights, draw.taxon)
             params = (draw.gain, draw.loss, draw.clock_rate)
-            scores = np.asarray(model.character_scores(tree, *params, patterns, draw.borrow_rates))
+            scores = np.asarray(model.character_scores(tree, *params, patterns, draw.borrow_rates, draw.clock_multipliers))
             if conditioning is not None:
-                scores -= model.character_scores(tree, *params, conditioning, draw.borrow_rates)
+                scores -= model.character_scores(tree, *params, conditioning, draw.borrow_rates, draw.clock_multipliers)
             results.append(scores)
     if not results or not patterns:
         raise ValueError("predictive scoring requires saved draws and held-out patterns")
@@ -110,10 +111,9 @@ def run_heldout_prediction(
     out_dir: str = "runs/predict", seed: int = 0, *,
     dataset: Dataset | None = None, attestations: list[Attestation] | None = None,
     n_chains: int = 2, warmup: int = 600, iterations: int = 1800,
-    jobs: int = 1, frozen_study: dict | None = None,
+    jobs: int = 1, frozen_study: dict | None = None, resume: bool = False,
 ) -> dict:
     out = Path(out_dir)
-    out.mkdir(parents=True, exist_ok=False)
     if dataset is None:
         corpus = build_primary_corpus()
         dataset = corpus.dataset
@@ -121,6 +121,30 @@ def run_heldout_prediction(
     attestations = attestations or []
     root_age_init = 8000.0 if dataset.name == "iecor" else 6000.0
     commit = source_commit()
+    if not dataset.is_synthetic and not working_tree_clean():
+        raise ValueError("observed prediction requires a clean committed checkout")
+    if not 1 <= n_chains <= 8 or not 1 <= jobs <= 4 or warmup < 0 or iterations < 10:
+        raise ValueError("invalid prediction budget")
+    input_body = json.dumps(
+        {"dataset": asdict(dataset), "attestations": [asdict(a) for a in attestations]},
+        sort_keys=True, separators=(",", ":"), allow_nan=False,
+    )
+    plan = {
+        "schema": 1, "source_commit": commit, "seed": seed, "study": dataset.name,
+        "input_sha256": hashlib.sha256(input_body.encode()).hexdigest(),
+        "frozen_study": frozen_study, "chains": n_chains, "warmup": warmup,
+        "iterations": iterations, "thin": 10, "jobs": jobs, "initialization": "distance",
+        "models": [build().name for build in _MODELS],
+    }
+    plan_path = out / "PREDICTION_PLAN.json"
+    if out.exists():
+        if not resume or not plan_path.is_file():
+            raise FileExistsError("prediction output exists; resume with the same plan")
+        if json.loads(plan_path.read_text()) != plan:
+            raise ValueError("prediction source, inputs or budget changed")
+    else:
+        out.mkdir(parents=True)
+        _write_json(plan_path, plan)
     rng = np.random.default_rng(seed)
     experiments = {
         "concept": (_concept_split, _select({c.id for c in dataset.concepts}, rng)),
@@ -138,7 +162,7 @@ def run_heldout_prediction(
         results = {}
         scores = {}
         split_out = out / split
-        split_out.mkdir()
+        split_out.mkdir(exist_ok=True)
         (split_out / "partition.json").write_text(json.dumps({
             "held_out_ids": sorted(held), "train_character_ids": study.character_ids,
             "test_character_ids": char_ids,
@@ -148,7 +172,7 @@ def run_heldout_prediction(
             chains = run_campaign(
                 study, config, n_chains=n_chains, warmup=warmup, iterations=iterations, thin=10,
                 root_age_init=root_age_init, base_seed=5000, jobs=jobs,
-                checkpoint_dir=str(split_out / "checkpoints"),
+                checkpoint_dir=str(split_out / "checkpoints"), resume=resume,
             )
             bundle = campaign_bundle(chains, study, config, source_commit=commit)
             if frozen_study is not None:
@@ -161,9 +185,13 @@ def run_heldout_prediction(
             values = _predictive_log_scores(chains, outcomes, conditioners)
             scores[config.name] = values
             results[config.name] = _summary(char_ids, values, scores["tree_only"], rng)
-            (split_out / f"{config.name}.json").write_text(
-                json.dumps({"model": config.name, "log_scores": values, "source_commit": commit}, indent=2)
-            )
+            _write_json(split_out / f"{config.name}.json", {
+                "model": config.name, "log_scores": values, "source_commit": commit,
+            })
+            _write_json(out / "PROGRESS.json", {
+                "source_commit": commit, "active_partition": split,
+                "completed_models": list(results), "status": "running",
+            })
         report["experiments"][split] = {
             "n_train_characters": len(study.columns), "n_scored_characters": len(char_ids),
             "held_out_ids": sorted(held), "models": results,
@@ -173,5 +201,14 @@ def run_heldout_prediction(
                 "Predicts held-out taxa on training-defined classes, with external geography and dates available."
             ),
         }
-    (out / "heldout.json").write_text(json.dumps(report, indent=2))
+    _write_json(out / "heldout.json", report)
+    _write_json(out / "PROGRESS.json", {
+        "source_commit": commit, "status": "completed", "partitions": list(experiments),
+    })
     return report
+
+
+def _write_json(path: Path, value) -> None:
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    temporary.replace(path)
