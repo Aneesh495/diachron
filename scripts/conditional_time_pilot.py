@@ -63,7 +63,11 @@ def run(directory: Path, destination: Path, expected: str):
         fitted = bundle_from_chains(chains, bundle.model_name, bundle.dataset_name, bundle.dataset_version,
                                     False, bundle.tip_labels, commit)
         fitted.context = {**bundle.context, "model": asdict(model),
-                          "chain_configurations": [asdict(chain.config) for chain in chains]}
+                          "chain_configurations": [asdict(chain.config) for chain in chains],
+                          "move_statistics": [{"proposed": chain.move_proposals, "accepted": chain.move_accepts}
+                                              for chain in chains],
+                          "conditional_time": {"anchor_chain": chain_id, "anchor_iteration": anchor["iteration"],
+                                               "anchor_source_commit": expected}}
         fitted.save(out / "dated")
         diagnosis = run_diagnose(out / "dated")
         if any(row["distinct"] != 1 for row in diagnosis["topology_per_chain"]):
