@@ -1,0 +1,429 @@
+{
+  "fixed": {
+    "source_commit": "3b6836f3a791a889325b2340b73552cfbfc199c6",
+    "anchor_source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+    "anchor_draw_digest": "087484cb37df3ddda5e51908d62e146385afe5c5fae374ea8d29a5780555d45f",
+    "calendar_scale": true,
+    "topologies": {
+      "anchor-chain-0": {
+        "anchor_iteration": 3010,
+        "anchor_root_age": 8452.153631412568,
+        "constrained_clades": 150,
+        "seconds": 56.664648375008255,
+        "draw_digest": "89148ae57904bf209fe3f2dd4c66d7bea8e542bbbcd5514001cc05101d84546c",
+        "scalars": {
+          "root_age": {
+            "mean": 8492.136553273242,
+            "split_rhat": 1.0966460025117781,
+            "rank_rhat": 1.0935633376539802,
+            "bulk_ess": 33.76668756221506,
+            "tail_ess": 66.82951323841192,
+            "mcse_mean": 78.24890104369236
+          },
+          "gain": {
+            "mean": 0.0000033449921437176526,
+            "split_rhat": 1.0638244041109919,
+            "rank_rhat": 1.0698869242961844,
+            "bulk_ess": 56.2849276044996,
+            "tail_ess": 90.6874402543634,
+            "mcse_mean": 1.9338883814468136E-7
+          },
+          "loss": {
+            "mean": 0.0003695772939617595,
+            "split_rhat": 1.0600014006096554,
+            "rank_rhat": 1.0680846078324366,
+            "bulk_ess": 55.62981773322115,
+            "tail_ess": 79.19049495941753,
+            "mcse_mean": 0.00002178829492161828
+          },
+          "clock_rate": {
+            "mean": 0.4127049289612446,
+            "split_rhat": 1.0784414245568055,
+            "rank_rhat": 1.0700933253993359,
+            "bulk_ess": 55.82855562968581,
+            "tail_ess": 82.23473088853375,
+            "mcse_mean": 0.027306278883131804
+          },
+          "log_posterior": {
+            "mean": -38816.93879001907,
+            "split_rhat": 2.005172206605619,
+            "rank_rhat": 1.9113134567030217,
+            "bulk_ess": 5.595289621327232,
+            "tail_ess": 19.420534104064448,
+            "mcse_mean": 84.80015603320895
+          }
+        },
+        "calendar_proposals": [
+          355,
+          373,
+          388,
+          324
+        ],
+        "calendar_accepts": [
+          355,
+          373,
+          388,
+          324
+        ],
+        "verified": true
+      },
+      "anchor-chain-3": {
+        "anchor_iteration": 3010,
+        "anchor_root_age": 8814.394660773536,
+        "constrained_clades": 150,
+        "seconds": 73.32808879192453,
+        "draw_digest": "59cfe69baf227b02d1590b860afcbc5de225f46324bbeb6ef6bfc586c3250512",
+        "scalars": {
+          "root_age": {
+            "mean": 7804.001534842706,
+            "split_rhat": 1.7321314091051725,
+            "rank_rhat": 1.6556560380207432,
+            "bulk_ess": 6.496920030354017,
+            "tail_ess": 50.047775226858406,
+            "mcse_mean": 203.97628632981838
+          },
+          "gain": {
+            "mean": 0.0000027202683928067855,
+            "split_rhat": 1.0671978106506737,
+            "rank_rhat": 1.0539713005710563,
+            "bulk_ess": 48.83797917942308,
+            "tail_ess": 93.7486150459646,
+            "mcse_mean": 1.9269299214467427E-7
+          },
+          "loss": {
+            "mean": 0.00036077657050295227,
+            "split_rhat": 1.068016742383478,
+            "rank_rhat": 1.055202367830507,
+            "bulk_ess": 49.27582761288489,
+            "tail_ess": 93.99491389100747,
+            "mcse_mean": 0.000024476648618346686
+          },
+          "clock_rate": {
+            "mean": 0.42453395447034437,
+            "split_rhat": 1.0260902677974453,
+            "rank_rhat": 1.0433615315744365,
+            "bulk_ess": 51.586214126886425,
+            "tail_ess": 98.24274039010062,
+            "mcse_mean": 0.025783317986160167
+          },
+          "log_posterior": {
+            "mean": -38158.34150441155,
+            "split_rhat": 2.860049430486177,
+            "rank_rhat": 2.7914000530767433,
+            "bulk_ess": 4.622235784014259,
+            "tail_ess": 11.339582703356495,
+            "mcse_mean": 122.2365650321435
+          }
+        },
+        "calendar_proposals": [
+          371,
+          382,
+          341,
+          343
+        ],
+        "calendar_accepts": [
+          371,
+          382,
+          341,
+          343
+        ],
+        "verified": true
+      }
+    }
+  },
+  "free": {
+    "model": "dated",
+    "n_chains": 4,
+    "scalars": {
+      "root_age": {
+        "mean": 8803.172541586877,
+        "split_rhat": 2.0791591392368707,
+        "rank_rhat": 1.9737538997345796,
+        "bulk_ess": 5.460246057012131,
+        "tail_ess": 14.218683349921815,
+        "mcse_mean": 634.1455859750336
+      },
+      "gain": {
+        "mean": 0.0000023417316677284968,
+        "split_rhat": 1.3070698866640684,
+        "rank_rhat": 1.2848899567977272,
+        "bulk_ess": 10.965616853720823,
+        "tail_ess": 92.81852996026217,
+        "mcse_mean": 6.183313073550554E-7
+      },
+      "loss": {
+        "mean": 0.00027193027950035253,
+        "split_rhat": 1.0322638218180917,
+        "rank_rhat": 1.0314909286523093,
+        "bulk_ess": 70.27659964878305,
+        "tail_ess": 108.9130941443937,
+        "mcse_mean": 0.000014650210794502183
+      },
+      "clock_rate": {
+        "mean": 0.5248595128933906,
+        "split_rhat": 1.061927669423947,
+        "rank_rhat": 1.0582950915343423,
+        "bulk_ess": 52.476344270077426,
+        "tail_ess": 82.19814796245815,
+        "mcse_mean": 0.03240541850559958
+      },
+      "log_posterior": {
+        "mean": -39537.214278140586,
+        "split_rhat": 7.800857234298313,
+        "rank_rhat": 3.894681437335189,
+        "bulk_ess": 4.304265935156419,
+        "tail_ess": 11.341011618236324,
+        "mcse_mean": 958.0784070139142
+      }
+    },
+    "topology_per_chain": [
+      {
+        "distinct": 17,
+        "switch_rate": 0.05351170568561873,
+        "map_prob": 0.12666666666666668
+      },
+      {
+        "distinct": 23,
+        "switch_rate": 0.07692307692307693,
+        "map_prob": 0.15
+      },
+      {
+        "distinct": 14,
+        "switch_rate": 0.043478260869565216,
+        "map_prob": 0.44
+      },
+      {
+        "distinct": 25,
+        "switch_rate": 0.0802675585284281,
+        "map_prob": 0.10666666666666667
+      }
+    ],
+    "between_chain_clades": {
+      "clades_compared": 299,
+      "minimum_pooled_frequency": 0.1,
+      "mean_frequency_sd": 0.381438012317178,
+      "maximum_chain_delta": 1.0
+    },
+    "move_statistics": [
+      {
+        "proposed": {
+          "node_time": 388,
+          "time_clock_scale": 355,
+          "tip_date": 345,
+          "rate_clock_ridge": 414,
+          "root_scale": 385,
+          "calendar_scale": 325,
+          "topology": 345,
+          "root_age": 363,
+          "loss": 369,
+          "gain": 365,
+          "clock": 346
+        },
+        "accepted": {
+          "node_time": 212,
+          "tip_date": 232,
+          "rate_clock_ridge": 341,
+          "calendar_scale": 325,
+          "root_age": 204,
+          "time_clock_scale": 3,
+          "gain": 78,
+          "clock": 41,
+          "loss": 34,
+          "topology": 27,
+          "root_scale": 5
+        }
+      },
+      {
+        "proposed": {
+          "gain": 350,
+          "clock": 364,
+          "root_scale": 352,
+          "rate_clock_ridge": 379,
+          "tip_date": 362,
+          "topology": 386,
+          "node_time": 394,
+          "time_clock_scale": 356,
+          "loss": 349,
+          "root_age": 352,
+          "calendar_scale": 356
+        },
+        "accepted": {
+          "gain": 68,
+          "root_scale": 8,
+          "rate_clock_ridge": 296,
+          "node_time": 207,
+          "clock": 36,
+          "topology": 37,
+          "loss": 33,
+          "root_age": 207,
+          "calendar_scale": 356,
+          "tip_date": 238,
+          "time_clock_scale": 1
+        }
+      },
+      {
+        "proposed": {
+          "loss": 359,
+          "rate_clock_ridge": 345,
+          "node_time": 375,
+          "calendar_scale": 385,
+          "gain": 365,
+          "tip_date": 368,
+          "clock": 373,
+          "time_clock_scale": 341,
+          "root_age": 356,
+          "root_scale": 361,
+          "topology": 372
+        },
+        "accepted": {
+          "rate_clock_ridge": 283,
+          "node_time": 189,
+          "calendar_scale": 385,
+          "gain": 64,
+          "loss": 38,
+          "clock": 42,
+          "root_age": 177,
+          "tip_date": 220,
+          "topology": 28,
+          "time_clock_scale": 6,
+          "root_scale": 4
+        }
+      },
+      {
+        "proposed": {
+          "loss": 361,
+          "tip_date": 345,
+          "rate_clock_ridge": 383,
+          "topology": 370,
+          "gain": 347,
+          "clock": 377,
+          "root_scale": 380,
+          "calendar_scale": 352,
+          "time_clock_scale": 370,
+          "node_time": 330,
+          "root_age": 385
+        },
+        "accepted": {
+          "loss": 33,
+          "tip_date": 219,
+          "rate_clock_ridge": 299,
+          "topology": 39,
+          "gain": 45,
+          "clock": 34,
+          "calendar_scale": 352,
+          "time_clock_scale": 4,
+          "root_age": 228,
+          "node_time": 174,
+          "root_scale": 2
+        }
+      }
+    ],
+    "clade_agreement": [
+      {
+        "chains": [
+          0,
+          1
+        ],
+        "score": 0.5461
+      },
+      {
+        "chains": [
+          0,
+          2
+        ],
+        "score": 0.4914
+      },
+      {
+        "chains": [
+          0,
+          3
+        ],
+        "score": 0.5215
+      },
+      {
+        "chains": [
+          1,
+          2
+        ],
+        "score": 0.511
+      },
+      {
+        "chains": [
+          1,
+          3
+        ],
+        "score": 0.4925
+      },
+      {
+        "chains": [
+          2,
+          3
+        ],
+        "score": 0.4701
+      }
+    ],
+    "converged": false,
+    "thresholds": {
+      "split_rhat_below": 1.01,
+      "ess_above": 400,
+      "mean_clade_frequency_sd_below": 0.01,
+      "maximum_chain_clade_delta_below": 0.1
+    }
+  },
+  "free_verification": {
+    "ok": true,
+    "n_bundles": 1,
+    "checks": [
+      {
+        "check": "dated:draw_digest",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:context_digest",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:source_commit",
+        "ok": true,
+        "detail": {
+          "stored": "3b6836f3a791a889325b2340b73552cfbfc199c6",
+          "expected": "3b6836f3a791a889325b2340b73552cfbfc199c6"
+        }
+      },
+      {
+        "check": "dated:draw_structure",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:attestation_intervals",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:geographic_honesty",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:frozen_observed_inputs",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:posterior_replay",
+        "ok": true,
+        "detail": {
+          "probes": 16
+        }
+      }
+    ]
+  },
+  "archive": {
+    "archive": "runs/calendar_scale_3b6836f.tar.gz",
+    "bytes": 16842517,
+    "sha256": "f21529871a519bdea292e4a69ca43cd0568879b56f0a95f4f827896babe1710a"
+  }
+}
