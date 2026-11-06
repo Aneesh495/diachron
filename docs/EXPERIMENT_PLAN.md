@@ -362,3 +362,15 @@ anchors and the free topology. The leapfrog force uses the same lexical and
 prior derivatives. Full posterior scores, the chart determinant difference,
 and the momentum density change enter acceptance. Report acceptance,
 root diagnostics and elapsed time for each arm.
+
+## Likelihood-guided edge and age pilot
+
+Run the free dated pilot with root-stem resampling and the four-step time
+block. Use the same data, seeds, starts and chain budget as the Hamiltonian
+pilot. Score each finite edge at the midpoint of three equal age bands
+with the unconditioned vertical lexical likelihood. Form a categorical
+proposal with one quarter of the relative log likelihood and 10% uniform
+mass across edge and band pairs. Retain the earlier stem distribution.
+Draw a uniform age inside the chosen band. The full target divided by the
+continuous proposal density supplies the attachment resampling weight.
+Report root ESS, chain agreement and the cost of each arm.

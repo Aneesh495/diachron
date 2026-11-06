@@ -139,6 +139,15 @@ small trees checks the placement scores. A separate four-tip test checks
 the stationary topology frequencies and unbounded root-age distribution
 with and without the parsimony weights.
 
+The likelihood guide uses inside and outside lexical messages to score three
+age bands per finite edge. Within a site, each insertion score is divided
+by the corresponding backbone likelihood. The backbone likelihood and
+the normalized detached message introduce only constants common to all
+placements. The guide gives each band nonzero probability and uses a
+uniform density inside that band. It omits the retention, geography and
+contact terms from the guide score. The selected state's importance weight
+still uses the complete target and the exact continuous proposal density.
+
 ## Joint calendar scale and time block
 
 The calendar-scale move multiplies the inferred ages by exp(t) and divides
