@@ -39,13 +39,14 @@ EDH cohort contains 175 individually sourced Latin inscriptions. The
 [acquisition and freeze guide](docs/OBSERVED_DATA.md) gives exact input
 versions, licenses, filters and commands.
 
-The observed diagnostic runs missed the convergence thresholds. In the
-revised 200-dataset synthetic study, nominal 90% root-age intervals covered
-144 of 200 true ages, and mean nontrivial clade recovery was 41%.
-The [recovery report](docs/results/recovery_200.md) links the raw outcomes.
+All 16 full-budget observed chains finished. Each model missed the frozen
+convergence thresholds. [Observed inference](docs/results/full-inference.md)
+links the raw checkpoints and replay commands. Nominal 90% root-age intervals
+covered 144 of 200 true ages in the misspecification study and 177 of 200 in
+the matched study. [Synthetic recovery](docs/results/recovery_200.md)
 The [build status](docs/BUILD_STATUS.md) tracks research and release gates.
 
-![Observed IE-CoR workbench showing saved diagnostic draws](docs/screenshots/workbench.png)
+![Observed IE-CoR workbench showing saved diagnostic draws](docs/screenshots/workbench-observed-full.png)
 
 ## Source and research notes
 

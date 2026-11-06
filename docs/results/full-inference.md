@@ -23,3 +23,25 @@ checkpoints and 16 posterior scores per model. Those checks passed. The four
 failed checks were the four convergence conditions. The
 [machine-readable report](observed-full-01459af.json) records the checks,
 source identities, elapsed sampling time and per-model draw digests.
+
+The [evidence prerelease](https://github.com/Aneesh495/diachron/releases/tag/evidence-01459af)
+contains the 16 trajectories, checkpoints, run plan and provenance. The
+15,864,470-byte archive has SHA-256
+`b56b522f400c49e6304b02ebb73140ae0d8aa2b9cd00026bfd8081487fe1a7cb`.
+A fresh download matched the original archive bytes and restored all 81 files.
+Use pinned inputs from the [acquisition guide](../OBSERVED_DATA.md).
+
+```sh
+gh release download evidence-01459af --repo Aneesh495/diachron \
+  --pattern observed_full_01459af.tar.gz --dir runs/downloads
+.venv/bin/diachron restore-evidence \
+  --archive runs/downloads/observed_full_01459af.tar.gz \
+  --out runs/restored-inference \
+  --sha256 b56b522f400c49e6304b02ebb73140ae0d8aa2b9cd00026bfd8081487fe1a7cb
+.venv/bin/diachron verify --evidence runs/restored-inference \
+  --expected-commit 01459af9ab79bca1c97ac2490624223a294292a2 \
+  --source runs/inputs/iecor --catalog runs/inputs/glottolog53.zip \
+  --edh-source runs/inputs/edh --edh-geography runs/inputs/edh-geography.json
+```
+
+Verification returns exit 1 because the four convergence checks fail.

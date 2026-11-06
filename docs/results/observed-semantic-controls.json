@@ -1,0 +1,32 @@
+{
+  "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+  "verifier_source_commit": "aca294ac867d1ccb31769c096baffa484ad5bb50",
+  "positive_control_passed": true,
+  "controls": [
+    {
+      "control": "wrong_posterior",
+      "verifier_exit": 1,
+      "expected_check": "posterior_replay",
+      "rejected_semantically": true
+    },
+    {
+      "control": "altered_attestation_interval",
+      "verifier_exit": 1,
+      "expected_check": "frozen_observed_inputs",
+      "rejected_semantically": true
+    },
+    {
+      "control": "missing_to_absent",
+      "verifier_exit": 1,
+      "expected_check": "frozen_observed_inputs",
+      "rejected_semantically": true
+    },
+    {
+      "control": "modern_as_ancient",
+      "verifier_exit": 1,
+      "expected_check": "geographic_honesty",
+      "rejected_semantically": true
+    }
+  ],
+  "passed": true
+}

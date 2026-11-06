@@ -18,9 +18,9 @@ Unresolved region assignments can be marginalized.
 The workbench's planar root cloud is drawn offline from the conditional root
 distribution for each retained geographic tree and diffusion rate. It shows
 points in a ±250-year band around the timeline position. Observations retain
-their full date ranges. Root-only sampling is an explicit scope limit of the
-current map export. A fitted regional model still needs its own offline root
-state sampler.
+their full date ranges. The export also contains location marginals for up to
+24 recurring clades, conditional on each clade occurring in a retained tree.
+A fitted regional model still needs its own offline ancestral state sampler.
 
 None of the geographic diagnostics establish a homeland. Coordinate spread,
 between-chain agreement, and stability to the reference-point model remain

@@ -429,6 +429,39 @@ deviation is 0.01 and the log-posterior tolerance is 1e-9. Passing this audit
 validates the composed conditional targets. Continuous proposal ratios,
 checkpoint recovery and full-data mixing require their separate checks.
 
+## Resampled attachment age
+
+The optional native SPR move prunes the same kind of child as fixed-height
+SPR. It suppresses the binary parent. Each backbone edge with enough time
+above the detached child is eligible. The proposal chooses an edge uniformly
+and samples the reattached parent's age uniformly between the oldest child
+and the edge's upper endpoint. The original edge remains eligible.
+
+Detaching the same child after the move yields the same backbone. The number
+of prunable children and the eligible edge set agree in reverse. If the old
+and new age spans are w and w', the age density ratio is w'/w. The accepted
+proposal contributes log(w') minus log(w). A four-tip test fixes the root
+and samples uniformly over the valid internal heights. Each balanced topology
+has a square of height volume. Each pectinate topology has half a square.
+Sampled frequencies meet the declared tolerance for all fifteen labeled
+rooted topologies.
+
+## Lexical replica exchange
+
+For each replica with inverse temperature beta, its target is proportional
+to the lexical likelihood to the power beta times the other posterior factors.
+The temperature-one marginal is the original posterior. The joint target is
+the product across replicas. Swapping two complete states leaves the product
+of all nonlexical factors fixed. With lexical scores L_a and L_b, the log
+exchange ratio is (beta_a - beta_b)(L_b - L_a). Each local transition and each
+adjacent exchange preserves the joint target after warmup.
+
+A finite test computes the entire two-replica joint distribution directly and
+compares its probabilities with sampled frequencies. The production checkpoint
+stores all local RNGs, the exchange RNG, the current walker order, swap counts
+and cold draws in one atomic file. An interrupted run resumes exactly at a
+nonexchange iteration, including all hot states and cold retained iterations.
+
 
 # Chapter 7: Experimental protocol
 
@@ -498,6 +531,13 @@ frequencies per dataset, together with the seed, regime and source commit.
 These permit direct recomputation of coverage and recovery without rerunning
 inference. The earlier 94% result used a different sampler and selection
 correction and remains available as an archived result.
+
+Protocol 3 generated and fitted 200 datasets with the same serial tree,
+binary selection, date and candidate-copy models. Four chains per dataset
+retained 1280 root ages. Their nominal 90% intervals covered 177 of 200
+true ages. Nontrivial clade recovery averaged 24.7%. The matched run also
+fell below the declared coverage target. Its different truth design and
+chain budgets limit comparisons with protocol 2. [Recovery evidence](../results/recovery_200.md)
 
 
 # Chapter 9: Observed study results
@@ -594,9 +634,9 @@ Unresolved region assignments can be marginalized.
 The workbench's planar root cloud is drawn offline from the conditional root
 distribution for each retained geographic tree and diffusion rate. It shows
 points in a ±250-year band around the timeline position. Observations retain
-their full date ranges. Root-only sampling is an explicit scope limit of the
-current map export. A fitted regional model still needs its own offline root
-state sampler.
+their full date ranges. The export also contains location marginals for up to
+24 recurring clades, conditional on each clade occurring in a retained tree.
+A fitted regional model still needs its own offline ancestral state sampler.
 
 None of the geographic diagnostics establish a homeland. Coordinate spread,
 between-chain agreement, and stability to the reference-point model remain

@@ -18,3 +18,10 @@ frequencies per dataset, together with the seed, regime and source commit.
 These permit direct recomputation of coverage and recovery without rerunning
 inference. The earlier 94% result used a different sampler and selection
 correction and remains available as an archived result.
+
+Protocol 3 generated and fitted 200 datasets with the same serial tree,
+binary selection, date and candidate-copy models. Four chains per dataset
+retained 1280 root ages. Their nominal 90% intervals covered 177 of 200
+true ages. Nontrivial clade recovery averaged 24.7%. The matched run also
+fell below the declared coverage target. Its different truth design and
+chain budgets limit comparisons with protocol 2. [Recovery evidence](../results/recovery_200.md)

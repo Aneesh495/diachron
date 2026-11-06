@@ -362,7 +362,7 @@ def cmd_predict(args) -> int:
 def cmd_thesis(args) -> int:
     from ..cli.thesis import build_thesis
 
-    result = build_thesis()
+    result = build_thesis(out_path=args.out, reference_base=args.reference_base)
     _print(result)
     return 0 if result["ledger_ok"] and result["rendered_html"] else 1
 
@@ -619,6 +619,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     tp = sub.add_parser("thesis")
     tp.add_argument("action", nargs="?", default="build")
+    tp.add_argument("--out", default="runs/thesis/THESIS.md")
+    tp.add_argument("--reference-base", help="HTTPS URL for repository-relative evidence links")
     tp.set_defaults(func=cmd_thesis)
 
     mp = sub.add_parser("demo")

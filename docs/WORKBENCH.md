@@ -45,6 +45,11 @@ With Puppeteer Chromium available, run the browser check against the standalone
 file. The report includes the exact HTML digest and the desktop and mobile
 screenshots.
 
+The observed four-model snapshot passed [browser verification](results/workbench-full-browser.json).
+The [desktop](screenshots/workbench-observed-full.png) and
+[mobile](screenshots/workbench-observed-full-mobile.png) screenshots show the
+same offline export.
+
 ```sh
 node ui/qa/workbench.mjs runs/workbench/Diachron.html runs/workbench/qa
 ```
