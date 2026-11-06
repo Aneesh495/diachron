@@ -207,6 +207,14 @@ def verify_prediction(directory: Path, dataset, probe_characters: int = 16) -> l
                        draw["iteration"] == budget["warmup"] + budget["thin"] * (index + 1)
                        for index, draw in enumerate(chain)
                    ) for chain in bundle["chains"]))
+            if budget["iterations"] >= 12000 and budget["iterations"] % budget["thin"] == 0:
+                from .campaign import _checkpoint_matches
+
+                record(f"prediction:{kind}:{model_name}:final_checkpoints", all(
+                    _checkpoint_matches(_read(split / "checkpoints" / f"{model_name}_chain{index}.json"),
+                                        bundle, index, report)
+                    for index in range(budget["chains"])
+                ))
             reproduced = _replay_scores(bundle, probes, ids, lookup, partition)
             record(f"prediction:{kind}:{model_name}:predictive_replay",
                    np.allclose(reproduced, np.array(values)[probes], atol=1e-9, rtol=0),

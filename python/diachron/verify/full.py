@@ -23,7 +23,8 @@ def normalize_plan(path: Path) -> dict:
         raise ValueError("unsupported full evidence plan")
     paths = {
         "inputs": ("iecor", "abvd", "catalog", "edh_source", "edh_geography"),
-        "inference": ("directory",), "prediction": ("directory",), "sensitivity": ("directory",),
+        "inference": ("directory",), "prediction": ("directory",),
+        "sensitivity": ("directory", "archive_directory", "asset_manifest"),
         "recovery": ("summary", "rows"), "workbench": ("html", "qa"),
         "release": ("demo_directory", "private_policy"),
     }
@@ -63,6 +64,11 @@ def _inference_options(plan):
 
 def _check_fits(plan, component):
     section = plan[component]
+    if component == "sensitivity" and "archive_directory" in section:
+        from .sensitivity_archives import verify_sensitivity_archives
+
+        return verify_sensitivity_archives(Path(section["archive_directory"]), Path(section["asset_manifest"]),
+                                           _source(section), **_inference_options(plan))
     directory = Path(section["directory"])
     expected = _source(section)
     marker = {"inference": "RUN_PLAN.json", "prediction": "heldout.json", "sensitivity": "sensitivity.json"}[component]

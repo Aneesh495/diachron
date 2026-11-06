@@ -156,7 +156,7 @@ def summarize_sensitivity(rows, study_name, is_synthetic, commit):
         "gate": "G08", "source_commit": commit, "is_synthetic": is_synthetic,
         "study": study_name, "profile": "saved-chain sensitivity campaign",
         "n_configs": len(rows), "configs": rows, "baseline": "pop_size_3000" if baseline else None,
-        "all_converged": all(row["converged"] for row in rows),
+        "all_converged": bool(rows) and all(row["converged"] for row in rows),
         "levers_that_shift_root_age": [row["config"] for row in rows if baseline and
             row["root_shift_vs_baseline"] > .15 * max(baseline["root_age_mean"], 1)],
         "note": "Shifts are descriptive. Unconverged fits do not establish robustness.",

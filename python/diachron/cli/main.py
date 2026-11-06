@@ -393,6 +393,17 @@ def cmd_verify(args) -> int:
     return 0 if result["ok"] else 1
 
 
+def cmd_verify_sensitivity_archives(args) -> int:
+    from ..verify.sensitivity_archives import verify_sensitivity_archives
+
+    result = verify_sensitivity_archives(
+        args.archive_dir, args.asset_manifest, args.expected_commit, observed_source=args.source,
+        catalog=args.catalog, edh_source=args.edh_source, edh_geography=args.edh_geography,
+    )
+    _print(result)
+    return 0 if result["passed"] else 1
+
+
 def cmd_verify_controls(args) -> int:
     from ..verify.controls import run_semantic_controls
 
@@ -608,6 +619,16 @@ def build_parser() -> argparse.ArgumentParser:
     vp.add_argument("--edh-source", type=Path, help="trusted EDH XML inputs")
     vp.add_argument("--edh-geography", type=Path, help="trusted EDH gazetteer")
     vp.set_defaults(func=cmd_verify)
+
+    sa = sub.add_parser("verify-sensitivity-archives")
+    sa.add_argument("--archive-dir", type=Path, required=True)
+    sa.add_argument("--asset-manifest", type=Path, required=True)
+    sa.add_argument("--expected-commit", required=True)
+    sa.add_argument("--source", type=Path, required=True)
+    sa.add_argument("--catalog", type=Path, required=True)
+    sa.add_argument("--edh-source", type=Path, required=True)
+    sa.add_argument("--edh-geography", type=Path, required=True)
+    sa.set_defaults(func=cmd_verify_sensitivity_archives)
 
     vc = sub.add_parser("verify-controls")
     vc.add_argument("--bundle", type=Path, required=True)
