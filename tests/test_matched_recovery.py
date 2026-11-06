@@ -1,10 +1,13 @@
 """Matched recovery generates proper serial trees and persists complete units."""
 
 from pathlib import Path
+import json
 
 import numpy as np
+import pytest
 
 from diachron.sensitivity.matched import generate_matched_case, run_matched_recovery, serial_coalescent
+from diachron.verify.recovery import _validate_time_block_row
 
 
 def test_serial_coalescent_two_tip_wait_is_exponential_after_oldest_tip():
@@ -32,3 +35,14 @@ def test_matched_recovery_resumes_without_regenerating_saved_cases(tmp_path):
     saved = (out / 'units/case-000.json').stat().st_mtime_ns
     assert result == run_matched_recovery(2, out, 1, True, warmup=5, iterations=20)
     assert (out / 'units/case-000.json').stat().st_mtime_ns == saved
+
+
+def test_joint_recovery_row_replays_clade_bits_and_rejects_altered_counts(tmp_path):
+    out = tmp_path / 'matched-time'
+    result = run_matched_recovery(1, out, 1, protocol=4, warmup=5, iterations=100)
+    assert result['completed'] == 1
+    row = json.loads((out / 'units/case-000.json').read_text())
+    _validate_time_block_row(row, result, row['root_samples'], row['true_clade_masses'])
+    row['true_clade_membership'][0] ^= 1
+    with pytest.raises(ValueError, match='frequencies differ'):
+        _validate_time_block_row(row, result, row['root_samples'], row['true_clade_masses'])
