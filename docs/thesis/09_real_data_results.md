@@ -28,3 +28,12 @@ another sampled variety.
 Held-out prediction and sensitivity operate as distinct experiments. Their
 scores are not inferred from convergence or the retrospective fit of these
 models.
+
+
+## Full inference budgets
+
+All 16 chains of the protocol 3 inference campaign completed at the declared
+budget. Every model failed convergence. Root split R-hat ranged from 1.53 to
+1.99 and root bulk ESS from 5.9 to 7.6. The maximum between-chain frequency
+difference for a clade was 1.00 in each model. Full checkpoints and the
+source-bound replay checks passed. [Full inference results](../results/full-inference.md)

@@ -1,0 +1,958 @@
+{
+  "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+  "verifier_source_commit": "c1969c3c7289ff4385eb2aa6a039a989f11ebaf5",
+  "protocol": 3,
+  "study": "iecor",
+  "chains_per_model": 4,
+  "warmup_per_chain": 3000,
+  "sampling_iterations_per_chain": 12000,
+  "retained_draws_per_chain": 1200,
+  "models": {
+    "tree_only": {
+      "sampling_seconds": 675.0129778385162,
+      "bundle_draw_sha256": "715f86d6183ff35a300570d1d2a9d7d70223136e7beaffd212d218685580dc25",
+      "bundle_context_sha256": "f2a06349377edbd406dbec5336bec5f5314475e275530f76210e2b2896af9458",
+      "diagnostics": {
+        "model": "tree_only",
+        "n_chains": 4,
+        "scalars": {
+          "root_age": {
+            "mean": 222.99860783578237,
+            "split_rhat": 1.5265,
+            "rank_rhat": 1.475,
+            "bulk_ess": 7.6,
+            "tail_ess": 24.0,
+            "mcse_mean": 15.475486534014637
+          },
+          "gain": {
+            "mean": 3.811297156634888e-05,
+            "split_rhat": 1.0192,
+            "rank_rhat": 1.0199,
+            "bulk_ess": 333.6,
+            "tail_ess": 380.8,
+            "mcse_mean": 1.2164820363021523e-06
+          },
+          "loss": {
+            "mean": 0.006666211810207934,
+            "split_rhat": 1.0129,
+            "rank_rhat": 1.0128,
+            "bulk_ess": 340.7,
+            "tail_ess": 416.7,
+            "mcse_mean": 0.00021272228122393491
+          },
+          "clock_rate": {
+            "mean": 0.9071529280150021,
+            "split_rhat": 1.0179,
+            "rank_rhat": 1.0151,
+            "bulk_ess": 342.9,
+            "tail_ess": 446.5,
+            "mcse_mean": 0.023995494183631328
+          },
+          "log_posterior": {
+            "mean": -32950.14878564665,
+            "split_rhat": 2.9042,
+            "rank_rhat": 2.6914,
+            "bulk_ess": 4.7,
+            "tail_ess": 23.7,
+            "mcse_mean": 271.3805132645405
+          }
+        },
+        "topology_per_chain": [
+          {
+            "distinct": 46,
+            "switch_rate": 0.03753127606338615,
+            "map_prob": 0.10083333333333333
+          },
+          {
+            "distinct": 58,
+            "switch_rate": 0.0475396163469558,
+            "map_prob": 0.11666666666666667
+          },
+          {
+            "distinct": 86,
+            "switch_rate": 0.07172643869891576,
+            "map_prob": 0.07
+          },
+          {
+            "distinct": 80,
+            "switch_rate": 0.06922435362802336,
+            "map_prob": 0.04416666666666667
+          }
+        ],
+        "between_chain_clades": {
+          "clades_compared": 285,
+          "minimum_pooled_frequency": 0.1,
+          "mean_frequency_sd": 0.3008800915975904,
+          "maximum_chain_delta": 1.0
+        },
+        "move_statistics": [
+          {
+            "proposed": {
+              "node_time": 1734,
+              "rate_clock_ridge": 1692,
+              "time_clock_scale": 1633,
+              "root_scale": 1624,
+              "root_age": 1653,
+              "topology": 1693,
+              "clock": 1644,
+              "gain": 1672,
+              "loss": 1655
+            },
+            "accepted": {
+              "node_time": 958,
+              "rate_clock_ridge": 1333,
+              "time_clock_scale": 428,
+              "root_age": 1064,
+              "topology": 79,
+              "clock": 74,
+              "loss": 89,
+              "gain": 261,
+              "root_scale": 59
+            }
+          },
+          {
+            "proposed": {
+              "gain": 1631,
+              "clock": 1755,
+              "node_time": 1686,
+              "root_age": 1621,
+              "loss": 1663,
+              "root_scale": 1660,
+              "rate_clock_ridge": 1672,
+              "time_clock_scale": 1660,
+              "topology": 1652
+            },
+            "accepted": {
+              "gain": 252,
+              "root_age": 833,
+              "root_scale": 82,
+              "clock": 93,
+              "node_time": 950,
+              "rate_clock_ridge": 1311,
+              "time_clock_scale": 446,
+              "loss": 106,
+              "topology": 87
+            }
+          },
+          {
+            "proposed": {
+              "gain": 1637,
+              "root_scale": 1626,
+              "clock": 1686,
+              "topology": 1681,
+              "node_time": 1704,
+              "rate_clock_ridge": 1712,
+              "loss": 1651,
+              "time_clock_scale": 1621,
+              "root_age": 1682
+            },
+            "accepted": {
+              "gain": 232,
+              "topology": 123,
+              "node_time": 948,
+              "clock": 90,
+              "rate_clock_ridge": 1332,
+              "root_scale": 81,
+              "time_clock_scale": 425,
+              "root_age": 809,
+              "loss": 77
+            }
+          },
+          {
+            "proposed": {
+              "loss": 1745,
+              "time_clock_scale": 1746,
+              "node_time": 1662,
+              "gain": 1598,
+              "root_age": 1622,
+              "topology": 1661,
+              "clock": 1635,
+              "rate_clock_ridge": 1686,
+              "root_scale": 1645
+            },
+            "accepted": {
+              "loss": 96,
+              "time_clock_scale": 430,
+              "gain": 221,
+              "root_age": 741,
+              "topology": 120,
+              "clock": 76,
+              "node_time": 881,
+              "rate_clock_ridge": 1297,
+              "root_scale": 81
+            }
+          }
+        ],
+        "clade_agreement": [
+          {
+            "chains": [
+              0,
+              1
+            ],
+            "score": 0.6696
+          },
+          {
+            "chains": [
+              0,
+              2
+            ],
+            "score": 0.6386
+          },
+          {
+            "chains": [
+              0,
+              3
+            ],
+            "score": 0.654
+          },
+          {
+            "chains": [
+              1,
+              2
+            ],
+            "score": 0.6835
+          },
+          {
+            "chains": [
+              1,
+              3
+            ],
+            "score": 0.6627
+          },
+          {
+            "chains": [
+              2,
+              3
+            ],
+            "score": 0.6726
+          }
+        ],
+        "converged": false,
+        "thresholds": {
+          "split_rhat_below": 1.01,
+          "ess_above": 400,
+          "mean_clade_frequency_sd_below": 0.01,
+          "maximum_chain_clade_delta_below": 0.1
+        }
+      }
+    },
+    "dated": {
+      "sampling_seconds": 318.2430181503296,
+      "bundle_draw_sha256": "087484cb37df3ddda5e51908d62e146385afe5c5fae374ea8d29a5780555d45f",
+      "bundle_context_sha256": "c8d02e68b967d32de4bcae01ec8ff5c5dcc33d1e613bb59c5bec89bf90b8e3b1",
+      "diagnostics": {
+        "model": "dated",
+        "n_chains": 4,
+        "scalars": {
+          "root_age": {
+            "mean": 8347.381697683319,
+            "split_rhat": 1.9876,
+            "rank_rhat": 1.8047,
+            "bulk_ess": 5.9,
+            "tail_ess": 21.8,
+            "mcse_mean": 421.81438857499876
+          },
+          "gain": {
+            "mean": 2.585931765226115e-06,
+            "split_rhat": 1.0251,
+            "rank_rhat": 1.0291,
+            "bulk_ess": 207.0,
+            "tail_ess": 300.4,
+            "mcse_mean": 9.064335142621388e-08
+          },
+          "loss": {
+            "mean": 0.0003525238233953964,
+            "split_rhat": 1.043,
+            "rank_rhat": 1.0493,
+            "bulk_ess": 101.3,
+            "tail_ess": 293.3,
+            "mcse_mean": 1.3868948138090797e-05
+          },
+          "clock_rate": {
+            "mean": 0.4607015842505347,
+            "split_rhat": 1.0118,
+            "rank_rhat": 1.0135,
+            "bulk_ess": 279.5,
+            "tail_ess": 311.6,
+            "mcse_mean": 0.011535326400666407
+          },
+          "log_posterior": {
+            "mean": -37737.01736791038,
+            "split_rhat": 2.2904,
+            "rank_rhat": 2.2481,
+            "bulk_ess": 5.0,
+            "tail_ess": 11.4,
+            "mcse_mean": 305.66887559005767
+          }
+        },
+        "topology_per_chain": [
+          {
+            "distinct": 56,
+            "switch_rate": 0.045871559633027525,
+            "map_prob": 0.06666666666666667
+          },
+          {
+            "distinct": 75,
+            "switch_rate": 0.0633861551292744,
+            "map_prob": 0.08333333333333333
+          },
+          {
+            "distinct": 78,
+            "switch_rate": 0.0658882402001668,
+            "map_prob": 0.041666666666666664
+          },
+          {
+            "distinct": 66,
+            "switch_rate": 0.05504587155963303,
+            "map_prob": 0.07
+          }
+        ],
+        "between_chain_clades": {
+          "clades_compared": 301,
+          "minimum_pooled_frequency": 0.1,
+          "mean_frequency_sd": 0.3080986382704754,
+          "maximum_chain_delta": 1.0
+        },
+        "move_statistics": [
+          {
+            "proposed": {
+              "node_time": 1545,
+              "time_clock_scale": 1517,
+              "root_age": 1477,
+              "topology": 1487,
+              "clock": 1493,
+              "rate_clock_ridge": 1516,
+              "root_scale": 1505,
+              "loss": 1470,
+              "tip_date": 1471,
+              "gain": 1519
+            },
+            "accepted": {
+              "node_time": 807,
+              "root_age": 810,
+              "topology": 91,
+              "rate_clock_ridge": 1222,
+              "loss": 88,
+              "clock": 90,
+              "tip_date": 1090,
+              "gain": 267,
+              "time_clock_scale": 14,
+              "root_scale": 5
+            }
+          },
+          {
+            "proposed": {
+              "gain": 1475,
+              "clock": 1498,
+              "root_scale": 1483,
+              "topology": 1489,
+              "rate_clock_ridge": 1489,
+              "root_age": 1485,
+              "node_time": 1559,
+              "time_clock_scale": 1536,
+              "loss": 1498,
+              "tip_date": 1488
+            },
+            "accepted": {
+              "gain": 240,
+              "root_scale": 14,
+              "topology": 112,
+              "clock": 83,
+              "rate_clock_ridge": 1174,
+              "root_age": 910,
+              "loss": 84,
+              "node_time": 816,
+              "tip_date": 1064,
+              "time_clock_scale": 5
+            }
+          },
+          {
+            "proposed": {
+              "gain": 1514,
+              "root_scale": 1514,
+              "node_time": 1525,
+              "tip_date": 1477,
+              "clock": 1512,
+              "topology": 1424,
+              "loss": 1559,
+              "rate_clock_ridge": 1543,
+              "time_clock_scale": 1460,
+              "root_age": 1472
+            },
+            "accepted": {
+              "gain": 201,
+              "node_time": 787,
+              "tip_date": 1061,
+              "clock": 80,
+              "topology": 109,
+              "rate_clock_ridge": 1214,
+              "root_age": 786,
+              "loss": 81,
+              "root_scale": 16,
+              "time_clock_scale": 9
+            }
+          },
+          {
+            "proposed": {
+              "loss": 1484,
+              "root_age": 1508,
+              "clock": 1518,
+              "gain": 1508,
+              "tip_date": 1519,
+              "root_scale": 1518,
+              "rate_clock_ridge": 1518,
+              "topology": 1467,
+              "node_time": 1445,
+              "time_clock_scale": 1515
+            },
+            "accepted": {
+              "loss": 101,
+              "root_age": 718,
+              "gain": 237,
+              "rate_clock_ridge": 1209,
+              "topology": 103,
+              "tip_date": 1165,
+              "clock": 71,
+              "node_time": 730,
+              "time_clock_scale": 11,
+              "root_scale": 11
+            }
+          }
+        ],
+        "clade_agreement": [
+          {
+            "chains": [
+              0,
+              1
+            ],
+            "score": 0.6282
+          },
+          {
+            "chains": [
+              0,
+              2
+            ],
+            "score": 0.6319
+          },
+          {
+            "chains": [
+              0,
+              3
+            ],
+            "score": 0.6443
+          },
+          {
+            "chains": [
+              1,
+              2
+            ],
+            "score": 0.6484
+          },
+          {
+            "chains": [
+              1,
+              3
+            ],
+            "score": 0.6623
+          },
+          {
+            "chains": [
+              2,
+              3
+            ],
+            "score": 0.6448
+          }
+        ],
+        "converged": false,
+        "thresholds": {
+          "split_rhat_below": 1.01,
+          "ess_above": 400,
+          "mean_clade_frequency_sd_below": 0.01,
+          "maximum_chain_clade_delta_below": 0.1
+        }
+      }
+    },
+    "geography": {
+      "sampling_seconds": 412.8726739883423,
+      "bundle_draw_sha256": "835143b11e73ef14ca46e0455700a5fbd0e75cc05ce7ae8712945590747faa0c",
+      "bundle_context_sha256": "825819b569ea3c667d9a33abd4658c92f52d4a6290bb2adf1743aa96c1fc3f23",
+      "diagnostics": {
+        "model": "geography",
+        "n_chains": 4,
+        "scalars": {
+          "root_age": {
+            "mean": 7749.317784471207,
+            "split_rhat": 1.6234,
+            "rank_rhat": 1.702,
+            "bulk_ess": 6.3,
+            "tail_ess": 10.7,
+            "mcse_mean": 229.06111280171262
+          },
+          "gain": {
+            "mean": 2.3897794108762425e-06,
+            "split_rhat": 1.0475,
+            "rank_rhat": 1.043,
+            "bulk_ess": 111.3,
+            "tail_ess": 194.4,
+            "mcse_mean": 1.1132087214871612e-07
+          },
+          "loss": {
+            "mean": 0.00035963887064693304,
+            "split_rhat": 1.0269,
+            "rank_rhat": 1.0287,
+            "bulk_ess": 165.9,
+            "tail_ess": 479.9,
+            "mcse_mean": 1.2543421458283063e-05
+          },
+          "clock_rate": {
+            "mean": 0.48107263398786493,
+            "split_rhat": 1.0096,
+            "rank_rhat": 1.0108,
+            "bulk_ess": 271.2,
+            "tail_ess": 630.6,
+            "mcse_mean": 0.011899196870555158
+          },
+          "log_posterior": {
+            "mean": -37433.93944659337,
+            "split_rhat": 2.0647,
+            "rank_rhat": 1.9325,
+            "bulk_ess": 5.5,
+            "tail_ess": 15.7,
+            "mcse_mean": 249.76011059784832
+          }
+        },
+        "topology_per_chain": [
+          {
+            "distinct": 73,
+            "switch_rate": 0.060050041701417846,
+            "map_prob": 0.04666666666666667
+          },
+          {
+            "distinct": 66,
+            "switch_rate": 0.05504587155963303,
+            "map_prob": 0.10083333333333333
+          },
+          {
+            "distinct": 79,
+            "switch_rate": 0.06505421184320268,
+            "map_prob": 0.060833333333333336
+          },
+          {
+            "distinct": 60,
+            "switch_rate": 0.04920767306088407,
+            "map_prob": 0.059166666666666666
+          }
+        ],
+        "between_chain_clades": {
+          "clades_compared": 276,
+          "minimum_pooled_frequency": 0.1,
+          "mean_frequency_sd": 0.2762658285050978,
+          "maximum_chain_delta": 1.0
+        },
+        "move_statistics": [
+          {
+            "proposed": {
+              "node_time": 1472,
+              "root_age": 1483,
+              "topology": 1521,
+              "time_clock_scale": 1504,
+              "clock": 1545,
+              "tip_date": 1529,
+              "root_scale": 1496,
+              "rate_clock_ridge": 1484,
+              "loss": 1478,
+              "gain": 1488
+            },
+            "accepted": {
+              "node_time": 797,
+              "clock": 74,
+              "tip_date": 1152,
+              "rate_clock_ridge": 1170,
+              "loss": 98,
+              "gain": 259,
+              "time_clock_scale": 21,
+              "root_age": 793,
+              "topology": 103,
+              "root_scale": 15
+            }
+          },
+          {
+            "proposed": {
+              "gain": 1546,
+              "time_clock_scale": 1484,
+              "root_scale": 1567,
+              "root_age": 1426,
+              "topology": 1472,
+              "tip_date": 1501,
+              "node_time": 1574,
+              "rate_clock_ridge": 1502,
+              "loss": 1438,
+              "clock": 1490
+            },
+            "accepted": {
+              "gain": 304,
+              "root_age": 698,
+              "tip_date": 1065,
+              "time_clock_scale": 11,
+              "rate_clock_ridge": 1200,
+              "loss": 78,
+              "clock": 82,
+              "topology": 92,
+              "root_scale": 24,
+              "node_time": 860
+            }
+          },
+          {
+            "proposed": {
+              "gain": 1492,
+              "rate_clock_ridge": 1478,
+              "topology": 1511,
+              "node_time": 1585,
+              "loss": 1480,
+              "time_clock_scale": 1505,
+              "tip_date": 1494,
+              "root_scale": 1476,
+              "root_age": 1460,
+              "clock": 1519
+            },
+            "accepted": {
+              "gain": 204,
+              "rate_clock_ridge": 1140,
+              "node_time": 805,
+              "loss": 76,
+              "time_clock_scale": 14,
+              "topology": 114,
+              "root_age": 656,
+              "tip_date": 1088,
+              "clock": 85,
+              "root_scale": 8
+            }
+          },
+          {
+            "proposed": {
+              "loss": 1498,
+              "root_scale": 1454,
+              "rate_clock_ridge": 1505,
+              "tip_date": 1561,
+              "gain": 1445,
+              "time_clock_scale": 1504,
+              "topology": 1461,
+              "node_time": 1484,
+              "root_age": 1527,
+              "clock": 1561
+            },
+            "accepted": {
+              "loss": 107,
+              "root_scale": 14,
+              "rate_clock_ridge": 1174,
+              "tip_date": 1136,
+              "gain": 218,
+              "node_time": 771,
+              "root_age": 982,
+              "time_clock_scale": 14,
+              "clock": 95,
+              "topology": 90
+            }
+          }
+        ],
+        "clade_agreement": [
+          {
+            "chains": [
+              0,
+              1
+            ],
+            "score": 0.6839
+          },
+          {
+            "chains": [
+              0,
+              2
+            ],
+            "score": 0.6754
+          },
+          {
+            "chains": [
+              0,
+              3
+            ],
+            "score": 0.679
+          },
+          {
+            "chains": [
+              1,
+              2
+            ],
+            "score": 0.6813
+          },
+          {
+            "chains": [
+              1,
+              3
+            ],
+            "score": 0.6894
+          },
+          {
+            "chains": [
+              2,
+              3
+            ],
+            "score": 0.65
+          }
+        ],
+        "converged": false,
+        "thresholds": {
+          "split_rhat_below": 1.01,
+          "ess_above": 400,
+          "mean_clade_frequency_sd_below": 0.01,
+          "maximum_chain_clade_delta_below": 0.1
+        }
+      }
+    },
+    "borrowing": {
+      "sampling_seconds": 1565.2761118412018,
+      "bundle_draw_sha256": "7e95eedad7a370dfc6baa49e6731ec941e92469174fb57230d09ddbd39519d07",
+      "bundle_context_sha256": "438e4d27abf3c2b7595af49a4ae619d08ec7e75dfa1743c1c97879d6d2e71059",
+      "diagnostics": {
+        "model": "borrowing",
+        "n_chains": 4,
+        "scalars": {
+          "root_age": {
+            "mean": 7564.059997602664,
+            "split_rhat": 1.7859,
+            "rank_rhat": 1.8001,
+            "bulk_ess": 5.9,
+            "tail_ess": 14.2,
+            "mcse_mean": 241.18016685858882
+          },
+          "gain": {
+            "mean": 2.580114356538605e-06,
+            "split_rhat": 1.0466,
+            "rank_rhat": 1.0452,
+            "bulk_ess": 90.6,
+            "tail_ess": 454.5,
+            "mcse_mean": 1.015023215568709e-07
+          },
+          "loss": {
+            "mean": 0.00034068579910383174,
+            "split_rhat": 1.0418,
+            "rank_rhat": 1.0416,
+            "bulk_ess": 99.4,
+            "tail_ess": 440.7,
+            "mcse_mean": 1.145212076569508e-05
+          },
+          "clock_rate": {
+            "mean": 0.4947774237952122,
+            "split_rhat": 1.0175,
+            "rank_rhat": 1.0126,
+            "bulk_ess": 303.3,
+            "tail_ess": 467.5,
+            "mcse_mean": 0.014637151394974027
+          },
+          "log_posterior": {
+            "mean": -37401.17130960448,
+            "split_rhat": 2.2819,
+            "rank_rhat": 2.208,
+            "bulk_ess": 5.1,
+            "tail_ess": 20.1,
+            "mcse_mean": 383.1638199410721
+          }
+        },
+        "topology_per_chain": [
+          {
+            "distinct": 74,
+            "switch_rate": 0.06255212677231026,
+            "map_prob": 0.058333333333333334
+          },
+          {
+            "distinct": 55,
+            "switch_rate": 0.045037531276063386,
+            "map_prob": 0.09083333333333334
+          },
+          {
+            "distinct": 84,
+            "switch_rate": 0.06922435362802336,
+            "map_prob": 0.059166666666666666
+          },
+          {
+            "distinct": 54,
+            "switch_rate": 0.04420350291909925,
+            "map_prob": 0.08333333333333333
+          }
+        ],
+        "between_chain_clades": {
+          "clades_compared": 288,
+          "minimum_pooled_frequency": 0.1,
+          "mean_frequency_sd": 0.31088141384496454,
+          "maximum_chain_delta": 1.0
+        },
+        "move_statistics": [
+          {
+            "proposed": {
+              "node_time": 1527,
+              "root_age": 1456,
+              "topology": 1502,
+              "rate_clock_ridge": 1494,
+              "tip_date": 1543,
+              "time_clock_scale": 1503,
+              "root_scale": 1505,
+              "gain": 1467,
+              "clock": 1486,
+              "loss": 1517
+            },
+            "accepted": {
+              "node_time": 831,
+              "root_age": 857,
+              "rate_clock_ridge": 1217,
+              "tip_date": 1161,
+              "gain": 270,
+              "clock": 89,
+              "loss": 107,
+              "topology": 102,
+              "time_clock_scale": 23,
+              "root_scale": 11
+            }
+          },
+          {
+            "proposed": {
+              "gain": 1533,
+              "time_clock_scale": 1508,
+              "root_scale": 1527,
+              "root_age": 1541,
+              "topology": 1409,
+              "tip_date": 1519,
+              "node_time": 1532,
+              "clock": 1481,
+              "rate_clock_ridge": 1483,
+              "loss": 1467
+            },
+            "accepted": {
+              "gain": 226,
+              "root_age": 759,
+              "tip_date": 1140,
+              "topology": 78,
+              "root_scale": 16,
+              "node_time": 818,
+              "clock": 82,
+              "rate_clock_ridge": 1207,
+              "loss": 85,
+              "time_clock_scale": 14
+            }
+          },
+          {
+            "proposed": {
+              "gain": 1481,
+              "rate_clock_ridge": 1484,
+              "topology": 1507,
+              "node_time": 1577,
+              "loss": 1484,
+              "time_clock_scale": 1486,
+              "tip_date": 1486,
+              "root_scale": 1506,
+              "root_age": 1450,
+              "clock": 1539
+            },
+            "accepted": {
+              "gain": 174,
+              "rate_clock_ridge": 1125,
+              "node_time": 808,
+              "loss": 88,
+              "time_clock_scale": 12,
+              "topology": 120,
+              "root_age": 664,
+              "tip_date": 1092,
+              "clock": 76,
+              "root_scale": 10
+            }
+          },
+          {
+            "proposed": {
+              "loss": 1539,
+              "root_scale": 1469,
+              "gain": 1484,
+              "tip_date": 1545,
+              "time_clock_scale": 1503,
+              "rate_clock_ridge": 1526,
+              "clock": 1585,
+              "root_age": 1488,
+              "topology": 1373,
+              "node_time": 1488
+            },
+            "accepted": {
+              "loss": 98,
+              "root_scale": 12,
+              "gain": 272,
+              "tip_date": 1173,
+              "rate_clock_ridge": 1278,
+              "clock": 92,
+              "root_age": 848,
+              "node_time": 775,
+              "time_clock_scale": 12,
+              "topology": 73
+            }
+          }
+        ],
+        "clade_agreement": [
+          {
+            "chains": [
+              0,
+              1
+            ],
+            "score": 0.6471
+          },
+          {
+            "chains": [
+              0,
+              2
+            ],
+            "score": 0.6219
+          },
+          {
+            "chains": [
+              0,
+              3
+            ],
+            "score": 0.6504
+          },
+          {
+            "chains": [
+              1,
+              2
+            ],
+            "score": 0.6295
+          },
+          {
+            "chains": [
+              1,
+              3
+            ],
+            "score": 0.7062
+          },
+          {
+            "chains": [
+              2,
+              3
+            ],
+            "score": 0.6354
+          }
+        ],
+        "converged": false,
+        "thresholds": {
+          "split_rhat_below": 1.01,
+          "ess_above": 400,
+          "mean_clade_frequency_sd_below": 0.01,
+          "maximum_chain_clade_delta_below": 0.1
+        }
+      }
+    }
+  },
+  "all_converged": false,
+  "verifier": {
+    "artifact_checks_passed": true,
+    "failed_checks": [
+      "inference:tree_only:convergence",
+      "inference:dated:convergence",
+      "inference:geography:convergence",
+      "inference:borrowing:convergence"
+    ]
+  }
+}

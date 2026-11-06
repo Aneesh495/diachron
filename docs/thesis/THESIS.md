@@ -356,8 +356,8 @@ is not vacuous.
 ## Node-time slide
 
 Each move proposes a uniform increment. For an internal non-root node,
-the window is a fraction of the current root age, which the move leaves
-fixed. For the root, the window depends on its oldest child. A dated tip
+the window is a fraction of the interval from its oldest child to its
+parent. Both bounds remain fixed during that move. For the root, the window depends on its oldest child. A dated tip
 uses a fixed window from its date density. A proposal that crosses a child
 or parent age is rejected. Because the window is unchanged by an accepted
 move, the reverse increment has the same density.
@@ -399,6 +399,35 @@ same topology, identical retained draws, and no duplicated retained draw (gate G
 `tests/test_recovery.py`). Adaptation of step sizes runs only during warmup and is
 frozen before any retained sample, so the retained chain targets the stationary
 posterior.
+
+## Coupled rate and time proposals
+
+The rate-clock ridge proposal multiplies clock by f and divides gain and
+loss by f, preserving effective lexical rates. Its log Hastings term is
+-log(f), from the product of the original coordinates. The independent
+conditional-lognormal test checks the induced clock distribution.
+
+The coupled time-clock move multiplies k internal ages by f and divides
+clock by f. Its log Hastings term is (k-1) log(f). Dated tips stay fixed,
+so effective branch lengths need not be invariant. The acceptance ratio
+reevaluates the complete dated target. The dedicated root move scales the
+positive gap above the root's oldest child and contributes log(f).
+
+## Composed finite posterior check
+
+`make sampler-check` enumerates 72 conditional states for each required
+observation model, combining ranked four-tip topologies, rate settings and
+two historical-tip ages. The reference sums complete binary node states
+and contact histories, applies the observed-mask retention event, integrates
+a dense Gaussian geographic precision matrix and uses independent SciPy
+prior and terminal-date densities. It shares no pruning or geographic
+message implementation with the production score.
+
+The production acceptance method samples each finite target for 200000
+retained steps after 1000 warmup steps. The predeclared maximum frequency
+deviation is 0.01 and the log-posterior tolerance is 1e-9. Passing this audit
+validates the composed conditional targets. Continuous proposal ratios,
+checkpoint recovery and full-data mixing require their separate checks.
 
 
 # Chapter 7: Experimental protocol
@@ -501,6 +530,15 @@ another sampled variety.
 Held-out prediction and sensitivity operate as distinct experiments. Their
 scores are not inferred from convergence or the retrospective fit of these
 models.
+
+
+## Full inference budgets
+
+All 16 chains of the protocol 3 inference campaign completed at the declared
+budget. Every model failed convergence. Root split R-hat ranged from 1.53 to
+1.99 and root bulk ESS from 5.9 to 7.6. The maximum between-chain frequency
+difference for a clade was 1.00 in each model. Full checkpoints and the
+source-bound replay checks passed. [Full inference results](../results/full-inference.md)
 
 
 # Chapter 10: A bounded contact model
