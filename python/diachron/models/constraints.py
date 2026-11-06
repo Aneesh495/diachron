@@ -20,22 +20,25 @@ def validate_clades(clades: list[list[int]], n_tips: int) -> list[int]:
     return masks
 
 
-def satisfies_clades(tree, masks: list[int]) -> bool:
-    if not masks:
-        return True
+def clade_masks(tree) -> set[int]:
+    """Return exact descendant sets for internal nodes as taxon bit masks."""
     children = tree.children()
-    descendants = {}
-    pending = [(tree.root, False)]
-    while pending:
-        node, visited = pending.pop()
+    order = [tree.root]
+    for node in order:
+        order.extend(children[node])
+    descendants = [0] * tree.n_nodes
+    masks = set()
+    for node in reversed(order):
         if tree.is_tip(node):
             descendants[node] = 1 << tree.taxon[node]
-        elif visited:
+        else:
             mask = 0
             for child in children[node]:
                 mask |= descendants[child]
             descendants[node] = mask
-        else:
-            pending.append((node, True))
-            pending.extend((child, False) for child in children[node])
-    return set(masks) <= set(descendants.values())
+            masks.add(mask)
+    return masks
+
+
+def satisfies_clades(tree, masks: list[int]) -> bool:
+    return not masks or set(masks) <= clade_masks(tree)

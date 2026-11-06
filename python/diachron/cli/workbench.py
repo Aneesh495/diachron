@@ -13,6 +13,7 @@ from ..models.posterior import planar_location_marginals
 from collections import Counter
 from ..models.tree import PhyloTree
 from .sampling import run_diagnose
+from .workbench_context import build_observed_context, record_taxonomy_frequencies
 
 _MAX_DRAWS = 120
 _MAX_MODELS = 8
@@ -38,7 +39,7 @@ def _clade_locations(bundle: PosteriorBundle, chains: list[list[dict]]) -> tuple
 
     frequency = Counter()
     samples = []
-    for chain in chains:
+    for chain_index, chain in enumerate(chains):
         for draw in chain:
             tree = PhyloTree(draw["parent"], draw["heights"], draw["taxon"])
             children = tree.children()
@@ -57,7 +58,7 @@ def _clade_locations(bundle: PosteriorBundle, chains: list[list[dict]]) -> tuple
                     key = ",".join(map(str, members))
                     clades[key] = node
                     frequency[key] += 1
-            samples.append((tree, draw["geo_sigma2"], clades))
+            samples.append((chain_index, tree, draw["geo_sigma2"], clades))
 
     # Preserve multimodal mixtures over saved topologies. Cap the number of
     # clades and draw budget so UI interactions stay independent of inference.
@@ -65,7 +66,7 @@ def _clade_locations(bundle: PosteriorBundle, chains: list[list[dict]]) -> tuple
     root_samples = []
     clade_samples = {key: [] for key in selected}
     rng = np.random.default_rng(20261104)
-    for tree, diffusion, clades in samples:
+    for chain_index, tree, diffusion, clades in samples:
         error = model["config"].get("geography_error_degrees", 0.0)
         marginals = planar_location_marginals(tree, coords, diffusion, error)
         if not marginals:
@@ -74,7 +75,8 @@ def _clade_locations(bundle: PosteriorBundle, chains: list[list[dict]]) -> tuple
         def point(node):
             lat, lon, variance = marginals[node]
             sample = rng.normal((lat, lon), np.sqrt(variance))
-            return {"lat": float(sample[0]), "lon": float(sample[1]), "age": tree.heights[node]}
+            return {"lat": float(sample[0]), "lon": float(sample[1]), "age": tree.heights[node],
+                    "chain": chain_index}
 
         root_samples.append(point(tree.root))
         for key in clade_samples:
@@ -85,11 +87,15 @@ def _clade_locations(bundle: PosteriorBundle, chains: list[list[dict]]) -> tuple
 
 def export_workbench(
     bundle_dirs: dict[str, str], out_path: str, source: Path | None = None,
+    catalog: Path | None = None,
 ) -> dict:
     """Export saved draws and linked data without initiating an inference chain."""
     if not 1 <= len(bundle_dirs) <= _MAX_MODELS:
         raise ValueError("workbench requires one to eight saved bundles")
+    if catalog is not None and source is None:
+        raise ValueError("catalog comparison requires the pinned lexical source")
     bundles = {}
+    context = None
     first = None
     calendar_epoch = None
     for name, directory in bundle_dirs.items():
@@ -98,6 +104,8 @@ def export_workbench(
             raise ValueError("bundle requires replayable model and evidence context")
         if first is None:
             first = bundle
+            if catalog is not None:
+                context = build_observed_context(bundle, source, catalog)
             calendar_epoch = bundle.context.get(
                 "calendar_epoch", 2000 if bundle.dataset_name == "iecor" else None,
             )
@@ -111,6 +119,8 @@ def export_workbench(
         ):
             raise ValueError("workbench model bundles must share the same study observations")
 
+        if context is not None:
+            record_taxonomy_frequencies(context["taxonomy"], name, bundle)
         retained = _retained_subset(bundle)
         diagnostic = run_diagnose(directory)
         roots, clades = _clade_locations(bundle, retained)
@@ -179,10 +189,20 @@ def export_workbench(
         "bundles": bundles, "modernPoints": modern_points,
         "attestations": attestations, "matrix": matrix,
     }
+    if context is not None:
+        payload.update(context)
+        geography = next((name for name, bundle in bundles.items() if bundle["rootLocations"]), None)
+        if geography is not None:
+            payload["tour"].append({
+                "id": "geography", "title": "Assess ancestral location modes",
+                "body": "Compare the location draws from each chain. Separate clusters can reflect different trees or incomplete mixing. Interpret them alongside the chain diagnostics.",
+                "model": geography, "links": [],
+            })
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, allow_nan=False), encoding="utf-8")
     return {
         "out": str(out), "models": list(bundles), "modern_points": len(modern_points),
-        "attestations": len(attestations), "matrix_columns": len(matrix["columns"]),
+        "attestations": len(attestations), "matrix_columns": len(payload["matrix"]["columns"]),
+        "tour_steps": len(payload.get("tour", [])), "taxonomy_groups": len(payload.get("taxonomy", [])),
     }
