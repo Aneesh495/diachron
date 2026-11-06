@@ -254,3 +254,27 @@ def test_height_resampled_spr_targets_uniform_four_tip_time_volume():
     for clades, count in counts.items():
         volume = 1.0 if all(mask.bit_count() == 2 for mask in clades) else .5
         assert abs(count / draws - volume / 9) < .012
+
+
+def test_attachment_resampling_corrects_nonuniform_proposal_to_continuous_target():
+    from collections import Counter
+
+    from diachron.infer.attachment import resample_attachment
+    from diachron.models.constraints import clade_masks
+    from diachron.models.tree import PhyloTree
+
+    tree = PhyloTree([4, 4, 5, 5, 6, 6, -1], [0, 0, 0, 0, .3, .7, 1], [0, 1, 2, 3, -1, -1, -1])
+    distances = np.array([[0, .1, .6, .7], [.1, 0, .4, .5], [.6, .4, 0, .2], [.7, .5, .2, 0]])
+    rng = _core.PyRng(8552)
+    draws = 40000
+    counts = Counter()
+    for iteration in range(draws + 2000):
+        tree, log_target = resample_attachment(tree, 0.0, lambda _: 0.0, distances, rng)
+        assert log_target == 0.0
+        assert all(tree.heights[p] > tree.heights[n] for n, p in enumerate(tree.parent) if p >= 0)
+        if iteration >= 2000:
+            counts[frozenset(clade_masks(tree) - {15})] += 1
+    assert len(counts) == 15
+    for clades, count in counts.items():
+        volume = 1.0 if all(mask.bit_count() == 2 for mask in clades) else .5
+        assert abs(count / draws - volume / 9) < .012

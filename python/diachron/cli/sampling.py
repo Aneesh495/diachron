@@ -54,6 +54,7 @@ def run_sample(
     initialization: str = "distance",
     height_resampled_spr: bool = False,
     temperature_ladder: tuple[float, ...] = (1.0,),
+    attachment_resampling: bool = False,
     geography_error: float | None = None,
     observed_study: str | None = None,
     observed_source: Path | None = None,
@@ -112,6 +113,7 @@ def run_sample(
         initialization=initialization,
         height_resampled_spr=height_resampled_spr,
         temperature_ladder=temperature_ladder,
+        attachment_resampling=attachment_resampling,
     )
     bundle = campaign_bundle(chains, study, config, source_commit=source_commit())
     if observed_study:
@@ -131,6 +133,7 @@ def run_sample(
         "workers": min(n_chains, jobs),
         "initialization": initialization,
         "height_resampled_spr": height_resampled_spr,
+        "attachment_resampling": attachment_resampling,
         "inverse_temperatures": list(temperature_ladder),
         "warmup": warmup,
         "iterations": iterations,
