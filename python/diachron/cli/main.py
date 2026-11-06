@@ -498,6 +498,23 @@ def cmd_inspect_attestation(args) -> int:
     return 0
 
 
+def cmd_compare_scenarios(args) -> int:
+    from ..registry.compare import compare_scenarios
+
+    try:
+        bundles = {}
+        for item in args.bundle:
+            alias, separator, directory = item.partition("=")
+            if not separator or not alias or not directory or alias in bundles:
+                raise ValueError("supply distinct bundles as ALIAS=PATH")
+            bundles[alias] = Path(directory)
+        _print(compare_scenarios(args.plan, bundles))
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="diachron", description="Diachron research CLI")
     p.add_argument("--version", action="version", version=f"diachron {__version__}")
@@ -640,6 +657,11 @@ def build_parser() -> argparse.ArgumentParser:
     spatial = sub.add_parser("spatial-study", help="compare spatial models on known trees and held-out regions")
     spatial.add_argument("--out", required=True, type=Path)
     spatial.set_defaults(func=cmd_spatial_study)
+
+    scenarios = sub.add_parser("compare-scenarios", help="count declared events across saved posterior bundles")
+    scenarios.add_argument("--plan", required=True, type=Path)
+    scenarios.add_argument("--bundle", action="append", required=True, help="model ALIAS=PATH")
+    scenarios.set_defaults(func=cmd_compare_scenarios)
 
     mp = sub.add_parser("demo")
     mp.add_argument("--out", default="runs/demo")
