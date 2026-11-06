@@ -102,3 +102,20 @@ retained steps after 1000 warmup steps. The predeclared maximum frequency
 deviation is 0.01 and the log-posterior tolerance is 1e-9. Passing this audit
 validates the composed conditional targets. Continuous proposal ratios,
 checkpoint recovery and full-data mixing require their separate checks.
+
+## Resampled attachment age
+
+The optional native SPR move prunes the same kind of child as fixed-height
+SPR. It suppresses the binary parent. Each backbone edge with enough time
+above the detached child is eligible. The proposal chooses an edge uniformly
+and samples the reattached parent's age uniformly between the oldest child
+and the edge's upper endpoint. The original edge remains eligible.
+
+Detaching the same child after the move yields the same backbone. The number
+of prunable children and the eligible edge set agree in reverse. If the old
+and new age spans are w and w', the age density ratio is w'/w. The accepted
+proposal contributes log(w') minus log(w). A four-tip test fixes the root
+and samples uniformly over the valid internal heights. Each balanced topology
+has a square of height volume. Each pectinate topology has half a square.
+Sampled frequencies meet the declared tolerance for all fifteen labeled
+rooted topologies.

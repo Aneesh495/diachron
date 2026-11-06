@@ -44,6 +44,7 @@ class ChainConfig:
     thin: int = 10
     target_accept: float = 0.3
     initialization: str = "random"
+    height_resampled_spr: bool = False
 
 
 @dataclass
@@ -128,6 +129,8 @@ class Chain:
         )
         if self.model.tip_dates:
             move_names += ("tip_date",)
+        if self.config.height_resampled_spr:
+            move_names += ("spr_with_height",)
         move_kind = self.rng.below(len(move_names))
         move_name = move_names[move_kind]
         self.move_proposals[move_name] = self.move_proposals.get(move_name, 0) + 1
@@ -224,7 +227,7 @@ class Chain:
                     accepted = True
                 else:
                     self.tree.heights[root] = old
-        elif move_kind == 9:  # additive dated-tip move
+        elif move_name == "tip_date":
             taxon = sorted(self.model.tip_dates)[self.rng.below(len(self.model.tip_dates))]
             node = self.tree.taxon.index(taxon)
             date = self.model.tip_dates[taxon]
@@ -241,7 +244,9 @@ class Chain:
         else:  # topology: NNI or SPR
             parent_snap = list(self.tree.parent)
             height_snap = list(self.tree.heights)
-            if self.rng.uniform() < 0.5:
+            if move_name == "spr_with_height":
+                res = self.moves.spr(self.tree, self.rng, resample_height=True)
+            elif self.rng.uniform() < 0.5:
                 res = self.moves.nni(self.tree, self.rng)
             else:
                 res = self.moves.spr(self.tree, self.rng)

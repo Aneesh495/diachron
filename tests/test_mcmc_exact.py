@@ -224,3 +224,33 @@ def test_rate_clock_move_targets_analytic_conditional_lognormal():
     assert abs(np.var(logs) - expected_variance) < 0.02
     assert state[0] * state[2] == pytest.approx(effective_gain, rel=1e-12)
     assert state[1] * state[2] == pytest.approx(effective_loss, rel=1e-12)
+
+
+def test_height_resampled_spr_targets_uniform_four_tip_time_volume():
+    """Balanced trees have twice the valid age volume of pectinate trees."""
+    from collections import Counter
+
+    from diachron.infer.moves import MoveSet
+    from diachron.models.constraints import clade_masks
+    from diachron.models.tree import PhyloTree
+
+    tree = PhyloTree([4, 4, 5, 5, 6, 6, -1], [0, 0, 0, 0, .3, .7, 1], [0, 1, 2, 3, -1, -1, -1])
+    rng = _core.PyRng(8541)
+    moves = MoveSet()
+    draws = 60000
+    counts = Counter()
+    for index in range(draws + 2000):
+        proposed = tree.copy()
+        move = moves.spr(proposed, rng, resample_height=True)
+        if move.valid and math.log(max(rng.uniform(), 1e-300)) < move.log_hastings:
+            assert all(proposed.heights[p] > proposed.heights[n] for n, p in enumerate(proposed.parent) if p >= 0)
+            tree = proposed
+        if index >= 2000:
+            counts[frozenset(clade_masks(tree) - {15})] += 1
+    # For each of three balanced topologies the two internal heights fill a
+    # unit square. Each of twelve pectinate topologies occupies half a square.
+    # The internal node indexing multiplicity is the same for both shapes.
+    assert len(counts) == 15
+    for clades, count in counts.items():
+        volume = 1.0 if all(mask.bit_count() == 2 for mask in clades) else .5
+        assert abs(count / draws - volume / 9) < .012

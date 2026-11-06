@@ -174,6 +174,77 @@ pub fn nni(state: &mut State, rng: &mut Rng) -> Proposal {
     Proposal { log_hastings: 0.0, valid: true }
 }
 
+/// Detach a child, suppress its binary parent, and choose an eligible
+/// backbone edge. The attachment age is uniform within the edge, above the
+/// child being moved. The backbone and eligible edge set are invariant on
+/// reversal, so only the ratio of age densities remains.
+pub fn spr_with_height(tree: &mut Tree, rng: &mut Rng) -> Proposal {
+    let prunable: Vec<_> = tree.nodes.iter().enumerate().filter_map(|(child, node)| {
+        let parent = node.parent?;
+        let grandparent = tree.nodes[parent].parent?;
+        (tree.nodes[parent].children.len() == 2).then_some((child, parent, grandparent))
+    }).collect();
+    if prunable.is_empty() {
+        return Proposal::reject();
+    }
+    let (child, parent, grandparent) = prunable[rng.next_below(prunable.len())];
+    let Some(&sibling) = tree.nodes[parent].children.iter().find(|&&node| node != child) else {
+        return Proposal::reject();
+    };
+    let child_age = tree.nodes[child].height;
+    let old_age = tree.nodes[parent].height;
+    let old_lower = child_age.max(tree.nodes[sibling].height);
+    let old_upper = tree.nodes[grandparent].height;
+    if !(old_lower < old_age && old_age < old_upper) {
+        return Proposal::reject();
+    }
+
+    let mut removed = vec![false; tree.nodes.len()];
+    removed[parent] = true;
+    let mut stack = vec![child];
+    while let Some(node) = stack.pop() {
+        removed[node] = true;
+        stack.extend(tree.nodes[node].children.iter().copied());
+    }
+    let mut eligible = Vec::new();
+    for (target, node) in tree.nodes.iter().enumerate() {
+        if removed[target] {
+            continue;
+        }
+        let Some(ancestor) = node.parent else { continue; };
+        let destination_parent = if target == sibling { grandparent } else { ancestor };
+        let lower = node.height.max(child_age);
+        let upper = tree.nodes[destination_parent].height;
+        if lower < upper {
+            eligible.push((target, destination_parent, lower, upper));
+        }
+    }
+    if eligible.is_empty() {
+        return Proposal::reject();
+    }
+    let (target, destination_parent, lower, upper) = eligible[rng.next_below(eligible.len())];
+    let span = upper - lower;
+    let proposed_age = lower + rng.next_f64() * span;
+    if !(lower < proposed_age && proposed_age < upper) {
+        return Proposal::reject();
+    }
+
+    tree.nodes[sibling].parent = Some(grandparent);
+    tree.nodes[parent].parent = Some(destination_parent);
+    tree.nodes[target].parent = Some(parent);
+    tree.nodes[parent].height = proposed_age;
+    for node in &mut tree.nodes {
+        node.children.clear();
+    }
+    for child in 0..tree.nodes.len() {
+        if let Some(parent) = tree.nodes[child].parent {
+            tree.nodes[parent].children.push(child);
+        }
+    }
+    tree.set_branch_lengths_from_heights();
+    Proposal { log_hastings: span.ln() - (old_upper - old_lower).ln(), valid: true }
+}
+
 /// Accept or reject a proposed state against the current one. Returns true if
 /// accepted. `log_post_old` and `log_post_new` are unnormalized log posteriors;
 /// `log_hastings` is the move's Hastings term.

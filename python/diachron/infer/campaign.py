@@ -221,7 +221,7 @@ def build_model(study: StudyData, config: ModelConfig) -> PosteriorModel:
 def _run_chain(
     c: int, *, model: PosteriorModel, tip_labels: list[str], warmup: int,
     iterations: int, thin: int, root_age_init: float, base_seed: int,
-    checkpoint_dir: str | None, resume: bool, initialization: str,
+    checkpoint_dir: str | None, resume: bool, initialization: str, height_resampled_spr: bool,
 ) -> Chain:
     rng = np.random.default_rng(base_seed + c)
     dates = {taxon: date.center() for taxon, date in model.tip_dates.items()}
@@ -235,7 +235,7 @@ def _run_chain(
         start = random_starting_tree(tip_labels, root_age_init, rng, dates)
     cfg = ChainConfig(
         seed=base_seed + 7919 * (c + 1), warmup=warmup, iterations=iterations, thin=thin,
-        initialization=initialization,
+        initialization=initialization, height_resampled_spr=height_resampled_spr,
     )
     state = ChainState(
         gain=0.0005, loss=0.001, clock_rate=1.0,
@@ -289,6 +289,7 @@ def run_campaign(
     resume: bool = False,
     jobs: int = 1,
     initialization: str = "distance",
+    height_resampled_spr: bool = False,
 ) -> list[Chain]:
     """Run independent chains in a bounded pool, returning fixed index order."""
     if initialization not in {"random", "distance"}:
@@ -302,7 +303,7 @@ def run_campaign(
         _run_chain, model=model, tip_labels=study.tip_labels, warmup=warmup,
         iterations=iterations, thin=thin, root_age_init=root_age_init,
         base_seed=base_seed, checkpoint_dir=checkpoint_dir, resume=resume,
-        initialization=initialization,
+        initialization=initialization, height_resampled_spr=height_resampled_spr,
     )
     if jobs == 1:
         chains = [worker(c) for c in range(n_chains)]
