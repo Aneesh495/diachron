@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -105,16 +106,28 @@ def age_prior_gradient(tree: PhyloTree, pop_size: float, dates: dict[int, TipDat
     return gradient
 
 
+def leapfrog(
+    coordinates: np.ndarray, momentum: np.ndarray, widths: np.ndarray,
+    force: Callable[[np.ndarray], np.ndarray], steps: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Reversible momentum kicks and coordinate drifts in a fixed metric."""
+    momentum = momentum + .5 * force(coordinates)
+    for index in range(steps):
+        coordinates = coordinates + widths * momentum
+        momentum = momentum + (.5 if index == steps - 1 else 1.0) * force(coordinates)
+    return coordinates, -momentum
+
+
 def propose_time_block(
     model: PosteriorModel, tree: PhyloTree, state: ChainState, inverse_temperature: float,
-    step: float, rng,
+    step: float, rng, *, steps: int = 1,
 ) -> tuple[PhyloTree, float, float] | None:
-    """Return the Gaussian proposal with its reverse density and chart Jacobian."""
+    """Return a corrected Gaussian or Hamiltonian proposal in the time chart."""
     dates = model.tip_dates if model.config.use_calibration else {}
     chart = TimeChart(tree, dates)
     widths = step * chart.widths
 
-    def drift(candidate: PhyloTree, clock: float, coordinates: np.ndarray, anchors) -> np.ndarray:
+    def gradient_at(candidate: PhyloTree, clock: float, coordinates: np.ndarray, anchors) -> np.ndarray:
         branches = np.asarray(model.character_branch_gradient(
             candidate, state.gain, state.loss, clock, state.borrow_rates, state.clock_multipliers,
         )) * inverse_temperature
@@ -128,15 +141,27 @@ def propose_time_block(
                         - coordinates[-1] / model.config.clock_prior_log_sd ** 2)
         if not np.isfinite(gradient).all():
             raise ValueError("nonfinite time proposal force")
-        return np.clip(.5 * widths ** 2 * gradient, -widths, widths)
+        return gradient
+
+    def drift(candidate: PhyloTree, clock: float, coordinates: np.ndarray, anchors) -> np.ndarray:
+        return np.clip(.5 * widths ** 2 * gradient_at(candidate, clock, coordinates, anchors), -widths, widths)
+
+    def force(coordinates: np.ndarray) -> np.ndarray:
+        candidate, clock, anchors = chart.decode(coordinates)
+        return np.clip(widths * gradient_at(candidate, clock, coordinates, anchors), -2., 2.)
 
     try:
         current, anchors = chart.encode(state.clock_rate)
-        forward = drift(tree, state.clock_rate, current, anchors)
-        noise = np.array([rng.normal() for _ in widths])
-        proposed = current + forward + widths * noise
-        candidate, clock, new_anchors = chart.decode(proposed)
-        reverse = (current - proposed - drift(candidate, clock, proposed, new_anchors)) / widths
+        if steps == 1:
+            forward = drift(tree, state.clock_rate, current, anchors)
+            noise = np.array([rng.normal() for _ in widths])
+            proposed = current + forward + widths * noise
+            candidate, clock, new_anchors = chart.decode(proposed)
+            reverse = (current - proposed - drift(candidate, clock, proposed, new_anchors)) / widths
+        else:
+            noise = np.array([rng.normal() for _ in widths])
+            proposed, reverse = leapfrog(current, noise, widths, force, steps)
+            candidate, clock, _ = chart.decode(proposed)
     except (ValueError, OverflowError):
         return None
     log_ratio = .5 * (noise @ noise - reverse @ reverse)

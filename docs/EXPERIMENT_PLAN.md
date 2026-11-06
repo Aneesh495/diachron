@@ -352,3 +352,13 @@ importance correction still apply. The same backbone, detached subtree and
 fixed lexical data determine the weights in both directions. Compare with
 the earlier root-stem control at identical seeds and budgets. Run a second
 arm with the joint time and clock block enabled and report it separately.
+
+## Hamiltonian time-block pilot
+
+Repeat the joint time and clock diagnostics with four leapfrog steps per
+time block. Keep the datasets, starts, seeds, sampling budgets and clade
+checks fixed. Compare with the earlier one-step proposal on both fixed
+anchors and the free topology. The leapfrog force uses the same lexical and
+prior derivatives. Full posterior scores, the chart determinant difference,
+and the momentum density change enter acceptance. Report acceptance,
+root diagnostics and elapsed time for each arm.

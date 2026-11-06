@@ -19,7 +19,7 @@ from diachron.util.gitmeta import source_commit, working_tree_clean
 from diachron.verify.verifier import _model, verify_evidence
 
 
-def fit(index, *, model, anchor, labels, destination, calendar_scale, time_block):
+def fit(index, *, model, anchor, labels, destination, calendar_scale, time_block, time_block_steps):
     tree = PhyloTree(list(anchor["parent"]), list(anchor["heights"]), list(anchor["taxon"]), dict(enumerate(labels)))
     children = tree.children()
     base = max(tree.heights[child] for child in children[tree.root])
@@ -28,14 +28,15 @@ def fit(index, *, model, anchor, labels, destination, calendar_scale, time_block
                        anchor["clock_rate"] * (1.4, 1.1, .9, .7)[index])
     config = ChainConfig(seed=84000 + 7919 * index, warmup=1000, iterations=3000, thin=10,
                          initialization="saved-conditioned-tree", calendar_scale=calendar_scale,
-                         time_block=time_block)
+                         time_block=time_block, time_block_steps=time_block_steps)
     chain = Chain(model, tree, state, config)
     path = destination / f"chain-{index}.json"
     chain.run(checkpoint_path=path, checkpoint_every=1000)
     return str(path)
 
 
-def run(directory: Path, destination: Path, expected: str, calendar_scale: bool = False, time_block: bool = False):
+def run(directory: Path, destination: Path, expected: str, calendar_scale: bool = False,
+        time_block: bool = False, time_block_steps: int = 1):
     if not working_tree_clean():
         raise ValueError("conditional-time pilot requires a clean source checkout")
     bundle, manifest = _load_bundle(directory, expected)
@@ -45,7 +46,7 @@ def run(directory: Path, destination: Path, expected: str, calendar_scale: bool 
     commit = source_commit()
     report = {"source_commit": commit, "anchor_source_commit": expected,
               "anchor_draw_digest": manifest["draw_digest"], "calendar_scale": calendar_scale,
-              "time_block": time_block, "topologies": {}}
+              "time_block": time_block, "time_block_steps": time_block_steps, "topologies": {}}
     for chain_id in (0, 3):
         started = time.monotonic()
         label = f"anchor-chain-{chain_id}"
@@ -59,7 +60,7 @@ def run(directory: Path, destination: Path, expected: str, calendar_scale: bool 
         raw_model = {**bundle.context["model"], "required_clades": constraints}
         model = _model(raw_model)
         worker = partial(fit, model=model, anchor=anchor, labels=bundle.tip_labels, destination=out,
-                         calendar_scale=calendar_scale, time_block=time_block)
+                         calendar_scale=calendar_scale, time_block=time_block, time_block_steps=time_block_steps)
         with ProcessPoolExecutor(max_workers=4, mp_context=multiprocessing.get_context("spawn")) as pool:
             paths = list(pool.map(worker, range(4)))
         chains = [Chain.resume(model, path) for path in paths]
@@ -96,5 +97,7 @@ if __name__ == "__main__":
     parser.add_argument("expected_commit")
     parser.add_argument("--calendar-scale", action="store_true")
     parser.add_argument("--time-block", action="store_true")
+    parser.add_argument("--time-block-steps", type=int, default=1)
     arguments = parser.parse_args()
-    run(arguments.bundle, arguments.output, arguments.expected_commit, arguments.calendar_scale, arguments.time_block)
+    run(arguments.bundle, arguments.output, arguments.expected_commit, arguments.calendar_scale,
+        arguments.time_block, arguments.time_block_steps)

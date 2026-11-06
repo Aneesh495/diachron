@@ -33,18 +33,18 @@ def _build_model():
     return model, truth
 
 
-@pytest.mark.parametrize("attachment_resampling,root_stem,calendar_scale,time_block", [
-    (False, False, False, False), (True, False, False, False), (True, True, False, False),
-    (False, False, True, False), (False, False, False, True),
+@pytest.mark.parametrize("attachment_resampling,root_stem,calendar_scale,time_steps", [
+    (False, False, False, 0), (True, False, False, 0), (True, True, False, 0),
+    (False, False, True, 0), (False, False, False, 1), (False, False, False, 4),
 ])
-def test_exact_resume(tmp_path, attachment_resampling, root_stem, calendar_scale, time_block):
+def test_exact_resume(tmp_path, attachment_resampling, root_stem, calendar_scale, time_steps):
     model, truth = _build_model()
     rng = np.random.default_rng(0)
     start = random_starting_tree(truth.tip_language_ids, 6000.0, rng)
 
     cfg = ChainConfig(seed=4321, warmup=200, iterations=400, thin=10,
                       attachment_resampling=attachment_resampling, attachment_root_stem=root_stem,
-                      calendar_scale=calendar_scale, time_block=time_block)
+                      calendar_scale=calendar_scale, time_block=bool(time_steps), time_block_steps=time_steps or 1)
 
     full = Chain(model, start.copy(),
                  ChainState(gain=0.0005, loss=0.001, clock_rate=1.0), cfg)
@@ -68,7 +68,7 @@ def test_exact_resume(tmp_path, attachment_resampling, root_stem, calendar_scale
         assert resumed.move_accepts["attachment_resampling"] > 0
     if calendar_scale:
         assert resumed.move_accepts["calendar_scale"] > 0
-    if time_block:
+    if time_steps:
         assert resumed.move_accepts["time_block"] > 0
         assert full.time_block_step == resumed.time_block_step
     assert len(full.draws) == len(resumed.draws)

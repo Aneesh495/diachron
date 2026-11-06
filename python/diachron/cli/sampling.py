@@ -59,6 +59,7 @@ def run_sample(
     attachment_parsimony: bool = False,
     calendar_scale: bool = False,
     time_block: bool = False,
+    time_block_steps: int = 1,
     geography_error: float | None = None,
     observed_study: str | None = None,
     observed_source: Path | None = None,
@@ -122,6 +123,7 @@ def run_sample(
         attachment_parsimony=attachment_parsimony,
         calendar_scale=calendar_scale,
         time_block=time_block,
+        time_block_steps=time_block_steps,
     )
     bundle = campaign_bundle(chains, study, config, source_commit=source_commit())
     if observed_study:
@@ -146,6 +148,7 @@ def run_sample(
         "attachment_parsimony": attachment_parsimony,
         "calendar_scale": calendar_scale,
         "time_block": time_block,
+        "time_block_steps": time_block_steps,
         "inverse_temperatures": list(temperature_ladder),
         "warmup": warmup,
         "iterations": iterations,
