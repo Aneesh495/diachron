@@ -14,7 +14,7 @@ import os
 from ..util.gitmeta import source_commit, working_tree_clean
 
 
-def run_release() -> dict:
+def run_release(evidence_dir: str | None = None) -> dict:
     checks = {}
     try:
         from diachron import _core  # noqa: F401
@@ -41,6 +41,18 @@ def run_release() -> dict:
     checks["source_package_checks_passed"] = all(
         value for value in checks.values() if isinstance(value, bool)
     )
-    checks["ready"] = False
-    checks["release_blocker"] = "No independently verified full acceptance bundle."
+    full_verified = False
+    if evidence_dir is not None:
+        from pathlib import Path
+        from ..verify.verifier import _read_json, verify_evidence
+
+        try:
+            record = _read_json(Path(evidence_dir) / "ACCEPTANCE.json", 4 * 1024 * 1024)
+            if record["profile"] == "full" and record["full_profile_executed"] and record["ready"]:
+                full_verified = verify_evidence(evidence_dir, expected_commit=checks["source_commit"])["ok"]
+        except (OSError, KeyError, TypeError, ValueError):
+            full_verified = False
+    checks["ready"] = full_verified and checks["source_package_checks_passed"]
+    if not checks["ready"]:
+        checks["release_blocker"] = "A verified full execution is required for release."
     return checks

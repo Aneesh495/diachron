@@ -86,7 +86,7 @@ posterior-predictive:
 
 .PHONY: sensitivity
 sensitivity:
-	$(PY) -m diachron.cli.main sensitivity
+	$(PY) -m diachron.cli.main sensitivity $(SENSITIVITY_ARGS)
 
 .PHONY: recovery
 recovery:
@@ -94,7 +94,7 @@ recovery:
 
 .PHONY: predict
 predict:
-	$(PY) -m diachron.cli.main predict
+	$(PY) -m diachron.cli.main predict $(PREDICT_ARGS)
 
 .PHONY: thesis
 thesis:
@@ -118,7 +118,7 @@ docs:
 
 .PHONY: acceptance
 acceptance:
-	$(PY) -m diachron.cli.main acceptance --run-id $(RUN_ID) --profile $(PROFILE)
+	$(PY) -m diachron.cli.main acceptance --run-id $(RUN_ID) --profile $(PROFILE) $(ACCEPTANCE_ARGS)
 
 .PHONY: verify
 verify:
@@ -126,7 +126,8 @@ verify:
 
 .PHONY: release
 release:
-	$(PY) -m diachron.cli.main release
+	$(PY) -m diachron.cli.main release $(RELEASE_ARGS)
 
+.PHONY: sampler-check
 sampler-check:
 	.venv/bin/diachron sampler-check

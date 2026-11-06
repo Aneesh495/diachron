@@ -236,6 +236,16 @@ def verify_evidence(
         return {"ok": False, "reason": "EDH source verification requires the lexical inputs", "checks": []}
     if probe_draws < 1:
         return {"ok": False, "reason": "probe budget must be positive", "checks": []}
+    acceptance_path = root / "ACCEPTANCE.json"
+    if acceptance_path.is_file():
+        try:
+            acceptance = _read_json(acceptance_path, 4 * 1024 * 1024)
+            if acceptance["profile"] == "full":
+                from .full import verify_full_acceptance
+
+                return verify_full_acceptance(root, expected_commit)
+        except (OSError, KeyError, TypeError, ValueError, subprocess.SubprocessError) as exc:
+            return {"ok": False, "checks": [], "reason": str(exc)}
     bundle_dirs = sorted(path.parent for path in root.rglob("bundle.json"))
     if not bundle_dirs:
         return {"ok": False, "reason": "no saved posterior bundles found", "checks": []}
@@ -317,12 +327,4 @@ def verify_evidence(
         except (OSError, KeyError, IndexError, TypeError, ValueError, subprocess.SubprocessError) as exc:
             record("inference:artifact_error", False, str(exc))
 
-    acceptance_path = root / "ACCEPTANCE.json"
-    if acceptance_path.is_file():
-        try:
-            acceptance = _read_json(acceptance_path, 1024 * 1024)
-            if acceptance["profile"] == "full":
-                record("full_acceptance", False, "the complete campaign verifier is unavailable")
-        except (OSError, KeyError, TypeError, ValueError) as exc:
-            record("acceptance_manifest", False, str(exc))
     return {"ok": all(check["ok"] for check in checks), "n_bundles": len(bundle_dirs), "checks": checks}

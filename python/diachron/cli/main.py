@@ -378,7 +378,8 @@ def cmd_docs(args) -> int:
 def cmd_acceptance(args) -> int:
     from .acceptance import run_acceptance
 
-    return run_acceptance(run_id=args.run_id, profile=args.profile)
+    return run_acceptance(run_id=args.run_id, profile=args.profile, inputs=args.inputs,
+                          evidence_plan=args.evidence_plan, jobs=args.jobs, release_policy=args.release_policy)
 
 
 def cmd_verify(args) -> int:
@@ -419,8 +420,9 @@ def cmd_restore_evidence(args) -> int:
 def cmd_release(args) -> int:
     from .release import run_release
 
-    _print(run_release())
-    return 0
+    result = run_release(args.evidence)
+    _print(result)
+    return 0 if result["ready"] else 1
 
 
 def cmd_export_workbench(args) -> int:
@@ -592,6 +594,10 @@ def build_parser() -> argparse.ArgumentParser:
     acp = sub.add_parser("acceptance")
     acp.add_argument("--run-id", dest="run_id", required=True)
     acp.add_argument("--profile", choices=("cpu", "full"), default="full")
+    acp.add_argument("--inputs", type=Path, help="directory of pinned observed inputs")
+    acp.add_argument("--evidence-plan", type=Path, help="audit existing executions without starting fits")
+    acp.add_argument("--jobs", type=int, default=4)
+    acp.add_argument("--release-policy", type=Path)
     acp.set_defaults(func=cmd_acceptance)
 
     vp = sub.add_parser("verify")
@@ -619,7 +625,9 @@ def build_parser() -> argparse.ArgumentParser:
     ra.add_argument("--sha256", required=True, help="trusted compressed archive SHA-256")
     ra.set_defaults(func=cmd_restore_evidence)
 
-    sub.add_parser("release").set_defaults(func=cmd_release)
+    rel = sub.add_parser("release")
+    rel.add_argument("--evidence")
+    rel.set_defaults(func=cmd_release)
 
     isp = sub.add_parser("inspect-attestation")
     isp.add_argument("--bundle", required=True)
