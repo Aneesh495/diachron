@@ -304,3 +304,15 @@ trajectory stays on the prescribed topology and replays from the saved
 conditional model. Report scalar Rhat, ESS and root means separately for the
 two topologies. This diagnostic isolates within-topology time mixing and
 keeps the full topology convergence criteria in force for acceptance.
+
+## Coupled calendar-scale pilot
+
+Repeat the fixed-topology diagnostic with the same anchors, initial states,
+seeds and budgets. Enable one extra move that scales all inferred calendar
+ages together and applies reciprocal changes to the clock and, where active,
+the geographic diffusion rate. Evaluate the resulting within-topology Rhat,
+bulk and tail ESS, and count the proposals and accepts. Also run the free dated
+topology pilot with the same four seeds, distance initialization and 1000/3000/10
+budget used in the earlier dated control. Record maximum between-chain clade
+frequency difference as well as root diagnostics. These pilots are diagnostics.
+The full budgets and scientific thresholds still apply.

@@ -56,6 +56,7 @@ def run_sample(
     temperature_ladder: tuple[float, ...] = (1.0,),
     attachment_resampling: bool = False,
     attachment_root_stem: bool = False,
+    calendar_scale: bool = False,
     geography_error: float | None = None,
     observed_study: str | None = None,
     observed_source: Path | None = None,
@@ -116,6 +117,7 @@ def run_sample(
         temperature_ladder=temperature_ladder,
         attachment_resampling=attachment_resampling,
         attachment_root_stem=attachment_root_stem,
+        calendar_scale=calendar_scale,
     )
     bundle = campaign_bundle(chains, study, config, source_commit=source_commit())
     if observed_study:
@@ -137,6 +139,7 @@ def run_sample(
         "height_resampled_spr": height_resampled_spr,
         "attachment_resampling": attachment_resampling,
         "attachment_root_stem": attachment_root_stem,
+        "calendar_scale": calendar_scale,
         "inverse_temperatures": list(temperature_ladder),
         "warmup": warmup,
         "iterations": iterations,
