@@ -53,6 +53,7 @@ def run_sample(
     jobs: int = 1,
     initialization: str = "distance",
     height_resampled_spr: bool = False,
+    temperature_ladder: tuple[float, ...] = (1.0,),
     geography_error: float | None = None,
     observed_study: str | None = None,
     observed_source: Path | None = None,
@@ -110,6 +111,7 @@ def run_sample(
         jobs=jobs,
         initialization=initialization,
         height_resampled_spr=height_resampled_spr,
+        temperature_ladder=temperature_ladder,
     )
     bundle = campaign_bundle(chains, study, config, source_commit=source_commit())
     if observed_study:
@@ -129,6 +131,7 @@ def run_sample(
         "workers": min(n_chains, jobs),
         "initialization": initialization,
         "height_resampled_spr": height_resampled_spr,
+        "inverse_temperatures": list(temperature_ladder),
         "warmup": warmup,
         "iterations": iterations,
         "draws_per_chain": bundle.draws_per_chain,
@@ -167,6 +170,8 @@ def run_diagnose(bundle_dir: str) -> dict:
     ])
     out["between_chain_clades"] = agreement
     out["move_statistics"] = bundle.context.get("move_statistics")
+    if "replica_exchange" in bundle.context:
+        out["replica_exchange"] = bundle.context["replica_exchange"]
 
     out["clade_agreement"] = [
         {"chains": [a, b], "score": round(

@@ -45,6 +45,7 @@ class ChainConfig:
     target_accept: float = 0.3
     initialization: str = "random"
     height_resampled_spr: bool = False
+    inverse_temperature: float = 1.0
 
 
 @dataclass
@@ -98,6 +99,7 @@ class Chain:
         self._proposals = 0
         self.move_proposals: dict[str, int] = {}
         self.move_accepts: dict[str, int] = {}
+        self.exchange_statistics: dict | None = None
         self._log_post = self._eval()
         if not math.isfinite(self._log_post):
             raise ValueError("chain initial state has nonfinite posterior")
@@ -111,6 +113,7 @@ class Chain:
             self.state.geo_sigma2,
             borrow_rates=self.state.borrow_rates,
             clock_multipliers=self.state.clock_multipliers,
+            inverse_temperature=self.config.inverse_temperature,
         )
 
     def _accept(self, log_post_new: float, log_hastings: float) -> bool:
@@ -375,8 +378,8 @@ class Chain:
         return self._accepts / max(self._proposals, 1)
 
     # --- checkpointing -----------------------------------------------------
-    def checkpoint(self, path: str) -> None:
-        payload = {
+    def checkpoint_payload(self) -> dict:
+        return {
             "schema": CHECKPOINT_SCHEMA,
             "source_commit": source_commit(),
             "model_digest": model_digest(self.model),
@@ -398,24 +401,16 @@ class Chain:
             "config": asdict(self.config),
             "draws": [asdict(d) for d in self.draws],
         }
-        # Atomic write: temp file then rename.
-        d = os.path.dirname(path) or "."
-        os.makedirs(d, exist_ok=True)
-        fd, tmp = tempfile.mkstemp(dir=d, suffix=".tmp")
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                json.dump(payload, f, allow_nan=False)
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(tmp, path)
-        finally:
-            if os.path.exists(tmp):
-                os.unlink(tmp)
+    def checkpoint(self, path: str) -> None:
+        write_checkpoint(path, self.checkpoint_payload())
 
     @classmethod
     def resume(cls, model: PosteriorModel, path: str) -> "Chain":
-        with open(path, encoding="utf-8") as f:
-            payload = json.load(f)
+        with open(path, encoding="utf-8") as stream:
+            return cls.from_checkpoint(model, json.load(stream))
+
+    @classmethod
+    def from_checkpoint(cls, model: PosteriorModel, payload: dict) -> "Chain":
         if payload.get("schema") != CHECKPOINT_SCHEMA:
             raise ValueError("unsupported checkpoint schema")
         if payload.get("source_commit") != source_commit():
@@ -459,6 +454,22 @@ class Chain:
 
     def scalar_trace(self, name: str) -> np.ndarray:
         return np.array([getattr(d, name) for d in self.draws], dtype=float)
+
+
+def write_checkpoint(path: str, payload: dict) -> None:
+    """Persist one complete sampler state with an atomic rename."""
+    directory = os.path.dirname(path) or "."
+    os.makedirs(directory, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(dir=directory, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump(payload, stream, allow_nan=False)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def model_digest(model: PosteriorModel) -> str:

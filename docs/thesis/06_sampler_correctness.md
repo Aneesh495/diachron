@@ -119,3 +119,19 @@ and samples uniformly over the valid internal heights. Each balanced topology
 has a square of height volume. Each pectinate topology has half a square.
 Sampled frequencies meet the declared tolerance for all fifteen labeled
 rooted topologies.
+
+## Lexical replica exchange
+
+For each replica with inverse temperature beta, its target is proportional
+to the lexical likelihood to the power beta times the other posterior factors.
+The temperature-one marginal is the original posterior. The joint target is
+the product across replicas. Swapping two complete states leaves the product
+of all nonlexical factors fixed. With lexical scores L_a and L_b, the log
+exchange ratio is (beta_a - beta_b)(L_b - L_a). Each local transition and each
+adjacent exchange preserves the joint target after warmup.
+
+A finite test computes the entire two-replica joint distribution directly and
+compares its probabilities with sampled frequencies. The production checkpoint
+stores all local RNGs, the exchange RNG, the current walker order, swap counts
+and cold draws in one atomic file. An interrupted run resumes exactly at a
+nonexchange iteration, including all hot states and cold retained iterations.
