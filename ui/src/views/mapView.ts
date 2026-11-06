@@ -237,26 +237,32 @@ export class MapView {
       ["#e6a23c", "attestation (observed)"],
       ["#4a6fa5", locations.length ? sampled : "location draws unavailable"],
     ];
-    items.forEach(([color, label], i) => {
+    const entries = items.map(([color, label], i) => {
       const y = 16 + i * 16;
       const sw = this.svg("rect");
-      sw.setAttribute("x", String(Math.max(4, w - 175)));
       sw.setAttribute("y", String(y - 8));
       sw.setAttribute("width", "10");
       sw.setAttribute("height", "10");
       sw.setAttribute("fill", color);
       this.el.appendChild(sw);
       const txt = this.svg("text");
-      txt.setAttribute("x", String(Math.max(19, w - 160)));
       txt.setAttribute("y", String(y + 1));
       txt.setAttribute("font-size", "9");
       txt.setAttribute("fill", "#333");
       txt.textContent = label;
+      txt.setAttribute("data-map-legend", "");
       this.el.appendChild(txt);
+      return { sw, txt };
     });
+    const textWidth = Math.max(...entries.map(({ txt }) => txt.getComputedTextLength()));
+    const left = Math.max(4, w - textWidth - 21);
+    for (const { sw, txt } of entries) {
+      sw.setAttribute("x", String(left));
+      txt.setAttribute("x", String(left + 15));
+    }
   }
 
-  private svg(tag: string): SVGElement {
+  private svg<K extends keyof SVGElementTagNameMap>(tag: K): SVGElementTagNameMap[K] {
     return document.createElementNS("http://www.w3.org/2000/svg", tag);
   }
 }
