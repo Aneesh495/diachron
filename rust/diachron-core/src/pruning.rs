@@ -225,36 +225,53 @@ fn combine_counts(left: &Counts, right: &Counts) -> Counts {
     combined
 }
 
-fn child_counts(plan: &PruningPlan<'_>, child: usize, state: usize, messages: &[StateCounts]) -> Counts {
+fn child_counts(plan: &PruningPlan<'_>, child: usize, state: usize, message: &StateCounts) -> Counts {
     let mut result = [0.0; COUNT_BUCKETS];
     let transition = &plan.transitions[child];
     for (bucket, probability) in result.iter_mut().enumerate() {
-        *probability = transition.at(state, 0) * messages[child][0][bucket]
-            + transition.at(state, 1) * messages[child][1][bucket];
+        *probability = transition.at(state, 0) * message[0][bucket]
+            + transition.at(state, 1) * message[1][bucket];
     }
     result
 }
 
-fn count_messages(plan: &PruningPlan<'_>, multiplicity: &[usize]) -> Vec<StateCounts> {
-    let mut messages = vec![[[0.0; COUNT_BUCKETS]; 2]; plan.tree.nodes.len()];
-    for &node in &plan.order {
-        let mut mass = [[0.0; COUNT_BUCKETS]; 2];
-        if let Some(taxon) = plan.tree.nodes[node].taxon {
-            let copies = multiplicity[taxon];
-            mass[0][if copies > 0 { ZERO_FLAG } else { 0 }] = 1.0;
-            mass[1][copies.min(2)] = 1.0;
-        } else {
-            mass[0][0] = 1.0;
-            mass[1][0] = 1.0;
-            for &child in &plan.tree.nodes[node].children {
-                for (state, left) in mass.iter_mut().enumerate() {
-                    *left = combine_counts(left, &child_counts(plan, child, state, &messages));
-                }
+fn count_node<'a>(
+    plan: &PruningPlan<'_>, node: usize, multiplicity: &[usize],
+    message_at: impl Fn(usize) -> &'a StateCounts,
+) -> StateCounts {
+    let mut mass = [[0.0; COUNT_BUCKETS]; 2];
+    if let Some(taxon) = plan.tree.nodes[node].taxon {
+        let copies = multiplicity[taxon];
+        mass[0][if copies > 0 { ZERO_FLAG } else { 0 }] = 1.0;
+        mass[1][copies.min(2)] = 1.0;
+    } else {
+        mass[0][0] = 1.0;
+        mass[1][0] = 1.0;
+        for &child in &plan.tree.nodes[node].children {
+            for (state, left) in mass.iter_mut().enumerate() {
+                *left = combine_counts(left, &child_counts(plan, child, state, message_at(child)));
             }
         }
-        messages[node] = mass;
     }
+    mass
+}
+
+fn fill_count_messages(plan: &PruningPlan<'_>, multiplicity: &[usize], messages: &mut [StateCounts]) {
+    for &node in &plan.order {
+        messages[node] = count_node(plan, node, multiplicity, |child| &messages[child]);
+    }
+}
+
+fn count_messages(plan: &PruningPlan<'_>, multiplicity: &[usize]) -> Vec<StateCounts> {
+    let mut messages = vec![[[0.0; COUNT_BUCKETS]; 2]; plan.tree.nodes.len()];
+    fill_count_messages(plan, multiplicity, &mut messages);
     messages
+}
+
+fn root_retention(root: &StateCounts, min_present: usize, prior: &[f64]) -> f64 {
+    root.iter().zip(prior)
+        .map(|(mass, pi)| pi * mass[ZERO_FLAG + min_present..].iter().sum::<f64>())
+        .sum()
 }
 
 /// Probability of the observed-mask retention event, computed directly in the
@@ -263,9 +280,83 @@ fn retained_probability(
     plan: &PruningPlan<'_>, multiplicity: &[usize], min_present: usize, prior: &[f64],
 ) -> f64 {
     let messages = count_messages(plan, multiplicity);
-    messages[plan.tree.root].iter().zip(prior)
-        .map(|(mass, pi)| pi * mass[ZERO_FLAG + min_present..].iter().sum::<f64>())
-        .sum()
+    root_retention(&messages[plan.tree.root], min_present, prior)
+}
+
+struct ContactSelectionPath {
+    affected: Vec<bool>,
+    order: Vec<usize>,
+}
+
+struct ContactSelectionWorkspace {
+    paths: Vec<ContactSelectionPath>,
+    baseline: Vec<StateCounts>,
+    changed: Vec<StateCounts>,
+    retained: Vec<f64>,
+}
+
+impl ContactSelectionWorkspace {
+    fn new(tree: &Tree, order: &[usize], contacts: &[(usize, usize, f64)]) -> Self {
+        let mut tips = vec![0; tree.n_tips()];
+        for (index, node) in tree.nodes.iter().enumerate() {
+            if let Some(taxon) = node.taxon {
+                tips[taxon] = index;
+            }
+        }
+        let paths = contacts.iter().map(|&(donor, recipient, _)| {
+            let mut affected = vec![false; tree.nodes.len()];
+            for tip in [tips[donor], tips[recipient]] {
+                let mut current = Some(tip);
+                while let Some(node) = current {
+                    if affected[node] {
+                        break;
+                    }
+                    affected[node] = true;
+                    current = tree.nodes[node].parent;
+                }
+            }
+            let order = order.iter().copied().filter(|&node| affected[node]).collect();
+            ContactSelectionPath { affected, order }
+        }).collect();
+        let buffer = vec![[[0.0; COUNT_BUCKETS]; 2]; tree.nodes.len()];
+        Self { paths, baseline: buffer.clone(), changed: buffer, retained: vec![0.0; contacts.len() + 1] }
+    }
+
+    fn mixture_mass(
+        &mut self, plans: &[PruningPlan<'_>], contacts: &[(usize, usize, f64)],
+        observed: &[usize], minimum: usize, prior: &[f64],
+    ) -> f64 {
+        let mut multiplicity = observed.to_vec();
+        self.retained.fill(0.0);
+        for plan in plans {
+            let root = plan.tree.root;
+            fill_count_messages(plan, observed, &mut self.baseline);
+            self.retained[0] += root_retention(&self.baseline[root], minimum, prior);
+            for (index, &(donor, recipient, _)) in contacts.iter().enumerate() {
+                if observed[recipient] == 0 {
+                    continue;
+                }
+                multiplicity[donor] += 1;
+                multiplicity[recipient] = 0;
+                let path = &self.paths[index];
+                // Only ancestors of the replaced observations can see a new
+                // count message. Other subtrees keep the original mask mass.
+                for &node in &path.order {
+                    self.changed[node] = count_node(plan, node, &multiplicity, |child| {
+                        if path.affected[child] { &self.changed[child] } else { &self.baseline[child] }
+                    });
+                }
+                self.retained[index + 1] += root_retention(&self.changed[root], minimum, prior);
+                multiplicity[donor] -= 1;
+                multiplicity[recipient] = 1;
+            }
+        }
+        let mut sum = self.retained[0];
+        for (index, &(_, recipient, intensity)) in contacts.iter().enumerate() {
+            sum += intensity * self.retained[if observed[recipient] == 0 { 0 } else { index + 1 }];
+        }
+        sum
+    }
 }
 
 fn choose_weight(weights: &[f64], rng: &mut crate::rng::Rng) -> Option<usize> {
@@ -314,7 +405,7 @@ fn retained_assignment(
         first[0] = 1.0;
         prefix.push(first);
         for (index, &child) in children.iter().enumerate() {
-            prefix.push(combine_counts(&prefix[index], &child_counts(plan, child, state, messages)));
+            prefix.push(combine_counts(&prefix[index], &child_counts(plan, child, state, &messages[child])));
         }
         // Draw the last child's state and counts conditional on the aggregate.
         // Its remaining prefix count becomes the constraint for the preceding child.
@@ -439,6 +530,11 @@ pub fn binary_mixture_scores(
         .iter()
         .map(|rate| PruningPlan::new(tree, model, *rate))
         .collect();
+    let mut selection = if min_present > 0 && !contacts.is_empty() {
+        plans.first().map(|plan| ContactSelectionWorkspace::new(tree, &plan.order, contacts))
+    } else {
+        None
+    };
     let mut normalizers = HashMap::new();
     let mut mixtures = vec![0.0; plans.len()];
     let weight_sum = 1.0 + contacts.iter().map(|(_, _, w)| w).sum::<f64>();
@@ -466,28 +562,13 @@ pub fn binary_mixture_scores(
                     .map(|state| usize::from(state.is_some()))
                     .collect();
                 *normalizers.entry(observed.clone()).or_insert_with(|| {
-                    let retained = |multiplicity: &[usize]| {
-                        plans
-                            .iter()
-                            .map(|plan| {
-                                retained_probability(plan, multiplicity, min_present, root_prior)
-                            })
-                            .sum::<f64>()
+                    let sum = if let Some(workspace) = selection.as_mut() {
+                        workspace.mixture_mass(&plans, contacts, &observed, min_present, root_prior)
+                    } else {
+                        plans.iter().map(|plan| {
+                            retained_probability(plan, &observed, min_present, root_prior)
+                        }).sum::<f64>()
                     };
-                    let base = retained(&observed);
-                    let mut sum = base;
-                    let mut counts = observed.clone();
-                    for &(donor, recipient, intensity) in contacts {
-                        if observed[recipient] == 0 {
-                            sum += intensity * base;
-                        } else {
-                            counts[donor] += 1;
-                            counts[recipient] = 0;
-                            sum += intensity * retained(&counts);
-                            counts[donor] -= 1;
-                            counts[recipient] = 1;
-                        }
-                    }
                     (sum / plans.len() as f64).ln()
                 })
             };
@@ -521,6 +602,39 @@ pub fn binary_mixture_scores(
 mod tests {
     use super::*;
     use crate::subst::BinaryGainLoss;
+
+    #[test]
+    fn cached_contact_selection_preserves_exact_multirate_mask_mass() {
+        let mut tree = Tree::new();
+        let root = tree.add_node(None, 0.0, None);
+        let left = tree.add_node(Some(root), 0.6, None);
+        let right = tree.add_node(Some(root), 0.2, None);
+        for (taxon, ancestor) in [left, left, right, right].into_iter().enumerate() {
+            tree.add_node(Some(ancestor), 0.7 + taxon as f64 / 3.0, Some(taxon));
+        }
+        tree.root = root;
+        let model = BinaryGainLoss::new(0.4, 0.8);
+        let prior = model.stationary();
+        let plans: Vec<_> = [0.3, 1.0, 2.0].into_iter()
+            .map(|rate| PruningPlan::new(&tree, &model, rate)).collect();
+        let contacts = [(0, 1, 0.2), (2, 0, 0.4), (1, 3, 0.03)];
+        let mut workspace = ContactSelectionWorkspace::new(&tree, &plans[0].order, &contacts);
+        for bits in 0..16 {
+            let mask: Vec<_> = (0..4).map(|index| bits & (1 << index) != 0).collect();
+            for minimum in [1, 2] {
+                let mass = |contact| plans.iter().map(|plan| {
+                    retained_probability(plan, &observation_multiplicity(&mask, contact), minimum, &prior)
+                }).sum::<f64>();
+                let mut expected = mass(None);
+                for contact in &contacts {
+                    expected += contact.2 * mass(Some(contact));
+                }
+                let observed = observation_multiplicity(&mask, None);
+                assert_eq!(workspace.mixture_mass(&plans, &contacts, &observed, minimum, &prior).to_bits(),
+                           expected.to_bits());
+            }
+        }
+    }
 
     /// Build a two-tip tree: root -> {tipA, tipB}, each branch length t.
     fn two_tip(t: f64) -> Tree {
