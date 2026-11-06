@@ -1,0 +1,42 @@
+{
+  "gate": "G05",
+  "profile": "matched binary retention recovery",
+  "protocol": 4,
+  "source_commit": "a135e990262e3d2224b1cd9ec0be8a6dac2831a3",
+  "n_datasets": 200,
+  "completed": 200,
+  "failed": 0,
+  "chains": 4,
+  "warmup": 1600,
+  "iterations": 6400,
+  "thin": 10,
+  "covered": 170,
+  "root_age_90ci_coverage": 0.85,
+  "coverage_target": 0.9,
+  "mean_clade_recovery": 0.28784140614287673,
+  "raw_rows_sha256": "e2b8755335b18e156a4d00a2940511b51361b51512cb581788a699428d9bece1",
+  "root_rank_histogram": [
+    20,
+    21,
+    16,
+    27,
+    17,
+    22,
+    17,
+    20,
+    21,
+    19
+  ],
+  "by_borrow_regime": {
+    "candidate_copy": {
+      "datasets": 99,
+      "coverage": 0.8686868686868687,
+      "mean_clade_recovery": 0.28425209256314427
+    },
+    "vertical": {
+      "datasets": 101,
+      "coverage": 0.8316831683168316,
+      "mean_clade_recovery": 0.2913596442061788
+    }
+  }
+}

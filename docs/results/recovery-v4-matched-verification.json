@@ -1,0 +1,44 @@
+{
+  "artifact_valid": true,
+  "source_commit": "a135e990262e3d2224b1cd9ec0be8a6dac2831a3",
+  "datasets": 200,
+  "completed": 200,
+  "failed": 0,
+  "covered": 170,
+  "coverage": 0.85,
+  "coverage_target": 0.9,
+  "clade_recovery": 0.28784140614287673,
+  "calibration_target_met": false,
+  "matched_design": true,
+  "generator_probes": 12,
+  "regimes": {
+    "n_languages": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "borrow_regime": [
+      "candidate_copy",
+      "vertical"
+    ],
+    "missing_frac": [
+      0.0,
+      0.08,
+      0.2
+    ],
+    "n_dated_tips": [
+      0,
+      2,
+      4
+    ]
+  }
+}

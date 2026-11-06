@@ -80,6 +80,14 @@
     "scope": "matched synthetic model and saved trajectories"
   },
   {
+    "claim": "Protocol 4 covered 170 of 200 true root ages despite improved root ESS.",
+    "hypothesis": "G05 recovery calibration",
+    "evidence": "docs/results/recovery-v4-matched-verification.json",
+    "counterevidence": "The same 200 truths had 177 covered ages under protocol 3. The sampler and budgets changed together.",
+    "status": "failed",
+    "scope": "200 paired matched binary retention datasets"
+  },
+  {
     "claim": "All twenty observed sensitivity fits completed and missed convergence.",
     "hypothesis": "H4 calibration and model sensitivity",
     "evidence": "docs/results/observed-sensitivity-d272.json",
