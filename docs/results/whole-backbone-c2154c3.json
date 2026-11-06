@@ -1,0 +1,763 @@
+{
+  "source_commit": "c2154c34b2676f9dcc8206ab082077852345156e",
+  "placement": {
+    "model": "dated",
+    "n_chains": 4,
+    "scalars": {
+      "root_age": {
+        "mean": 10144.187771314237,
+        "split_rhat": 2.778520732833382,
+        "rank_rhat": 2.147084041164172,
+        "bulk_ess": 5.159599409267138,
+        "tail_ess": 20.543233522754296,
+        "mcse_mean": 816.5979201315938
+      },
+      "gain": {
+        "mean": 0.000002904827978678942,
+        "split_rhat": 1.0277263923994344,
+        "rank_rhat": 1.027408339144187,
+        "bulk_ess": 91.1732481393142,
+        "tail_ess": 137.82301778875504,
+        "mcse_mean": 1.1645731378302875E-7
+      },
+      "loss": {
+        "mean": 0.00031097270752231067,
+        "split_rhat": 1.0670551861606388,
+        "rank_rhat": 1.0557644261902486,
+        "bulk_ess": 81.33952654965329,
+        "tail_ess": 161.2477127610075,
+        "mcse_mean": 0.0000158782216244881
+      },
+      "clock_rate": {
+        "mean": 0.5015528568327419,
+        "split_rhat": 1.04209500747316,
+        "rank_rhat": 1.0496974375797246,
+        "bulk_ess": 84.77821499295825,
+        "tail_ess": 137.21667648657646,
+        "mcse_mean": 0.02374397309248589
+      },
+      "log_posterior": {
+        "mean": -37771.86433360525,
+        "split_rhat": 2.5700968098672985,
+        "rank_rhat": 2.6229709221030184,
+        "bulk_ess": 4.721909960741722,
+        "tail_ess": 11.485451761102599,
+        "mcse_mean": 634.6511802894573
+      }
+    },
+    "topology_per_chain": [
+      {
+        "distinct": 48,
+        "switch_rate": 0.15719063545150502,
+        "map_prob": 0.06333333333333334
+      },
+      {
+        "distinct": 48,
+        "switch_rate": 0.15719063545150502,
+        "map_prob": 0.12
+      },
+      {
+        "distinct": 81,
+        "switch_rate": 0.26755852842809363,
+        "map_prob": 0.056666666666666664
+      },
+      {
+        "distinct": 66,
+        "switch_rate": 0.21739130434782608,
+        "map_prob": 0.1
+      }
+    ],
+    "between_chain_clades": {
+      "clades_compared": 294,
+      "minimum_pooled_frequency": 0.1,
+      "mean_frequency_sd": 0.3012005598843791,
+      "maximum_chain_delta": 1.0
+    },
+    "move_statistics": [
+      {
+        "proposed": {
+          "node_time": 361,
+          "time_clock_scale": 357,
+          "tip_date": 365,
+          "rate_clock_ridge": 396,
+          "root_scale": 395,
+          "attachment_resampling": 337,
+          "clock": 334,
+          "root_age": 377,
+          "loss": 373,
+          "gain": 361,
+          "topology": 344
+        },
+        "accepted": {
+          "node_time": 192,
+          "tip_date": 270,
+          "rate_clock_ridge": 301,
+          "attachment_resampling": 208,
+          "clock": 30,
+          "time_clock_scale": 4,
+          "root_age": 302,
+          "gain": 84,
+          "loss": 33,
+          "topology": 23,
+          "root_scale": 2
+        }
+      },
+      {
+        "proposed": {
+          "gain": 360,
+          "clock": 361,
+          "root_scale": 361,
+          "rate_clock_ridge": 378,
+          "tip_date": 379,
+          "topology": 373,
+          "node_time": 384,
+          "time_clock_scale": 364,
+          "loss": 350,
+          "root_age": 347,
+          "attachment_resampling": 343
+        },
+        "accepted": {
+          "gain": 76,
+          "root_scale": 8,
+          "rate_clock_ridge": 327,
+          "node_time": 205,
+          "clock": 39,
+          "topology": 30,
+          "loss": 27,
+          "root_age": 278,
+          "tip_date": 278,
+          "attachment_resampling": 204,
+          "time_clock_scale": 8
+        }
+      },
+      {
+        "proposed": {
+          "loss": 367,
+          "rate_clock_ridge": 386,
+          "node_time": 397,
+          "attachment_resampling": 360,
+          "time_clock_scale": 347,
+          "gain": 364,
+          "clock": 355,
+          "tip_date": 333,
+          "root_age": 344,
+          "root_scale": 381,
+          "topology": 366
+        },
+        "accepted": {
+          "rate_clock_ridge": 333,
+          "node_time": 210,
+          "attachment_resampling": 219,
+          "clock": 36,
+          "tip_date": 233,
+          "root_age": 290,
+          "topology": 49,
+          "root_scale": 3,
+          "gain": 70,
+          "loss": 37,
+          "time_clock_scale": 3
+        }
+      },
+      {
+        "proposed": {
+          "loss": 351,
+          "tip_date": 340,
+          "rate_clock_ridge": 372,
+          "topology": 360,
+          "gain": 312,
+          "clock": 382,
+          "root_scale": 383,
+          "attachment_resampling": 355,
+          "root_age": 395,
+          "node_time": 349,
+          "time_clock_scale": 401
+        },
+        "accepted": {
+          "loss": 41,
+          "tip_date": 250,
+          "rate_clock_ridge": 292,
+          "topology": 38,
+          "gain": 60,
+          "clock": 47,
+          "attachment_resampling": 218,
+          "root_age": 312,
+          "node_time": 163,
+          "root_scale": 6,
+          "time_clock_scale": 5
+        }
+      }
+    ],
+    "clade_agreement": [
+      {
+        "chains": [
+          0,
+          1
+        ],
+        "score": 0.6754
+      },
+      {
+        "chains": [
+          0,
+          2
+        ],
+        "score": 0.6789
+      },
+      {
+        "chains": [
+          0,
+          3
+        ],
+        "score": 0.6729
+      },
+      {
+        "chains": [
+          1,
+          2
+        ],
+        "score": 0.6896
+      },
+      {
+        "chains": [
+          1,
+          3
+        ],
+        "score": 0.6996
+      },
+      {
+        "chains": [
+          2,
+          3
+        ],
+        "score": 0.7279
+      }
+    ],
+    "converged": false,
+    "thresholds": {
+      "split_rhat_below": 1.01,
+      "ess_above": 400,
+      "mean_clade_frequency_sd_below": 0.01,
+      "maximum_chain_clade_delta_below": 0.1
+    }
+  },
+  "combined": {
+    "model": "dated",
+    "n_chains": 4,
+    "scalars": {
+      "root_age": {
+        "mean": 5534.908449339779,
+        "split_rhat": 1.7506678009084355,
+        "rank_rhat": 1.7176043908121565,
+        "bulk_ess": 6.329157750447759,
+        "tail_ess": 38.07600370239419,
+        "mcse_mean": 141.39018152981006
+      },
+      "gain": {
+        "mean": 0.000006202574445233573,
+        "split_rhat": 1.1179267193858675,
+        "rank_rhat": 1.1288562289016892,
+        "bulk_ess": 26.01858553445935,
+        "tail_ess": 65.40644101855949,
+        "mcse_mean": 8.233770575901713E-7
+      },
+      "loss": {
+        "mean": 0.0006905235294512411,
+        "split_rhat": 1.0773728913200011,
+        "rank_rhat": 1.0563407537412863,
+        "bulk_ess": 71.11320542497094,
+        "tail_ess": 63.6827363959527,
+        "mcse_mean": 0.00004676228216535527
+      },
+      "clock_rate": {
+        "mean": 0.5893131257506921,
+        "split_rhat": 1.0505497963696808,
+        "rank_rhat": 1.0494031088564615,
+        "bulk_ess": 73.80924006456463,
+        "tail_ess": 67.21574569674242,
+        "mcse_mean": 0.028732076026914403
+      },
+      "log_posterior": {
+        "mean": -34040.64067001426,
+        "split_rhat": 2.790759048724421,
+        "rank_rhat": 2.6581421698151524,
+        "bulk_ess": 5.151834477250803,
+        "tail_ess": 22.530456480258298,
+        "mcse_mean": 412.3772112285172
+      }
+    },
+    "topology_per_chain": [
+      {
+        "distinct": 40,
+        "switch_rate": 0.13043478260869565,
+        "map_prob": 0.08
+      },
+      {
+        "distinct": 41,
+        "switch_rate": 0.13377926421404682,
+        "map_prob": 0.13333333333333333
+      },
+      {
+        "distinct": 51,
+        "switch_rate": 0.16722408026755853,
+        "map_prob": 0.09666666666666666
+      },
+      {
+        "distinct": 45,
+        "switch_rate": 0.14715719063545152,
+        "map_prob": 0.11
+      }
+    ],
+    "between_chain_clades": {
+      "clades_compared": 305,
+      "minimum_pooled_frequency": 0.1,
+      "mean_frequency_sd": 0.30262267619667493,
+      "maximum_chain_delta": 1.0
+    },
+    "move_statistics": [
+      {
+        "proposed": {
+          "root_scale": 378,
+          "time_clock_scale": 340,
+          "root_age": 312,
+          "node_time": 347,
+          "rate_clock_ridge": 326,
+          "clock": 316,
+          "loss": 327,
+          "attachment_resampling": 339,
+          "time_block": 319,
+          "tip_date": 336,
+          "topology": 347,
+          "gain": 313
+        },
+        "accepted": {
+          "root_scale": 9,
+          "root_age": 253,
+          "node_time": 169,
+          "rate_clock_ridge": 266,
+          "clock": 28,
+          "loss": 26,
+          "attachment_resampling": 122,
+          "time_block": 152,
+          "tip_date": 222,
+          "topology": 34,
+          "gain": 63,
+          "time_clock_scale": 4
+        }
+      },
+      {
+        "proposed": {
+          "gain": 340,
+          "node_time": 353,
+          "topology": 338,
+          "clock": 352,
+          "attachment_resampling": 320,
+          "time_clock_scale": 351,
+          "root_scale": 329,
+          "time_block": 320,
+          "tip_date": 314,
+          "root_age": 321,
+          "loss": 339,
+          "rate_clock_ridge": 323
+        },
+        "accepted": {
+          "gain": 64,
+          "node_time": 172,
+          "clock": 37,
+          "attachment_resampling": 129,
+          "time_block": 89,
+          "tip_date": 200,
+          "root_age": 282,
+          "rate_clock_ridge": 256,
+          "topology": 38,
+          "time_clock_scale": 5,
+          "loss": 33,
+          "root_scale": 5
+        }
+      },
+      {
+        "proposed": {
+          "loss": 329,
+          "time_clock_scale": 321,
+          "node_time": 344,
+          "attachment_resampling": 353,
+          "root_age": 317,
+          "time_block": 342,
+          "topology": 351,
+          "root_scale": 341,
+          "clock": 322,
+          "rate_clock_ridge": 328,
+          "gain": 323,
+          "tip_date": 329
+        },
+        "accepted": {
+          "time_clock_scale": 4,
+          "node_time": 191,
+          "attachment_resampling": 130,
+          "root_age": 218,
+          "time_block": 111,
+          "topology": 42,
+          "loss": 29,
+          "gain": 54,
+          "clock": 22,
+          "rate_clock_ridge": 266,
+          "tip_date": 211,
+          "root_scale": 6
+        }
+      },
+      {
+        "proposed": {
+          "clock": 359,
+          "topology": 331,
+          "gain": 299,
+          "time_block": 342,
+          "loss": 338,
+          "tip_date": 338,
+          "attachment_resampling": 327,
+          "rate_clock_ridge": 331,
+          "root_age": 343,
+          "time_clock_scale": 353,
+          "root_scale": 321,
+          "node_time": 318
+        },
+        "accepted": {
+          "gain": 65,
+          "time_block": 105,
+          "clock": 42,
+          "loss": 33,
+          "rate_clock_ridge": 277,
+          "root_age": 292,
+          "tip_date": 212,
+          "time_clock_scale": 3,
+          "node_time": 167,
+          "attachment_resampling": 106,
+          "topology": 27,
+          "root_scale": 7
+        }
+      }
+    ],
+    "clade_agreement": [
+      {
+        "chains": [
+          0,
+          1
+        ],
+        "score": 0.6702
+      },
+      {
+        "chains": [
+          0,
+          2
+        ],
+        "score": 0.6565
+      },
+      {
+        "chains": [
+          0,
+          3
+        ],
+        "score": 0.6911
+      },
+      {
+        "chains": [
+          1,
+          2
+        ],
+        "score": 0.6236
+      },
+      {
+        "chains": [
+          1,
+          3
+        ],
+        "score": 0.6603
+      },
+      {
+        "chains": [
+          2,
+          3
+        ],
+        "score": 0.6435
+      }
+    ],
+    "converged": false,
+    "thresholds": {
+      "split_rhat_below": 1.01,
+      "ess_above": 400,
+      "mean_clade_frequency_sd_below": 0.01,
+      "maximum_chain_clade_delta_below": 0.1
+    }
+  },
+  "placement_verification": {
+    "ok": true,
+    "n_bundles": 1,
+    "checks": [
+      {
+        "check": "dated:draw_digest",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:context_digest",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:source_commit",
+        "ok": true,
+        "detail": {
+          "stored": "c2154c34b2676f9dcc8206ab082077852345156e",
+          "expected": "c2154c34b2676f9dcc8206ab082077852345156e"
+        }
+      },
+      {
+        "check": "dated:draw_structure",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:attestation_intervals",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:geographic_honesty",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:frozen_observed_inputs",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:posterior_replay",
+        "ok": true,
+        "detail": {
+          "probes": 16
+        }
+      }
+    ]
+  },
+  "combined_verification": {
+    "ok": true,
+    "n_bundles": 1,
+    "checks": [
+      {
+        "check": "dated:draw_digest",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:context_digest",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:source_commit",
+        "ok": true,
+        "detail": {
+          "stored": "c2154c34b2676f9dcc8206ab082077852345156e",
+          "expected": "c2154c34b2676f9dcc8206ab082077852345156e"
+        }
+      },
+      {
+        "check": "dated:draw_structure",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:attestation_intervals",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:geographic_honesty",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:frozen_observed_inputs",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "check": "dated:posterior_replay",
+        "ok": true,
+        "detail": {
+          "probes": 16
+        }
+      }
+    ]
+  },
+  "archive": {
+    "archive": "runs/whole_backbone_c2154c3.tar.gz",
+    "bytes": 3206753,
+    "sha256": "48b8e07f9a222145b42b55e2113ad03c1af8f366bda5700bb686ce27c900b497"
+  },
+  "commands": [
+    {
+      "arm": "placement",
+      "label": "free",
+      "arguments": [
+        "/Users/aneeshkrishna/Documents/diachron/.venv/bin/python",
+        "-m",
+        "diachron.cli.main",
+        "sample",
+        "--study",
+        "iecor",
+        "--model",
+        "dated",
+        "--profile",
+        "cpu",
+        "--chains",
+        "4",
+        "--jobs",
+        "4",
+        "--warmup",
+        "1000",
+        "--iterations",
+        "3000",
+        "--thin",
+        "10",
+        "--out",
+        "/Users/aneeshkrishna/Documents/diachron/runs/placement-pilot-c2154c3/placement",
+        "--source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/iecor",
+        "--catalog",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/glottolog53.zip",
+        "--edh-source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh",
+        "--edh-geography",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh-geography.json",
+        "--attachment-resampling",
+        "--attachment-root-stem",
+        "--attachment-parsimony"
+      ],
+      "source_commit": "c2154c34b2676f9dcc8206ab082077852345156e",
+      "seconds": 107.70161837490741,
+      "exit": 0
+    },
+    {
+      "arm": "placement",
+      "label": "diagnose",
+      "arguments": [
+        "/Users/aneeshkrishna/Documents/diachron/.venv/bin/python",
+        "-m",
+        "diachron.cli.main",
+        "diagnose",
+        "--bundle",
+        "/Users/aneeshkrishna/Documents/diachron/runs/placement-pilot-c2154c3/placement/dated"
+      ],
+      "source_commit": "c2154c34b2676f9dcc8206ab082077852345156e",
+      "seconds": 3.7931216249708086,
+      "exit": 0
+    },
+    {
+      "arm": "placement",
+      "label": "verify",
+      "arguments": [
+        "/Users/aneeshkrishna/Documents/diachron/.venv/bin/python",
+        "-m",
+        "diachron.cli.main",
+        "verify",
+        "--evidence",
+        "/Users/aneeshkrishna/Documents/diachron/runs/placement-pilot-c2154c3/placement/dated",
+        "--expected-commit",
+        "c2154c34b2676f9dcc8206ab082077852345156e",
+        "--source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/iecor",
+        "--catalog",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/glottolog53.zip",
+        "--edh-source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh",
+        "--edh-geography",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh-geography.json"
+      ],
+      "source_commit": "c2154c34b2676f9dcc8206ab082077852345156e",
+      "seconds": 1.5641815840499476,
+      "exit": 0
+    },
+    {
+      "arm": "combined",
+      "label": "free",
+      "arguments": [
+        "/Users/aneeshkrishna/Documents/diachron/.venv/bin/python",
+        "-m",
+        "diachron.cli.main",
+        "sample",
+        "--study",
+        "iecor",
+        "--model",
+        "dated",
+        "--profile",
+        "cpu",
+        "--chains",
+        "4",
+        "--jobs",
+        "4",
+        "--warmup",
+        "1000",
+        "--iterations",
+        "3000",
+        "--thin",
+        "10",
+        "--out",
+        "/Users/aneeshkrishna/Documents/diachron/runs/placement-pilot-c2154c3/combined",
+        "--source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/iecor",
+        "--catalog",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/glottolog53.zip",
+        "--edh-source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh",
+        "--edh-geography",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh-geography.json",
+        "--attachment-resampling",
+        "--attachment-root-stem",
+        "--attachment-parsimony",
+        "--time-block"
+      ],
+      "source_commit": "c2154c34b2676f9dcc8206ab082077852345156e",
+      "seconds": 138.63332920894027,
+      "exit": 0
+    },
+    {
+      "arm": "combined",
+      "label": "diagnose",
+      "arguments": [
+        "/Users/aneeshkrishna/Documents/diachron/.venv/bin/python",
+        "-m",
+        "diachron.cli.main",
+        "diagnose",
+        "--bundle",
+        "/Users/aneeshkrishna/Documents/diachron/runs/placement-pilot-c2154c3/combined/dated"
+      ],
+      "source_commit": "c2154c34b2676f9dcc8206ab082077852345156e",
+      "seconds": 3.80662091600243,
+      "exit": 0
+    },
+    {
+      "arm": "combined",
+      "label": "verify",
+      "arguments": [
+        "/Users/aneeshkrishna/Documents/diachron/.venv/bin/python",
+        "-m",
+        "diachron.cli.main",
+        "verify",
+        "--evidence",
+        "/Users/aneeshkrishna/Documents/diachron/runs/placement-pilot-c2154c3/combined/dated",
+        "--expected-commit",
+        "c2154c34b2676f9dcc8206ab082077852345156e",
+        "--source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/iecor",
+        "--catalog",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/glottolog53.zip",
+        "--edh-source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh",
+        "--edh-geography",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh-geography.json"
+      ],
+      "source_commit": "c2154c34b2676f9dcc8206ab082077852345156e",
+      "seconds": 1.5924328340915963,
+      "exit": 0
+    }
+  ]
+}
