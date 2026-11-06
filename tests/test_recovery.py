@@ -33,14 +33,14 @@ def _build_model():
     return model, truth
 
 
-@pytest.mark.parametrize("attachment_resampling", [False, True])
-def test_exact_resume(tmp_path, attachment_resampling):
+@pytest.mark.parametrize("attachment_resampling,root_stem", [(False, False), (True, False), (True, True)])
+def test_exact_resume(tmp_path, attachment_resampling, root_stem):
     model, truth = _build_model()
     rng = np.random.default_rng(0)
     start = random_starting_tree(truth.tip_language_ids, 6000.0, rng)
 
     cfg = ChainConfig(seed=4321, warmup=200, iterations=400, thin=10,
-                      attachment_resampling=attachment_resampling)
+                      attachment_resampling=attachment_resampling, attachment_root_stem=root_stem)
 
     full = Chain(model, start.copy(),
                  ChainState(gain=0.0005, loss=0.001, clock_rate=1.0), cfg)
