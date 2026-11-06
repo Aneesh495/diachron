@@ -68,3 +68,26 @@ seconds. Both arms reached maximum between-chain clade difference 1.00 and
 passed saved-draw replay.
 [Whole-backbone pilot measurements](whole-backbone-c2154c3.json)
 [Raw pilot archive](https://github.com/Aneesh495/diachron/releases/tag/pilots-47f25ca)
+
+## Four-step Hamiltonian time move
+
+At `d1f6444ddb5918cd5738f76bfe1db71c4d03a7d1`, the two fixed-topology
+anchors reached root split R-hat 1.036 and 1.103 and root bulk ESS 79.39 and
+27.47. Both improved on the corresponding conditional controls. The free-tree
+fit took 176.0 seconds and reached root split R-hat 1.336, bulk ESS 9.65,
+tail ESS 95.69, and maximum between-chain clade difference 1.00. Its four
+chains visited 31, 27, 25, and 37 topologies. All three fits passed replay.
+[Hamiltonian pilot measurements](hamiltonian-d1f6444.json)
+[Raw Hamiltonian archive](https://github.com/Aneesh495/diachron/releases/download/pilots-47f25ca/hamiltonian_d1f6444.tar.gz)
+
+## Lexical likelihood guide with Hamiltonian time moves
+
+At `70467e9a790c3ba1aae73eb2b3434421f1cf7c48`, likelihood-guided placement
+with four-step Hamiltonian time moves took 203.8 seconds. The chains visited
+46, 51, 56, and 37 topologies. Root split R-hat reached 1.324, with bulk ESS
+9.57 and tail ESS 11.86. The maximum clade difference remained 1.00. The
+trajectories passed replay. The guide increased the number of topologies
+visited in three chains but did not resolve their disagreement. These pilots
+did not trigger a new full campaign or change its declared thresholds.
+[Lexical placement measurements](likelihood-placement-70467e9.json)
+[Raw lexical placement archive](https://github.com/Aneesh495/diachron/releases/download/pilots-47f25ca/lexical_placement_70467e9.tar.gz)

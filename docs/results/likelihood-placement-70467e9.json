@@ -1,0 +1,397 @@
+{
+  "archive": {
+    "archive": "runs/lexical_placement_70467e9.tar.gz",
+    "bytes": 3501680,
+    "hosted_byte_identity_verified": true,
+    "restoration": {
+      "archive_sha256": "06b23053e7e708ab246f2e157ab25fe7f711025f25d2ddfc32b8e42c49d971a2",
+      "restored_files": 30,
+      "uncompressed_bytes": 27733618
+    },
+    "sha256": "06b23053e7e708ab246f2e157ab25fe7f711025f25d2ddfc32b8e42c49d971a2",
+    "url": "https://github.com/Aneesh495/diachron/releases/download/pilots-47f25ca/lexical_placement_70467e9.tar.gz"
+  },
+  "commands": [
+    {
+      "arguments": [
+        "/Users/aneeshkrishna/Documents/diachron/.venv/bin/python",
+        "-m",
+        "diachron.cli.main",
+        "sample",
+        "--study",
+        "iecor",
+        "--model",
+        "dated",
+        "--profile",
+        "cpu",
+        "--chains",
+        "4",
+        "--jobs",
+        "4",
+        "--warmup",
+        "1000",
+        "--iterations",
+        "3000",
+        "--thin",
+        "10",
+        "--time-block",
+        "--out",
+        "/Users/aneeshkrishna/Documents/diachron/runs/likelihood-placement-70467e9/free",
+        "--source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/iecor",
+        "--catalog",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/glottolog53.zip",
+        "--edh-source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh",
+        "--edh-geography",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh-geography.json",
+        "--time-block-steps",
+        "4",
+        "--attachment-resampling",
+        "--attachment-root-stem",
+        "--attachment-likelihood"
+      ],
+      "exit": 0,
+      "label": "free",
+      "seconds": 203.8492280410137,
+      "source_commit": "70467e9a790c3ba1aae73eb2b3434421f1cf7c48"
+    },
+    {
+      "arguments": [
+        "/Users/aneeshkrishna/Documents/diachron/.venv/bin/python",
+        "-m",
+        "diachron.cli.main",
+        "diagnose",
+        "--bundle",
+        "/Users/aneeshkrishna/Documents/diachron/runs/likelihood-placement-70467e9/free/dated"
+      ],
+      "exit": 0,
+      "label": "diagnose",
+      "seconds": 3.8941377920564264,
+      "source_commit": "70467e9a790c3ba1aae73eb2b3434421f1cf7c48"
+    },
+    {
+      "arguments": [
+        "/Users/aneeshkrishna/Documents/diachron/.venv/bin/python",
+        "-m",
+        "diachron.cli.main",
+        "verify",
+        "--evidence",
+        "/Users/aneeshkrishna/Documents/diachron/runs/likelihood-placement-70467e9/free/dated",
+        "--expected-commit",
+        "70467e9a790c3ba1aae73eb2b3434421f1cf7c48",
+        "--source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/iecor",
+        "--catalog",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/glottolog53.zip",
+        "--edh-source",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh",
+        "--edh-geography",
+        "/Users/aneeshkrishna/Documents/Codex/2026-11-04/plea/work/upstream/edh-geography.json"
+      ],
+      "exit": 0,
+      "label": "verify",
+      "seconds": 1.6378821670077741,
+      "source_commit": "70467e9a790c3ba1aae73eb2b3434421f1cf7c48"
+    }
+  ],
+  "free": {
+    "between_chain_clades": {
+      "clades_compared": 286,
+      "maximum_chain_delta": 1.0,
+      "mean_frequency_sd": 0.2925417786524942,
+      "minimum_pooled_frequency": 0.1
+    },
+    "clade_agreement": [
+      {
+        "chains": [
+          0,
+          1
+        ],
+        "score": 0.6661
+      },
+      {
+        "chains": [
+          0,
+          2
+        ],
+        "score": 0.6711
+      },
+      {
+        "chains": [
+          0,
+          3
+        ],
+        "score": 0.7032
+      },
+      {
+        "chains": [
+          1,
+          2
+        ],
+        "score": 0.6572
+      },
+      {
+        "chains": [
+          1,
+          3
+        ],
+        "score": 0.6861
+      },
+      {
+        "chains": [
+          2,
+          3
+        ],
+        "score": 0.6674
+      }
+    ],
+    "converged": false,
+    "model": "dated",
+    "move_statistics": [
+      {
+        "accepted": {
+          "attachment_resampling": 172,
+          "clock": 24,
+          "gain": 65,
+          "loss": 25,
+          "node_time": 152,
+          "rate_clock_ridge": 250,
+          "root_age": 286,
+          "root_scale": 4,
+          "time_block": 187,
+          "time_clock_scale": 2,
+          "tip_date": 209,
+          "topology": 23
+        },
+        "proposed": {
+          "attachment_resampling": 319,
+          "clock": 340,
+          "gain": 362,
+          "loss": 352,
+          "node_time": 304,
+          "rate_clock_ridge": 321,
+          "root_age": 324,
+          "root_scale": 321,
+          "time_block": 346,
+          "time_clock_scale": 332,
+          "tip_date": 335,
+          "topology": 344
+        }
+      },
+      {
+        "accepted": {
+          "attachment_resampling": 176,
+          "clock": 28,
+          "gain": 63,
+          "loss": 33,
+          "node_time": 181,
+          "rate_clock_ridge": 259,
+          "root_age": 295,
+          "root_scale": 1,
+          "time_block": 159,
+          "time_clock_scale": 6,
+          "tip_date": 233,
+          "topology": 30
+        },
+        "proposed": {
+          "attachment_resampling": 313,
+          "clock": 306,
+          "gain": 316,
+          "loss": 342,
+          "node_time": 325,
+          "rate_clock_ridge": 319,
+          "root_age": 369,
+          "root_scale": 332,
+          "time_block": 321,
+          "time_clock_scale": 332,
+          "tip_date": 365,
+          "topology": 360
+        }
+      },
+      {
+        "accepted": {
+          "attachment_resampling": 178,
+          "clock": 22,
+          "gain": 70,
+          "loss": 39,
+          "node_time": 177,
+          "rate_clock_ridge": 254,
+          "root_age": 319,
+          "root_scale": 6,
+          "time_block": 242,
+          "time_clock_scale": 5,
+          "tip_date": 210,
+          "topology": 25
+        },
+        "proposed": {
+          "attachment_resampling": 323,
+          "clock": 281,
+          "gain": 338,
+          "loss": 364,
+          "node_time": 359,
+          "rate_clock_ridge": 322,
+          "root_age": 350,
+          "root_scale": 361,
+          "time_block": 317,
+          "time_clock_scale": 338,
+          "tip_date": 336,
+          "topology": 311
+        }
+      },
+      {
+        "accepted": {
+          "attachment_resampling": 171,
+          "clock": 27,
+          "gain": 82,
+          "loss": 17,
+          "node_time": 175,
+          "rate_clock_ridge": 250,
+          "root_age": 235,
+          "root_scale": 5,
+          "time_block": 169,
+          "time_clock_scale": 6,
+          "tip_date": 216,
+          "topology": 20
+        },
+        "proposed": {
+          "attachment_resampling": 333,
+          "clock": 356,
+          "gain": 362,
+          "loss": 316,
+          "node_time": 322,
+          "rate_clock_ridge": 312,
+          "root_age": 329,
+          "root_scale": 331,
+          "time_block": 344,
+          "time_clock_scale": 342,
+          "tip_date": 323,
+          "topology": 330
+        }
+      }
+    ],
+    "n_chains": 4,
+    "scalars": {
+      "clock_rate": {
+        "bulk_ess": 86.12846518229078,
+        "mcse_mean": 0.02940993130279823,
+        "mean": 0.5694666142145375,
+        "rank_rhat": 1.0253689938388875,
+        "split_rhat": 1.0238539731573364,
+        "tail_ess": 122.78580000037269
+      },
+      "gain": {
+        "bulk_ess": 80.99900033129107,
+        "mcse_mean": 3.605441963435298e-07,
+        "mean": 6.318316550592729e-06,
+        "rank_rhat": 1.032538428778842,
+        "split_rhat": 1.0312181062358212,
+        "tail_ess": 153.48039890069367
+      },
+      "log_posterior": {
+        "bulk_ess": 5.111323326301202,
+        "mcse_mean": 149.46228447288632,
+        "mean": -33513.772651635285,
+        "rank_rhat": 2.195539231336236,
+        "split_rhat": 1.7532994433569293,
+        "tail_ess": 11.042402826855136
+      },
+      "loss": {
+        "bulk_ess": 84.75390185534118,
+        "mcse_mean": 4.3491532812810346e-05,
+        "mean": 0.0007726497025175757,
+        "rank_rhat": 1.027263664626945,
+        "split_rhat": 1.0268452057908368,
+        "tail_ess": 156.55927989126397
+      },
+      "root_age": {
+        "bulk_ess": 9.566472255505793,
+        "mcse_mean": 89.10778119895421,
+        "mean": 5196.322988434516,
+        "rank_rhat": 1.341071961422708,
+        "split_rhat": 1.3244971000981087,
+        "tail_ess": 11.863591749662632
+      }
+    },
+    "thresholds": {
+      "ess_above": 400,
+      "maximum_chain_clade_delta_below": 0.1,
+      "mean_clade_frequency_sd_below": 0.01,
+      "split_rhat_below": 1.01
+    },
+    "topology_per_chain": [
+      {
+        "distinct": 46,
+        "map_prob": 0.12,
+        "switch_rate": 0.1505016722408027
+      },
+      {
+        "distinct": 51,
+        "map_prob": 0.08666666666666667,
+        "switch_rate": 0.16722408026755853
+      },
+      {
+        "distinct": 56,
+        "map_prob": 0.09,
+        "switch_rate": 0.18394648829431437
+      },
+      {
+        "distinct": 37,
+        "map_prob": 0.14333333333333334,
+        "switch_rate": 0.12040133779264214
+      }
+    ]
+  },
+  "free_verification": {
+    "checks": [
+      {
+        "check": "dated:draw_digest",
+        "detail": null,
+        "ok": true
+      },
+      {
+        "check": "dated:context_digest",
+        "detail": null,
+        "ok": true
+      },
+      {
+        "check": "dated:source_commit",
+        "detail": {
+          "expected": "70467e9a790c3ba1aae73eb2b3434421f1cf7c48",
+          "stored": "70467e9a790c3ba1aae73eb2b3434421f1cf7c48"
+        },
+        "ok": true
+      },
+      {
+        "check": "dated:draw_structure",
+        "detail": null,
+        "ok": true
+      },
+      {
+        "check": "dated:attestation_intervals",
+        "detail": null,
+        "ok": true
+      },
+      {
+        "check": "dated:geographic_honesty",
+        "detail": null,
+        "ok": true
+      },
+      {
+        "check": "dated:frozen_observed_inputs",
+        "detail": null,
+        "ok": true
+      },
+      {
+        "check": "dated:posterior_replay",
+        "detail": {
+          "probes": 16
+        },
+        "ok": true
+      }
+    ],
+    "n_bundles": 1,
+    "ok": true
+  },
+  "source_commit": "70467e9a790c3ba1aae73eb2b3434421f1cf7c48"
+}
