@@ -224,7 +224,7 @@ def _run_chain(
     iterations: int, thin: int, root_age_init: float, base_seed: int,
     checkpoint_dir: str | None, resume: bool, initialization: str, height_resampled_spr: bool,
     temperature_ladder: tuple[float, ...], attachment_resampling: bool, attachment_root_stem: bool,
-    calendar_scale: bool,
+    calendar_scale: bool, time_block: bool,
 ) -> Chain:
     dates = {taxon: date.center() for taxon, date in model.tip_dates.items()}
     cfg = ChainConfig(
@@ -233,6 +233,7 @@ def _run_chain(
         attachment_resampling=attachment_resampling,
         attachment_root_stem=attachment_root_stem,
         calendar_scale=calendar_scale,
+        time_block=time_block,
     )
 
     def initialize(replica_index, beta):
@@ -313,6 +314,7 @@ def run_campaign(
     attachment_resampling: bool = False,
     attachment_root_stem: bool = False,
     calendar_scale: bool = False,
+    time_block: bool = False,
 ) -> list[Chain]:
     """Run independent chains in a bounded pool, returning fixed index order."""
     if initialization not in {"random", "distance"}:
@@ -332,6 +334,7 @@ def run_campaign(
         attachment_resampling=attachment_resampling,
         attachment_root_stem=attachment_root_stem,
         calendar_scale=calendar_scale,
+        time_block=time_block,
     )
     if jobs == 1:
         chains = [worker(c) for c in range(n_chains)]

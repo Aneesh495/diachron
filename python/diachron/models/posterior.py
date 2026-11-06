@@ -138,6 +138,27 @@ class PosteriorModel:
         clock_multipliers: list[float] | None = None,
     ) -> list[float]:
         """Per-character likelihood under the observed-mask selection process."""
+        return _core.binary_character_scores(*self._character_kernel_arguments(
+            tree, gain, loss, clock_rate, columns, borrow_rates, clock_multipliers,
+        ))
+
+    def character_branch_gradient(
+        self, tree, gain: float, loss: float, clock_rate: float,
+        borrow_rates: list[float], clock_multipliers: list[float],
+    ) -> list[float]:
+        """Total lexical derivative with respect to the unscaled edge durations."""
+        _, gradient = _core.binary_branch_gradient(*self._character_kernel_arguments(
+            tree, gain, loss, clock_rate, None, borrow_rates, clock_multipliers,
+        ))
+        if clock_multipliers:
+            return [value * rate for value, rate in zip(gradient, clock_multipliers)]
+        return gradient
+
+    def _character_kernel_arguments(
+        self, tree, gain: float, loss: float, clock_rate: float,
+        columns: list[list[int]] | None, borrow_rates: list[float] | None,
+        clock_multipliers: list[float] | None,
+    ) -> tuple:
         contacts = []
         if self.config.use_borrowing and borrow_rates is not None:
             if len(borrow_rates) != len(self.borrow_candidates):
@@ -150,7 +171,7 @@ class PosteriorModel:
         parent, lengths, heights, taxa, root = tree.to_core_arrays()
         if clock_multipliers:
             lengths = [t * multiplier for t, multiplier in zip(lengths, clock_multipliers)]
-        return _core.binary_character_scores(
+        return (
             parent, lengths, heights, taxa, root, gain * clock_rate, loss * clock_rate,
             self.columns if columns is None else columns, self._site_rates,
             self.minimum_present if self.config.ascertainment else 0, contacts,

@@ -214,18 +214,46 @@ fn binary_character_scores(
     let n_tips = tree.n_tips();
     let contacts = contacts.unwrap_or_default();
     validate_binary_mixture(n_tips, gain, loss, &rate_categories, min_present, &contacts)?;
+    let cols = parse_binary_columns(columns, n_tips)?;
+    let model = BinaryGainLoss::new(gain, loss);
+    Ok(crate::pruning::binary_mixture_scores(
+        &tree, &model, &cols, &model.stationary(), &rate_categories, min_present, &contacts,
+    ))
+}
+
+fn parse_binary_columns(columns: Vec<Vec<i64>>, n_tips: usize) -> PyResult<Vec<Vec<Option<usize>>>> {
     if columns.len().saturating_mul(n_tips) > 8_000_000 || columns.iter().any(|col| {
         col.len() != n_tips || col.iter().any(|s| !(-1..=1).contains(s))
     }) {
         return Err(PyValueError::new_err("invalid binary mixture rates or character states"));
     }
-    let model = BinaryGainLoss::new(gain, loss);
-    let cols: Vec<Vec<Option<usize>>> = columns.iter().map(|col| {
-        col.iter().map(|&s| usize::try_from(s).ok()).collect()
-    }).collect();
-    Ok(crate::pruning::binary_mixture_scores(
-        &tree, &model, &cols, &model.stationary(), &rate_categories, min_present, &contacts,
-    ))
+    Ok(columns.into_iter().map(|col| {
+        col.into_iter().map(|s| usize::try_from(s).ok()).collect()
+    }).collect())
+}
+
+/// Derivative of the conditioned binary likelihood with respect to edge durations.
+#[pyfunction]
+#[allow(clippy::too_many_arguments)]
+#[pyo3(signature = (parent, branch_len, height, taxon, root, gain, loss, columns,
+                    rate_categories, min_present, contacts=None))]
+fn binary_branch_gradient(
+    parent: Vec<i64>, branch_len: Vec<f64>, height: Vec<f64>, taxon: Vec<i64>, root: usize,
+    gain: f64, loss: f64, columns: Vec<Vec<i64>>, rate_categories: Vec<f64>,
+    min_present: usize, contacts: Option<Vec<(usize, usize, f64)>>,
+) -> PyResult<(f64, Vec<f64>)> {
+    let tree = build_tree(&parent, &branch_len, &height, &taxon, root)?;
+    let n_tips = tree.n_tips();
+    let contacts = contacts.unwrap_or_default();
+    validate_binary_mixture(n_tips, gain, loss, &rate_categories, min_present, &contacts)?;
+    if columns.len().saturating_mul(parent.len()) > 16_000_000
+        || branch_len.iter().enumerate().any(|(i, &len)| i != root && len <= 0.0) {
+        return Err(PyValueError::new_err("branch scores require positive edge durations and a bounded workspace"));
+    }
+    let cols = parse_binary_columns(columns, n_tips)?;
+    crate::pruning::binary_mixture_branch_gradient(
+        &tree, &BinaryGainLoss::new(gain, loss), &cols, &rate_categories, min_present, &contacts,
+    ).map_err(PyValueError::new_err)
 }
 
 fn validate_binary_mixture(
@@ -436,6 +464,7 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(char_log_likelihood, m)?)?;
     m.add_function(wrap_pyfunction!(block_log_likelihood, m)?)?;
     m.add_function(wrap_pyfunction!(binary_character_scores, m)?)?;
+    m.add_function(wrap_pyfunction!(binary_branch_gradient, m)?)?;
     m.add_function(wrap_pyfunction!(binary_conditioned_draws, m)?)?;
     m.add_function(wrap_pyfunction!(brownian_sphere_logpdf, m)?)?;
     m.add_function(wrap_pyfunction!(haversine_km, m)?)?;
