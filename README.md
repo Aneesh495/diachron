@@ -11,6 +11,14 @@ A language family tree describes a hypothesis about linguistic descent.
 Cognate classes have their own histories, and an inscription or reference
 coordinate describes a locality at a particular evidentiary scale.
 
+## Open the preview
+
+Download and open `Diachron_Preview.html` in a browser. The offline workbench
+contains four saved chains from a synthetic study with a known history. Use
+the tree, timeline, and attestation inspector to follow the evidence behind
+the draws. The same download page includes the thesis and the replay bundle.
+[Preview downloads](https://github.com/Aneesh495/diachron/releases/tag/v0.1.0-preview) · [Preview guide](docs/PREVIEW.md)
+
 ## Run the demo
 
 Use CPython 3.12 to 3.14, Rustup, and Node 24 for the workbench.
@@ -42,8 +50,9 @@ versions, licenses, filters and commands.
 All 16 full-budget observed chains finished. Each model missed the frozen
 convergence thresholds. [Observed inference](docs/results/full-inference.md)
 links the raw checkpoints and replay commands. Nominal 90% root-age intervals
-covered 144 of 200 true ages in the misspecification study and 177 of 200 in
-the matched study. [Synthetic recovery](docs/results/recovery_200.md)
+covered 144 of 200 true ages in the misspecification study, 177 of 200 in
+the matched study, and 170 of 200 in the longer matched run.
+[Synthetic recovery](docs/results/recovery_200.md)
 The eight predictive and 20 sensitivity fits finished and independently
 replayed. All missed convergence. [Observed campaign](docs/results/observed-campaign.md)
 The [build status](docs/BUILD_STATUS.md) tracks research and release gates.
