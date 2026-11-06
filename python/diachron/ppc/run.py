@@ -7,6 +7,7 @@ import numpy as np
 from ..infer.artifacts import PosteriorBundle
 from diachron import _core
 from ..models.tree import PhyloTree
+from ..models.conditional import sample_selected_patterns
 from . import stats
 
 
@@ -144,7 +145,13 @@ def _replicate(
             accepted = np.ones(remaining.size, dtype=bool)
         replicated[remaining[accepted]] = np.where(mask[accepted], leaves[accepted], -1)
         remaining = remaining[~accepted]
-    raise ValueError(f"predictive draw exhausted selection budget for {remaining.size} patterns")
+    if remaining.size:
+        edges = [(donor, recipient, rate) for (donor, recipient), rate in zip(contacts, intensities)]
+        replicated[remaining] = sample_selected_patterns(
+            tree, gain, loss, observed[remaining], minimum, rng, rate_categories=rates,
+            contacts=edges, clock_multipliers=clock,
+        )
+    return replicated.tolist()
 
 
 def _spatial_dispersion(points: np.ndarray) -> float:

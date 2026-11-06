@@ -211,3 +211,28 @@ the attachment-age pilot control. This fixes the same cold budget and more
 compute. Compare scalar traces, clade disagreement, adjacent swap rates,
 round trips and total elapsed time. Retain all replica states in checkpoints.
 The original convergence thresholds govern any subsequent full run.
+
+## Matched binary recovery protocol 3
+
+Keep the protocol 2 recovery result and its coverage deficit. Run a separate
+matched experiment to distinguish inference behavior under its own model from
+behavior under the lexical simulator and aggregate calibration used earlier.
+Use 200 independently seeded datasets, 8 to 19 tips and 40 to 89 retained
+characters. Each fit runs four chains with 800 warmup iterations, 3200 sampling
+iterations and thinning by ten. Use independent distance starts at 8000 years.
+The observed study and its acceptance thresholds retain their own protocol.
+
+Draw dated tip ages from the same positive-truncated normal distributions used
+in fitting, with zero, two or four dated tips. Conditional on those ages, simulate
+the serial coalescent and draw rates from the declared priors. Cycle through
+three observed-mask regimes. Half the design alternates into a finite directed
+copy model on a fixed candidate pair. Draw intensities from its fitted prior.
+Generate each binary character directly conditional on its mask and retention
+rule. The experiment varies tree shape, time scale, copy intensity and missingness.
+It does not use source lexical records or synthetic historical claims.
+
+Record every dataset, raw generated patterns and truth, all retained root ages,
+true clade frequencies and chain seeds. Recompute 90% interval coverage,
+nontrivial clade recovery and the root rank histogram. The rank histogram is
+diagnostic because draws are serially dependent. Preserve failures in the
+completion count. Report the matched and earlier misspecified designs separately.
