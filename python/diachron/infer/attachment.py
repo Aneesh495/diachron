@@ -8,6 +8,7 @@ import math
 
 import numpy as np
 
+from diachron import _core
 from ..models.tree import PhyloTree
 
 
@@ -46,8 +47,8 @@ def _choose(weights: list[float], rng) -> int:
 
 
 def _attachment_edges(tree: PhyloTree, child: int, junction: int, sibling: int,
-                      children: dict[int, list[int]], distances: np.ndarray,
-                      stem_scale: float | None) -> tuple[list[int], list[AttachmentEdge]]:
+                      children: dict[int, list[int]], distances: np.ndarray | None,
+                      stem_scale: float | None, placement: list[int | None] | None) -> tuple[list[int], list[AttachmentEdge]]:
     backbone = list(tree.parent)
     backbone[sibling] = backbone[junction]
 
@@ -60,7 +61,6 @@ def _attachment_edges(tree: PhyloTree, child: int, junction: int, sibling: int,
         if tree.is_tip(node):
             detached.append(tree.taxon[node])
         stack.extend(children[node])
-    nearest = distances[sorted(detached)].mean(axis=0)
     # The same labeled backbone is seen from every position of this junction.
     grandparent = backbone[junction]
     if grandparent >= 0:
@@ -69,28 +69,34 @@ def _attachment_edges(tree: PhyloTree, child: int, junction: int, sibling: int,
         anchor.append(sibling)
         anchor.sort()
     root = sibling if grandparent < 0 else tree.root
-    order = [root]
-    for node in order:
-        order.extend(children[node])
-    totals = {}
-    counts = {}
-    for node in reversed(order):
-        if tree.is_tip(node):
-            totals[node], counts[node] = float(nearest[tree.taxon[node]]), 1
-        else:
-            totals[node] = math.fsum(totals[sub] for sub in children[node])
-            counts[node] = sum(counts[sub] for sub in children[node])
+    if placement is None:
+        nearest = distances[sorted(detached)].mean(axis=0)
+        order = [root]
+        for node in order:
+            order.extend(children[node])
+        totals = {}
+        counts = {}
+        for node in reversed(order):
+            if tree.is_tip(node):
+                totals[node], counts[node] = float(nearest[tree.taxon[node]]), 1
+            else:
+                totals[node] = math.fsum(totals[sub] for sub in children[node])
+                counts[node] = sum(counts[sub] for sub in children[node])
+        edge_cost = {node: 12 * (totals[node] / counts[node]) for node in order}
+    else:
+        best = min(score for score in placement if score is not None)
+        edge_cost = {node: .5 * (score - best) for node, score in enumerate(placement) if score is not None}
     edges = []
     for node, parent in enumerate(backbone):
         if parent >= 0 and node not in removed:
             low = max(tree.heights[node], tree.heights[child])
             high = tree.heights[parent]
             if low < high:
-                distance = totals[node] / counts[node]
-                edges.append((node, low, high, math.exp(-12 * distance)))
+                edges.append((node, low, high, math.exp(-edge_cost[node])))
     total = math.fsum(edge[3] for edge in edges)
     stem_mass = (0.18 if edges else 1.0) if stem_scale is not None else 0.0
-    proposals = [AttachmentEdge(node, low, high, (1 - stem_mass) * (0.1 / len(edges) + 0.9 * weight / total))
+    proposals = [AttachmentEdge(node, low, high, (1 - stem_mass) * (0.1 / len(edges) + 0.9 * weight / total)
+                                if total else (1 - stem_mass) / len(edges))
                  for node, low, high, weight in edges]
     if stem_scale is not None:
         proposals.append(AttachmentEdge(root, max(tree.heights[root], tree.heights[child]),
@@ -99,7 +105,8 @@ def _attachment_edges(tree: PhyloTree, child: int, junction: int, sibling: int,
 
 
 def resample_attachment(tree: PhyloTree, log_target: float, evaluate: Callable[[PhyloTree], float],
-                        distances: np.ndarray, rng, *, stem_scale: float | None = None) -> tuple[PhyloTree, float]:
+                        distances: np.ndarray | None, rng, *, stem_scale: float | None = None,
+                        columns: list[list[int]] | None = None) -> tuple[PhyloTree, float]:
     """Keep the current attachment plus four independent proposals, then resample."""
     child = rng.below(tree.n_nodes)
     junction = tree.parent[child]
@@ -109,7 +116,9 @@ def resample_attachment(tree: PhyloTree, log_target: float, evaluate: Callable[[
     if len(children[junction]) != 2:
         return tree, log_target
     sibling = next(node for node in children[junction] if node != child)
-    backbone, edges = _attachment_edges(tree, child, junction, sibling, children, distances, stem_scale)
+    placement = (_core.parsimony_placement_costs(tree.parent, tree.taxon, tree.root, child, columns)
+                 if columns is not None else None)
+    backbone, edges = _attachment_edges(tree, child, junction, sibling, children, distances, stem_scale, placement)
     current = next((edge for edge in edges if edge.child == sibling), None)
     if current is None or not current.low < tree.heights[junction] < current.high:
         return tree, log_target

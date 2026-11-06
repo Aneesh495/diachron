@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use super::{
-    child_counts, combine_bucket, combine_counts, fill_count_messages, root_retention, Counts,
+    child_counts, combine_bucket, combine_counts, fill_count_messages, root_retention,
     PruningPlan, StateCounts, COUNT_BUCKETS, ZERO_FLAG,
 };
 use crate::subst::{BinaryGainLoss, SubstModel};

@@ -52,6 +52,7 @@ class ChainConfig:
     inverse_temperature: float = 1.0
     attachment_resampling: bool = False
     attachment_root_stem: bool = False
+    attachment_parsimony: bool = False
     calendar_scale: bool = False
     time_block: bool = False
 
@@ -97,6 +98,8 @@ class Chain:
             raise ValueError("chain requires positive iterations and thinning, and nonnegative warmup")
         if config.attachment_root_stem and (not config.attachment_resampling or model.config.relaxed_clock_sigma):
             raise ValueError("root-stem attachment requires informed resampling and a strict clock")
+        if config.attachment_parsimony and not config.attachment_resampling:
+            raise ValueError("parsimony placement requires informed attachment resampling")
         self.model = model
         self.tree = tree
         self.state = state
@@ -111,7 +114,8 @@ class Chain:
         self.move_proposals: dict[str, int] = {}
         self.move_accepts: dict[str, int] = {}
         self.exchange_statistics: dict | None = None
-        self._attachment_distances = lexical_distances(model.columns) if config.attachment_resampling else None
+        self._attachment_distances = (lexical_distances(model.columns)
+                                      if config.attachment_resampling and not config.attachment_parsimony else None)
         self._log_post = self._eval()
         if not math.isfinite(self._log_post):
             raise ValueError("chain initial state has nonfinite posterior")
@@ -299,6 +303,7 @@ class Chain:
             self.tree, self._log_post = resample_attachment(
                 old, self._log_post, self._eval, self._attachment_distances, self.rng,
                 stem_scale=self.model.config.pop_size / 2 if self.config.attachment_root_stem else None,
+                columns=self.model.columns if self.config.attachment_parsimony else None,
             )
             accepted = self.tree is not old
         else:  # topology: NNI or SPR

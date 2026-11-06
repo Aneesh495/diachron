@@ -339,3 +339,16 @@ Preserve the 90% root coverage target, all failures, per-chain root diagnostics,
 and every true-clade membership indicator. Compare against protocol 3 case
 by case. The longer run and the new move change together, so the comparison
 does not isolate the effect of either change.
+
+## Whole-backbone attachment pilot
+
+Run the free dated diagnostic with root-stem attachment enabled. Replace the
+mean-distance edge weights with a native two-state dynamic program that finds
+the minimum number of lexical changes for each possible placement. Missing
+states can take either value at zero cost. Weight finite edges by an
+exponential of minus half the excess changes and keep the uniform component
+and existing stem mass. The attachment-age proposal and full posterior
+importance correction still apply. The same backbone, detached subtree and
+fixed lexical data determine the weights in both directions. Compare with
+the earlier root-stem control at identical seeds and budgets. Run a second
+arm with the joint time and clock block enabled and report it separately.

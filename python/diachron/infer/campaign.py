@@ -224,7 +224,7 @@ def _run_chain(
     iterations: int, thin: int, root_age_init: float, base_seed: int,
     checkpoint_dir: str | None, resume: bool, initialization: str, height_resampled_spr: bool,
     temperature_ladder: tuple[float, ...], attachment_resampling: bool, attachment_root_stem: bool,
-    calendar_scale: bool, time_block: bool,
+    calendar_scale: bool, time_block: bool, attachment_parsimony: bool,
 ) -> Chain:
     dates = {taxon: date.center() for taxon, date in model.tip_dates.items()}
     cfg = ChainConfig(
@@ -232,6 +232,7 @@ def _run_chain(
         initialization=initialization, height_resampled_spr=height_resampled_spr,
         attachment_resampling=attachment_resampling,
         attachment_root_stem=attachment_root_stem,
+        attachment_parsimony=attachment_parsimony,
         calendar_scale=calendar_scale,
         time_block=time_block,
     )
@@ -313,6 +314,7 @@ def run_campaign(
     temperature_ladder: tuple[float, ...] = (1.0,),
     attachment_resampling: bool = False,
     attachment_root_stem: bool = False,
+    attachment_parsimony: bool = False,
     calendar_scale: bool = False,
     time_block: bool = False,
 ) -> list[Chain]:
@@ -333,6 +335,7 @@ def run_campaign(
         temperature_ladder=temperature_ladder,
         attachment_resampling=attachment_resampling,
         attachment_root_stem=attachment_root_stem,
+        attachment_parsimony=attachment_parsimony,
         calendar_scale=calendar_scale,
         time_block=time_block,
     )

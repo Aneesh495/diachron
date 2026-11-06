@@ -17,6 +17,7 @@ pub mod linalg;
 pub mod subst;
 pub mod tree;
 pub mod pruning;
+pub mod placement;
 pub mod enumerate;
 pub mod rng;
 pub mod mcmc;

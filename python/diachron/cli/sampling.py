@@ -56,6 +56,7 @@ def run_sample(
     temperature_ladder: tuple[float, ...] = (1.0,),
     attachment_resampling: bool = False,
     attachment_root_stem: bool = False,
+    attachment_parsimony: bool = False,
     calendar_scale: bool = False,
     time_block: bool = False,
     geography_error: float | None = None,
@@ -118,6 +119,7 @@ def run_sample(
         temperature_ladder=temperature_ladder,
         attachment_resampling=attachment_resampling,
         attachment_root_stem=attachment_root_stem,
+        attachment_parsimony=attachment_parsimony,
         calendar_scale=calendar_scale,
         time_block=time_block,
     )
@@ -141,6 +143,7 @@ def run_sample(
         "height_resampled_spr": height_resampled_spr,
         "attachment_resampling": attachment_resampling,
         "attachment_root_stem": attachment_root_stem,
+        "attachment_parsimony": attachment_parsimony,
         "calendar_scale": calendar_scale,
         "time_block": time_block,
         "inverse_temperatures": list(temperature_ladder),

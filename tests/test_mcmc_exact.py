@@ -280,7 +280,8 @@ def test_attachment_resampling_corrects_nonuniform_proposal_to_continuous_target
         assert abs(count / draws - volume / 9) < .012
 
 
-def test_root_stem_resampling_targets_unbounded_four_tip_age_distribution():
+@pytest.mark.parametrize("parsimony", [False, True])
+def test_root_stem_resampling_targets_unbounded_four_tip_age_distribution(parsimony):
     from collections import Counter
 
     from diachron.infer.attachment import resample_attachment
@@ -289,6 +290,7 @@ def test_root_stem_resampling_targets_unbounded_four_tip_age_distribution():
 
     tree = PhyloTree([4, 4, 5, 5, 6, 6, -1], [0, 0, 0, 0, .3, .7, 1], [0, 1, 2, 3, -1, -1, -1])
     distances = np.array([[0, .1, .6, .7], [.1, 0, .4, .5], [.6, .4, 0, .2], [.7, .5, .2, 0]])
+    columns = [[1, 1, 0, 0], [0, -1, 0, 1], [0, 1, 1, 0]] * 5 if parsimony else None
     rng = _core.PyRng(8599)
     counts, roots, ages = Counter(), set(), []
 
@@ -297,7 +299,7 @@ def test_root_stem_resampling_targets_unbounded_four_tip_age_distribution():
 
     score = target(tree)
     for iteration in range(52000):
-        tree, score = resample_attachment(tree, score, target, distances, rng, stem_scale=1.7)
+        tree, score = resample_attachment(tree, score, target, distances, rng, stem_scale=1.7, columns=columns)
         assert score == target(tree)
         assert all(tree.heights[p] > tree.heights[n] for n, p in enumerate(tree.parent) if p >= 0)
         if iteration >= 2000:
