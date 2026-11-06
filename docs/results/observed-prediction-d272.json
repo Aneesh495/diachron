@@ -1,0 +1,161 @@
+{
+  "study": "iecor",
+  "is_synthetic": false,
+  "split_seed": 0,
+  "profile": "held-out predictive campaign",
+  "source_commit": "d272a49aa4f57ee0d062b9fef0954c7e3e71759b",
+  "budget": {
+    "chains": 4,
+    "warmup": 3000,
+    "iterations": 12000,
+    "thin": 10
+  },
+  "experiments": {
+    "concept": {
+      "n_train_characters": 2098,
+      "n_scored_characters": 510,
+      "held_out_ids": [
+        "10",
+        "102",
+        "106",
+        "110",
+        "118",
+        "13",
+        "134",
+        "142",
+        "148",
+        "178",
+        "186",
+        "190",
+        "204",
+        "208",
+        "209",
+        "212",
+        "217",
+        "218",
+        "23",
+        "28",
+        "35",
+        "37",
+        "4",
+        "46",
+        "49",
+        "58",
+        "60",
+        "63",
+        "68",
+        "69",
+        "83",
+        "91",
+        "92",
+        "99"
+      ],
+      "models": {
+        "tree_only": {
+          "mean_log_score_per_character": -11.994945022494882,
+          "mean_concept_delta_vs_tree": 0.0,
+          "concept_bootstrap_interval_95": [
+            0.0,
+            0.0
+          ]
+        },
+        "dated": {
+          "mean_log_score_per_character": -12.121321871500507,
+          "mean_concept_delta_vs_tree": -0.10396879232535107,
+          "concept_bootstrap_interval_95": [
+            -0.18446783945564219,
+            -0.015481065777930096
+          ]
+        },
+        "geography": {
+          "mean_log_score_per_character": -11.998172471432596,
+          "mean_concept_delta_vs_tree": -0.004061271752828756,
+          "concept_bootstrap_interval_95": [
+            -0.07056838476424032,
+            0.06083828668435128
+          ]
+        },
+        "borrowing": {
+          "mean_log_score_per_character": -12.13939482039911,
+          "mean_concept_delta_vs_tree": -0.1367346384085293,
+          "concept_bootstrap_interval_95": [
+            -0.21363549874709598,
+            -0.05944527653184651
+          ]
+        }
+      },
+      "scope": "Conditioned on held-out characters meeting the same selection rule."
+    },
+    "language": {
+      "n_train_characters": 2209,
+      "n_scored_characters": 2209,
+      "held_out_ids": [
+        "115",
+        "119",
+        "179",
+        "189",
+        "201",
+        "209",
+        "211",
+        "219",
+        "230",
+        "234",
+        "243",
+        "25",
+        "260",
+        "273",
+        "281",
+        "286",
+        "289",
+        "291",
+        "292",
+        "299",
+        "302",
+        "305",
+        "308",
+        "32",
+        "46",
+        "55",
+        "7",
+        "73",
+        "8",
+        "81"
+      ],
+      "models": {
+        "tree_only": {
+          "mean_log_score_per_character": -6.702102350739971,
+          "mean_concept_delta_vs_tree": 0.0,
+          "concept_bootstrap_interval_95": [
+            0.0,
+            0.0
+          ]
+        },
+        "dated": {
+          "mean_log_score_per_character": -6.557969217217207,
+          "mean_concept_delta_vs_tree": 0.10216057493522883,
+          "concept_bootstrap_interval_95": [
+            0.04660035646872648,
+            0.14979934718747256
+          ]
+        },
+        "geography": {
+          "mean_log_score_per_character": -6.3827373412280615,
+          "mean_concept_delta_vs_tree": 0.29665861775391644,
+          "concept_bootstrap_interval_95": [
+            0.23614943730495694,
+            0.3537595935644393
+          ]
+        },
+        "borrowing": {
+          "mean_log_score_per_character": -6.683248079009853,
+          "mean_concept_delta_vs_tree": -0.03167701566697847,
+          "concept_bootstrap_interval_95": [
+            -0.08243870177175418,
+            0.016438365588077555
+          ]
+        }
+      },
+      "scope": "Predicts held-out taxa on training-defined classes, with external geography and dates available."
+    }
+  }
+}

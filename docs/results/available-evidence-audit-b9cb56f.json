@@ -1,0 +1,61 @@
+{
+  "source_commit": "b9cb56f56b4f3906f6f45ef57840ef890fd4ed24",
+  "execution_mode": "audit_existing",
+  "full_profile_executed": false,
+  "status": "incomplete",
+  "blocking_gates": [
+    "G05",
+    "G06",
+    "G07",
+    "G08",
+    "G15"
+  ],
+  "gates": {
+    "G01": "passed",
+    "G02": "passed",
+    "G03": "passed",
+    "G04": "passed",
+    "G05": "failed",
+    "G06": "failed",
+    "G07": "failed",
+    "G08": "failed",
+    "G09": "passed",
+    "G10": "passed",
+    "G11": "passed",
+    "G12": "passed",
+    "G13": "passed",
+    "G14": "passed",
+    "G15": "blocked"
+  },
+  "prediction": {
+    "artifact_verification": true,
+    "source_commit": "d272a49aa4f57ee0d062b9fef0954c7e3e71759b",
+    "bundles": 8,
+    "failed_checks": [],
+    "full_budget": true,
+    "fit_convergence": {
+      "concept/tree_only": false,
+      "concept/dated": false,
+      "concept/geography": false,
+      "concept/borrowing": false,
+      "language/tree_only": false,
+      "language/dated": false,
+      "language/geography": false,
+      "language/borrowing": false
+    },
+    "passed": false,
+    "hosted_execution": {
+      "run_id": "42146898983",
+      "attempt": "1",
+      "native_binary_sha256": "2f84b9358f2e8504e0199df93065bce91ff09713a3e9f645a910d4d7ff5a6f9c",
+      "fit_seconds": 7128.171106100082
+    }
+  },
+  "sensitivity": {
+    "completed": 20,
+    "required": 20,
+    "full_budget": true,
+    "artifact_verification": true,
+    "all_converged": false
+  }
+}

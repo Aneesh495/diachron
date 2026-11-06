@@ -70,5 +70,29 @@
     "counterevidence": "Root-only export and nonconverged diagnostic draws limit interpretation.",
     "status": "verified presentation",
     "scope": "geographic honesty"
+  },
+  {
+    "claim": "The matched recovery study covered 177 true ages of 200.",
+    "hypothesis": "G05 recovery calibration",
+    "evidence": "docs/results/recovery-v3-matched-verification.json",
+    "counterevidence": "The realized coverage fell below the declared 90% target.",
+    "status": "verified sample coverage",
+    "scope": "matched synthetic model and saved trajectories"
+  },
+  {
+    "claim": "All twenty observed sensitivity fits completed and missed convergence.",
+    "hypothesis": "H4 calibration and model sensitivity",
+    "evidence": "docs/results/observed-sensitivity-d272.json",
+    "counterevidence": "Root-age changes in the saved samples may reflect poor mixing.",
+    "status": "verified execution and failed convergence",
+    "scope": "observed diagnostic sensitivity"
+  },
+  {
+    "claim": "The spherical mesh lowered held-out log loss under spherical truth.",
+    "hypothesis": "Q6 geography representation",
+    "evidence": "docs/results/spatial-study-verification.json",
+    "counterevidence": "The paired interval under region truth spans zero.",
+    "status": "verified synthetic prediction",
+    "scope": "fixed known trees and coarse held-out regions"
   }
 ]

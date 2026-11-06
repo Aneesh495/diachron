@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "is_synthetic": true,
+  "source_commit": "108a924cae9f3c6ad28fbcde345e24afdcfae105",
+  "train_per_truth": 40,
+  "test_per_truth": 120,
+  "regions": 6,
+  "mesh_states": 96,
+  "test_tips_per_tree": 3,
+  "results": {
+    "sphere": {
+      "train_seed_start": 64000,
+      "test_seed_start": 64200,
+      "selected_rate_scales": {
+        "regions": 2.0,
+        "sphere_mesh": 1.0
+      },
+      "training_log_likelihood": {
+        "regions": {
+          "0.25": -712.3479677878299,
+          "0.5": -644.1579820743042,
+          "1.0": -591.772144994598,
+          "2.0": -564.4423684452078,
+          "4.0": -566.7161731535899
+        },
+        "sphere_mesh": {
+          "0.25": -588.0947927512942,
+          "0.5": -540.2062721841563,
+          "1.0": -521.120562555173,
+          "2.0": -534.4013107976874,
+          "4.0": -574.4674107727101
+        }
+      },
+      "scores": {
+        "regions": {
+          "heldout_nll": 0.9517306464110539,
+          "root_90set_coverage": 0.9916666666666667,
+          "root_90set_size": 4.741666666666666
+        },
+        "sphere_mesh": {
+          "heldout_nll": 0.8483742233339072,
+          "root_90set_coverage": 0.9416666666666667,
+          "root_90set_size": 3.65
+        },
+        "paired_nll_mesh_minus_regions": {
+          "mean": -0.1033564230771467,
+          "bootstrap_95ci": [
+            -0.149576888780064,
+            -0.057057812307469986
+          ]
+        }
+      }
+    },
+    "regions": {
+      "train_seed_start": 65000,
+      "test_seed_start": 65200,
+      "selected_rate_scales": {
+        "regions": 1.0,
+        "sphere_mesh": 0.5
+      },
+      "training_log_likelihood": {
+        "regions": {
+          "0.25": -387.7704264806846,
+          "0.5": -363.84429246035273,
+          "1.0": -358.84203560661797,
+          "2.0": -383.9101473228648,
+          "4.0": -441.657340120799
+        },
+        "sphere_mesh": {
+          "0.25": -401.61264866191084,
+          "0.5": -385.47679899996206,
+          "1.0": -397.7288238385131,
+          "2.0": -444.0093825358727,
+          "4.0": -516.4343381429496
+        }
+      },
+      "scores": {
+        "regions": {
+          "heldout_nll": 0.38245730613689966,
+          "root_90set_coverage": 0.925,
+          "root_90set_size": 2.8583333333333334
+        },
+        "sphere_mesh": {
+          "heldout_nll": 0.4152625894755356,
+          "root_90set_coverage": 0.8833333333333333,
+          "root_90set_size": 3.058333333333333
+        },
+        "paired_nll_mesh_minus_regions": {
+          "mean": 0.03280528333863606,
+          "bootstrap_95ci": [
+            -0.0013545827020504493,
+            0.06691022024979693
+          ]
+        }
+      }
+    }
+  }
+}

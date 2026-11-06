@@ -44,6 +44,8 @@ convergence thresholds. [Observed inference](docs/results/full-inference.md)
 links the raw checkpoints and replay commands. Nominal 90% root-age intervals
 covered 144 of 200 true ages in the misspecification study and 177 of 200 in
 the matched study. [Synthetic recovery](docs/results/recovery_200.md)
+The eight predictive and 20 sensitivity fits finished and independently
+replayed. All missed convergence. [Observed campaign](docs/results/observed-campaign.md)
 The [build status](docs/BUILD_STATUS.md) tracks research and release gates.
 
 ![Observed IE-CoR workbench showing saved diagnostic draws](docs/screenshots/workbench-observed-full.png)

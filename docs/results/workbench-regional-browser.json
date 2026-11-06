@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "browser": "Chrome/156.0.8078.47",
+  "desktop": [
+    1440,
+    920
+  ],
+  "mobile": [
+    390,
+    844
+  ],
+  "html_sha256": "94bb51c1d205962572aeeff5332b4e5f9ab260a7f13dd2c540200ca039e33381",
+  "verified": [
+    "offline standalone HTML",
+    "four linked panels",
+    "five evidence examples",
+    "two sourced calendar alternatives",
+    "location chain filter",
+    "catalog group frequencies and selection",
+    "globe rotation",
+    "four-model comparison",
+    "EDH epoch conversion and focus",
+    "mobile keyboard timeline",
+    "regional centroid frequencies on saved draws"
+  ],
+  "network_requests": 0
+}

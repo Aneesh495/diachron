@@ -15,11 +15,11 @@ copy event per character. The workbench links saved tree draws with
 lexical observations and source records. Geographic root draws retain
 their distinct label and show the diagnostic status of the underlying run.
 
-The observed chains did not meet convergence thresholds. In the revised
-200-dataset synthetic recovery study, nominal 90% root-age intervals
-contained the true age in 72% of datasets and mean nontrivial clade
-recovery was 41%. These results leave historical chronology and geographic
-comparisons open.
+The observed chains missed convergence thresholds at full budget. Nominal
+90% root-age intervals covered 72% of the 200 misspecified synthetic cases
+and 88.5% of the 200 matched cases. Both held-out experiments and all 20
+observed sensitivity settings completed. Their fitted draws leave historical
+chronology, geographic prediction and robustness unresolved.
 
 
 # Chapter 1: Research questions and hypotheses
@@ -580,6 +580,23 @@ budget. Every model failed convergence. Root split R-hat ranged from 1.53 to
 difference for a clade was 1.00 in each model. Full checkpoints and the
 source-bound replay checks passed. [Full inference results](../results/full-inference.md)
 
+Four additional pilots changed topology moves or introduced lexical replica
+exchange. Informed attachment visited more distinct topologies, with worse
+root-age split Rhat than the control. Each pilot still had a maximum
+between-chain clade frequency difference of 1.00. [Sampler pilot results](../results/sampler-pilots.md)
+
+The alternative-history registry counts declared age windows and exact
+catalog-defined clades over every saved draw. It retains source and context
+digests and the counts by chain. The Germanic group occurs in every draw of
+all four bundles. The Slavic group occurs in 83.9% of the borrowing draws
+and every draw of the other three bundles. These frequencies describe a
+specific frozen cohort and unconverged samples. [Observed scenarios](../results/observed-scenarios.json)
+
+The observed prediction experiment withheld 34 concepts or 30 varieties.
+The geography fit had a higher saved-draw score on withheld varieties than
+tree-only. The comparison across withheld concepts was near zero. The
+concept bootstrap does not propagate poor chain mixing. [Held-out results](../results/observed-campaign.md)
+
 
 # Chapter 10: A bounded contact model
 
@@ -636,11 +653,17 @@ distribution for each retained geographic tree and diffusion rate. It shows
 points in a ±250-year band around the timeline position. Observations retain
 their full date ranges. The export also contains location marginals for up to
 24 recurring clades, conditional on each clade occurring in a retained tree.
-A fitted regional model still needs its own offline ancestral state sampler.
+Regional fits use inward and outward state messages to draw the root and
+clade categories. The workbench places categorical counts at named centroids
+and identifies the size of the filtered draw set.
 
 None of the geographic diagnostics establish a homeland. Coordinate spread,
 between-chain agreement, and stability to the reference-point model remain
 empirical checks.
+
+On known trees the spherical mesh scored better under spherical diffusion
+truth. The regional-truth comparison was unresolved. This check evaluates
+the spatial processes with tree and time fixed. [Spatial study](../results/spatial-study.md)
 
 
 # Chapter 12: Sensitivity and robustness
@@ -656,11 +679,12 @@ root quantiles. The half-attestation lever removes source records before
 deriving the calibration. The subset can retain the oldest observation, so
 a small shift would not imply robustness to different calendar evidence.
 
-These are two-chain diagnostics on a known-truth corpus. Differences
-between short-chain distributions can reflect initial conditions and
-mixing. Decision-grade sensitivity needs an observed campaign with a
-declared topology agreement check and convergence on each endpoint.
-The current study leaves that inference open.
+The two-chain diagnostics use a known-truth corpus. The subsequent observed
+campaign completed all 20 predeclared settings with four full-budget chains
+each. All 20 archived fits replayed, and all failed convergence. Eight
+settings shifted the saved root mean by more than 15% of baseline. The
+changes combine differences in assumptions with poor chain mixing.
+[Observed sensitivity results](../results/observed-campaign.md)
 
 
 # Chapter 13: Counterarguments

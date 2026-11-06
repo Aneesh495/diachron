@@ -1,0 +1,1766 @@
+{
+  "schema": 1,
+  "plan_sha256": "eefb490f46863c30f9dcc3ba97ea5655a7277ab0e688b33393afc269b729fa41",
+  "scenarios": [
+    {
+      "name": "germanic_clade",
+      "description": "Germanic catalog group forms an exact clade",
+      "model_name": "tree_only",
+      "assumptions": [
+        "Only varieties in the frozen cohort enter the catalog group."
+      ],
+      "evidence_refs": [
+        "https://glottolog.org/resource/languoid/id/germ1287",
+        "https://doi.org/10.5281/zenodo.18840935"
+      ],
+      "support": 1.0,
+      "support_kind": "clade_frequency",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "715f86d6183ff35a300570d1d2a9d7d70223136e7beaffd212d218685580dc25",
+        "n_draws": 4800,
+        "config": {
+          "name": "tree_only",
+          "use_calibration": false,
+          "use_geography": false,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "tree_only",
+        "context_sha256": "f2a06349377edbd406dbec5336bec5f5314475e275530f76210e2b2896af9458",
+        "definition": {
+          "id": "germanic_clade",
+          "title": "Germanic catalog group forms an exact clade",
+          "kind": "clade",
+          "taxa": [
+            "120",
+            "145",
+            "157",
+            "20",
+            "21",
+            "22",
+            "23",
+            "24",
+            "26",
+            "263",
+            "27",
+            "295",
+            "297",
+            "298",
+            "299",
+            "300",
+            "301",
+            "302",
+            "303",
+            "304",
+            "36",
+            "58",
+            "69"
+          ],
+          "assumptions": [
+            "Only varieties in the frozen cohort enter the catalog group."
+          ],
+          "evidence_refs": [
+            "https://glottolog.org/resource/languoid/id/germ1287",
+            "https://doi.org/10.5281/zenodo.18840935"
+          ]
+        },
+        "matching_draws": 4800,
+        "per_chain": [
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "slavic_clade",
+      "description": "Slavic catalog group forms an exact clade",
+      "model_name": "tree_only",
+      "assumptions": [
+        "Only varieties in the frozen cohort enter the catalog group."
+      ],
+      "evidence_refs": [
+        "https://glottolog.org/resource/languoid/id/slav1255",
+        "https://doi.org/10.5281/zenodo.18840935"
+      ],
+      "support": 1.0,
+      "support_kind": "clade_frequency",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "715f86d6183ff35a300570d1d2a9d7d70223136e7beaffd212d218685580dc25",
+        "n_draws": 4800,
+        "config": {
+          "name": "tree_only",
+          "use_calibration": false,
+          "use_geography": false,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "tree_only",
+        "context_sha256": "f2a06349377edbd406dbec5336bec5f5314475e275530f76210e2b2896af9458",
+        "definition": {
+          "id": "slavic_clade",
+          "title": "Slavic catalog group forms an exact clade",
+          "kind": "clade",
+          "taxa": [
+            "100",
+            "15",
+            "16",
+            "175",
+            "176",
+            "18",
+            "238",
+            "243",
+            "245",
+            "249",
+            "253",
+            "254",
+            "259",
+            "260",
+            "47",
+            "48",
+            "55",
+            "60",
+            "66",
+            "73",
+            "92",
+            "95",
+            "97"
+          ],
+          "assumptions": [
+            "Only varieties in the frozen cohort enter the catalog group."
+          ],
+          "evidence_refs": [
+            "https://glottolog.org/resource/languoid/id/slav1255",
+            "https://doi.org/10.5281/zenodo.18840935"
+          ]
+        },
+        "matching_draws": 4800,
+        "per_chain": [
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "root_5000_7000",
+      "description": "Root age in the 5000 to 7000 year window",
+      "model_name": "tree_only",
+      "assumptions": [
+        "Exploratory window with an exclusive upper bound.",
+        "The undated tree's scale is prior-dependent."
+      ],
+      "evidence_refs": [
+        "https://github.com/lexibank/iecor/tree/v1.2.1"
+      ],
+      "support": 0.0,
+      "support_kind": "scalar_interval",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "715f86d6183ff35a300570d1d2a9d7d70223136e7beaffd212d218685580dc25",
+        "n_draws": 4800,
+        "config": {
+          "name": "tree_only",
+          "use_calibration": false,
+          "use_geography": false,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "tree_only",
+        "context_sha256": "f2a06349377edbd406dbec5336bec5f5314475e275530f76210e2b2896af9458",
+        "definition": {
+          "id": "root_5000_7000",
+          "title": "Root age in the 5000 to 7000 year window",
+          "kind": "root_age_interval",
+          "calendar_epoch": 2000,
+          "age_years": [
+            5000,
+            7000
+          ],
+          "assumptions": [
+            "Exploratory window with an exclusive upper bound.",
+            "The undated tree's scale is prior-dependent."
+          ],
+          "evidence_refs": [
+            "https://github.com/lexibank/iecor/tree/v1.2.1"
+          ]
+        },
+        "matching_draws": 0,
+        "per_chain": [
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "root_7000_9000",
+      "description": "Root age in the 7000 to 9000 year window",
+      "model_name": "tree_only",
+      "assumptions": [
+        "Exploratory window with an exclusive upper bound.",
+        "The undated tree's scale is prior-dependent."
+      ],
+      "evidence_refs": [
+        "https://github.com/lexibank/iecor/tree/v1.2.1"
+      ],
+      "support": 0.0,
+      "support_kind": "scalar_interval",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "715f86d6183ff35a300570d1d2a9d7d70223136e7beaffd212d218685580dc25",
+        "n_draws": 4800,
+        "config": {
+          "name": "tree_only",
+          "use_calibration": false,
+          "use_geography": false,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "tree_only",
+        "context_sha256": "f2a06349377edbd406dbec5336bec5f5314475e275530f76210e2b2896af9458",
+        "definition": {
+          "id": "root_7000_9000",
+          "title": "Root age in the 7000 to 9000 year window",
+          "kind": "root_age_interval",
+          "calendar_epoch": 2000,
+          "age_years": [
+            7000,
+            9000
+          ],
+          "assumptions": [
+            "Exploratory window with an exclusive upper bound.",
+            "The undated tree's scale is prior-dependent."
+          ],
+          "evidence_refs": [
+            "https://github.com/lexibank/iecor/tree/v1.2.1"
+          ]
+        },
+        "matching_draws": 0,
+        "per_chain": [
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "root_9000_11000",
+      "description": "Root age in the 9000 to 11000 year window",
+      "model_name": "tree_only",
+      "assumptions": [
+        "Exploratory window with an exclusive upper bound.",
+        "The undated tree's scale is prior-dependent."
+      ],
+      "evidence_refs": [
+        "https://github.com/lexibank/iecor/tree/v1.2.1"
+      ],
+      "support": 0.0,
+      "support_kind": "scalar_interval",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "715f86d6183ff35a300570d1d2a9d7d70223136e7beaffd212d218685580dc25",
+        "n_draws": 4800,
+        "config": {
+          "name": "tree_only",
+          "use_calibration": false,
+          "use_geography": false,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "tree_only",
+        "context_sha256": "f2a06349377edbd406dbec5336bec5f5314475e275530f76210e2b2896af9458",
+        "definition": {
+          "id": "root_9000_11000",
+          "title": "Root age in the 9000 to 11000 year window",
+          "kind": "root_age_interval",
+          "calendar_epoch": 2000,
+          "age_years": [
+            9000,
+            11000
+          ],
+          "assumptions": [
+            "Exploratory window with an exclusive upper bound.",
+            "The undated tree's scale is prior-dependent."
+          ],
+          "evidence_refs": [
+            "https://github.com/lexibank/iecor/tree/v1.2.1"
+          ]
+        },
+        "matching_draws": 0,
+        "per_chain": [
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "germanic_clade",
+      "description": "Germanic catalog group forms an exact clade",
+      "model_name": "dated",
+      "assumptions": [
+        "Only varieties in the frozen cohort enter the catalog group."
+      ],
+      "evidence_refs": [
+        "https://glottolog.org/resource/languoid/id/germ1287",
+        "https://doi.org/10.5281/zenodo.18840935"
+      ],
+      "support": 1.0,
+      "support_kind": "clade_frequency",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "087484cb37df3ddda5e51908d62e146385afe5c5fae374ea8d29a5780555d45f",
+        "n_draws": 4800,
+        "config": {
+          "name": "dated",
+          "use_calibration": true,
+          "use_geography": false,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "dated",
+        "context_sha256": "c8d02e68b967d32de4bcae01ec8ff5c5dcc33d1e613bb59c5bec89bf90b8e3b1",
+        "definition": {
+          "id": "germanic_clade",
+          "title": "Germanic catalog group forms an exact clade",
+          "kind": "clade",
+          "taxa": [
+            "120",
+            "145",
+            "157",
+            "20",
+            "21",
+            "22",
+            "23",
+            "24",
+            "26",
+            "263",
+            "27",
+            "295",
+            "297",
+            "298",
+            "299",
+            "300",
+            "301",
+            "302",
+            "303",
+            "304",
+            "36",
+            "58",
+            "69"
+          ],
+          "assumptions": [
+            "Only varieties in the frozen cohort enter the catalog group."
+          ],
+          "evidence_refs": [
+            "https://glottolog.org/resource/languoid/id/germ1287",
+            "https://doi.org/10.5281/zenodo.18840935"
+          ]
+        },
+        "matching_draws": 4800,
+        "per_chain": [
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "slavic_clade",
+      "description": "Slavic catalog group forms an exact clade",
+      "model_name": "dated",
+      "assumptions": [
+        "Only varieties in the frozen cohort enter the catalog group."
+      ],
+      "evidence_refs": [
+        "https://glottolog.org/resource/languoid/id/slav1255",
+        "https://doi.org/10.5281/zenodo.18840935"
+      ],
+      "support": 1.0,
+      "support_kind": "clade_frequency",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "087484cb37df3ddda5e51908d62e146385afe5c5fae374ea8d29a5780555d45f",
+        "n_draws": 4800,
+        "config": {
+          "name": "dated",
+          "use_calibration": true,
+          "use_geography": false,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "dated",
+        "context_sha256": "c8d02e68b967d32de4bcae01ec8ff5c5dcc33d1e613bb59c5bec89bf90b8e3b1",
+        "definition": {
+          "id": "slavic_clade",
+          "title": "Slavic catalog group forms an exact clade",
+          "kind": "clade",
+          "taxa": [
+            "100",
+            "15",
+            "16",
+            "175",
+            "176",
+            "18",
+            "238",
+            "243",
+            "245",
+            "249",
+            "253",
+            "254",
+            "259",
+            "260",
+            "47",
+            "48",
+            "55",
+            "60",
+            "66",
+            "73",
+            "92",
+            "95",
+            "97"
+          ],
+          "assumptions": [
+            "Only varieties in the frozen cohort enter the catalog group."
+          ],
+          "evidence_refs": [
+            "https://glottolog.org/resource/languoid/id/slav1255",
+            "https://doi.org/10.5281/zenodo.18840935"
+          ]
+        },
+        "matching_draws": 4800,
+        "per_chain": [
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "root_5000_7000",
+      "description": "Root age in the 5000 to 7000 year window",
+      "model_name": "dated",
+      "assumptions": [
+        "Exploratory window with an exclusive upper bound.",
+        "The undated tree's scale is prior-dependent."
+      ],
+      "evidence_refs": [
+        "https://github.com/lexibank/iecor/tree/v1.2.1"
+      ],
+      "support": 0.00375,
+      "support_kind": "scalar_interval",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "087484cb37df3ddda5e51908d62e146385afe5c5fae374ea8d29a5780555d45f",
+        "n_draws": 4800,
+        "config": {
+          "name": "dated",
+          "use_calibration": true,
+          "use_geography": false,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "dated",
+        "context_sha256": "c8d02e68b967d32de4bcae01ec8ff5c5dcc33d1e613bb59c5bec89bf90b8e3b1",
+        "definition": {
+          "id": "root_5000_7000",
+          "title": "Root age in the 5000 to 7000 year window",
+          "kind": "root_age_interval",
+          "calendar_epoch": 2000,
+          "age_years": [
+            5000,
+            7000
+          ],
+          "assumptions": [
+            "Exploratory window with an exclusive upper bound.",
+            "The undated tree's scale is prior-dependent."
+          ],
+          "evidence_refs": [
+            "https://github.com/lexibank/iecor/tree/v1.2.1"
+          ]
+        },
+        "matching_draws": 18,
+        "per_chain": [
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 18,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "root_7000_9000",
+      "description": "Root age in the 7000 to 9000 year window",
+      "model_name": "dated",
+      "assumptions": [
+        "Exploratory window with an exclusive upper bound.",
+        "The undated tree's scale is prior-dependent."
+      ],
+      "evidence_refs": [
+        "https://github.com/lexibank/iecor/tree/v1.2.1"
+      ],
+      "support": 0.79,
+      "support_kind": "scalar_interval",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "087484cb37df3ddda5e51908d62e146385afe5c5fae374ea8d29a5780555d45f",
+        "n_draws": 4800,
+        "config": {
+          "name": "dated",
+          "use_calibration": true,
+          "use_geography": false,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "dated",
+        "context_sha256": "c8d02e68b967d32de4bcae01ec8ff5c5dcc33d1e613bb59c5bec89bf90b8e3b1",
+        "definition": {
+          "id": "root_7000_9000",
+          "title": "Root age in the 7000 to 9000 year window",
+          "kind": "root_age_interval",
+          "calendar_epoch": 2000,
+          "age_years": [
+            7000,
+            9000
+          ],
+          "assumptions": [
+            "Exploratory window with an exclusive upper bound.",
+            "The undated tree's scale is prior-dependent."
+          ],
+          "evidence_refs": [
+            "https://github.com/lexibank/iecor/tree/v1.2.1"
+          ]
+        },
+        "matching_draws": 3792,
+        "per_chain": [
+          {
+            "matching_draws": 437,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 960,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1195,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "root_9000_11000",
+      "description": "Root age in the 9000 to 11000 year window",
+      "model_name": "dated",
+      "assumptions": [
+        "Exploratory window with an exclusive upper bound.",
+        "The undated tree's scale is prior-dependent."
+      ],
+      "evidence_refs": [
+        "https://github.com/lexibank/iecor/tree/v1.2.1"
+      ],
+      "support": 0.20625,
+      "support_kind": "scalar_interval",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "087484cb37df3ddda5e51908d62e146385afe5c5fae374ea8d29a5780555d45f",
+        "n_draws": 4800,
+        "config": {
+          "name": "dated",
+          "use_calibration": true,
+          "use_geography": false,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "dated",
+        "context_sha256": "c8d02e68b967d32de4bcae01ec8ff5c5dcc33d1e613bb59c5bec89bf90b8e3b1",
+        "definition": {
+          "id": "root_9000_11000",
+          "title": "Root age in the 9000 to 11000 year window",
+          "kind": "root_age_interval",
+          "calendar_epoch": 2000,
+          "age_years": [
+            9000,
+            11000
+          ],
+          "assumptions": [
+            "Exploratory window with an exclusive upper bound.",
+            "The undated tree's scale is prior-dependent."
+          ],
+          "evidence_refs": [
+            "https://github.com/lexibank/iecor/tree/v1.2.1"
+          ]
+        },
+        "matching_draws": 990,
+        "per_chain": [
+          {
+            "matching_draws": 763,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 222,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 5,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "germanic_clade",
+      "description": "Germanic catalog group forms an exact clade",
+      "model_name": "geography",
+      "assumptions": [
+        "Only varieties in the frozen cohort enter the catalog group."
+      ],
+      "evidence_refs": [
+        "https://glottolog.org/resource/languoid/id/germ1287",
+        "https://doi.org/10.5281/zenodo.18840935"
+      ],
+      "support": 1.0,
+      "support_kind": "clade_frequency",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "835143b11e73ef14ca46e0455700a5fbd0e75cc05ce7ae8712945590747faa0c",
+        "n_draws": 4800,
+        "config": {
+          "name": "geography",
+          "use_calibration": true,
+          "use_geography": true,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "geography",
+        "context_sha256": "825819b569ea3c667d9a33abd4658c92f52d4a6290bb2adf1743aa96c1fc3f23",
+        "definition": {
+          "id": "germanic_clade",
+          "title": "Germanic catalog group forms an exact clade",
+          "kind": "clade",
+          "taxa": [
+            "120",
+            "145",
+            "157",
+            "20",
+            "21",
+            "22",
+            "23",
+            "24",
+            "26",
+            "263",
+            "27",
+            "295",
+            "297",
+            "298",
+            "299",
+            "300",
+            "301",
+            "302",
+            "303",
+            "304",
+            "36",
+            "58",
+            "69"
+          ],
+          "assumptions": [
+            "Only varieties in the frozen cohort enter the catalog group."
+          ],
+          "evidence_refs": [
+            "https://glottolog.org/resource/languoid/id/germ1287",
+            "https://doi.org/10.5281/zenodo.18840935"
+          ]
+        },
+        "matching_draws": 4800,
+        "per_chain": [
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "slavic_clade",
+      "description": "Slavic catalog group forms an exact clade",
+      "model_name": "geography",
+      "assumptions": [
+        "Only varieties in the frozen cohort enter the catalog group."
+      ],
+      "evidence_refs": [
+        "https://glottolog.org/resource/languoid/id/slav1255",
+        "https://doi.org/10.5281/zenodo.18840935"
+      ],
+      "support": 1.0,
+      "support_kind": "clade_frequency",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "835143b11e73ef14ca46e0455700a5fbd0e75cc05ce7ae8712945590747faa0c",
+        "n_draws": 4800,
+        "config": {
+          "name": "geography",
+          "use_calibration": true,
+          "use_geography": true,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "geography",
+        "context_sha256": "825819b569ea3c667d9a33abd4658c92f52d4a6290bb2adf1743aa96c1fc3f23",
+        "definition": {
+          "id": "slavic_clade",
+          "title": "Slavic catalog group forms an exact clade",
+          "kind": "clade",
+          "taxa": [
+            "100",
+            "15",
+            "16",
+            "175",
+            "176",
+            "18",
+            "238",
+            "243",
+            "245",
+            "249",
+            "253",
+            "254",
+            "259",
+            "260",
+            "47",
+            "48",
+            "55",
+            "60",
+            "66",
+            "73",
+            "92",
+            "95",
+            "97"
+          ],
+          "assumptions": [
+            "Only varieties in the frozen cohort enter the catalog group."
+          ],
+          "evidence_refs": [
+            "https://glottolog.org/resource/languoid/id/slav1255",
+            "https://doi.org/10.5281/zenodo.18840935"
+          ]
+        },
+        "matching_draws": 4800,
+        "per_chain": [
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "root_5000_7000",
+      "description": "Root age in the 5000 to 7000 year window",
+      "model_name": "geography",
+      "assumptions": [
+        "Exploratory window with an exclusive upper bound.",
+        "The undated tree's scale is prior-dependent."
+      ],
+      "evidence_refs": [
+        "https://github.com/lexibank/iecor/tree/v1.2.1"
+      ],
+      "support": 0.1,
+      "support_kind": "scalar_interval",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "835143b11e73ef14ca46e0455700a5fbd0e75cc05ce7ae8712945590747faa0c",
+        "n_draws": 4800,
+        "config": {
+          "name": "geography",
+          "use_calibration": true,
+          "use_geography": true,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "geography",
+        "context_sha256": "825819b569ea3c667d9a33abd4658c92f52d4a6290bb2adf1743aa96c1fc3f23",
+        "definition": {
+          "id": "root_5000_7000",
+          "title": "Root age in the 5000 to 7000 year window",
+          "kind": "root_age_interval",
+          "calendar_epoch": 2000,
+          "age_years": [
+            5000,
+            7000
+          ],
+          "assumptions": [
+            "Exploratory window with an exclusive upper bound.",
+            "The undated tree's scale is prior-dependent."
+          ],
+          "evidence_refs": [
+            "https://github.com/lexibank/iecor/tree/v1.2.1"
+          ]
+        },
+        "matching_draws": 480,
+        "per_chain": [
+          {
+            "matching_draws": 78,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 13,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 389,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "root_7000_9000",
+      "description": "Root age in the 7000 to 9000 year window",
+      "model_name": "geography",
+      "assumptions": [
+        "Exploratory window with an exclusive upper bound.",
+        "The undated tree's scale is prior-dependent."
+      ],
+      "evidence_refs": [
+        "https://github.com/lexibank/iecor/tree/v1.2.1"
+      ],
+      "support": 0.8570833333333333,
+      "support_kind": "scalar_interval",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "835143b11e73ef14ca46e0455700a5fbd0e75cc05ce7ae8712945590747faa0c",
+        "n_draws": 4800,
+        "config": {
+          "name": "geography",
+          "use_calibration": true,
+          "use_geography": true,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "geography",
+        "context_sha256": "825819b569ea3c667d9a33abd4658c92f52d4a6290bb2adf1743aa96c1fc3f23",
+        "definition": {
+          "id": "root_7000_9000",
+          "title": "Root age in the 7000 to 9000 year window",
+          "kind": "root_age_interval",
+          "calendar_epoch": 2000,
+          "age_years": [
+            7000,
+            9000
+          ],
+          "assumptions": [
+            "Exploratory window with an exclusive upper bound.",
+            "The undated tree's scale is prior-dependent."
+          ],
+          "evidence_refs": [
+            "https://github.com/lexibank/iecor/tree/v1.2.1"
+          ]
+        },
+        "matching_draws": 4114,
+        "per_chain": [
+          {
+            "matching_draws": 1122,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1187,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1186,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 619,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "root_9000_11000",
+      "description": "Root age in the 9000 to 11000 year window",
+      "model_name": "geography",
+      "assumptions": [
+        "Exploratory window with an exclusive upper bound.",
+        "The undated tree's scale is prior-dependent."
+      ],
+      "evidence_refs": [
+        "https://github.com/lexibank/iecor/tree/v1.2.1"
+      ],
+      "support": 0.041875,
+      "support_kind": "scalar_interval",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "835143b11e73ef14ca46e0455700a5fbd0e75cc05ce7ae8712945590747faa0c",
+        "n_draws": 4800,
+        "config": {
+          "name": "geography",
+          "use_calibration": true,
+          "use_geography": true,
+          "use_borrowing": false,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "geography",
+        "context_sha256": "825819b569ea3c667d9a33abd4658c92f52d4a6290bb2adf1743aa96c1fc3f23",
+        "definition": {
+          "id": "root_9000_11000",
+          "title": "Root age in the 9000 to 11000 year window",
+          "kind": "root_age_interval",
+          "calendar_epoch": 2000,
+          "age_years": [
+            9000,
+            11000
+          ],
+          "assumptions": [
+            "Exploratory window with an exclusive upper bound.",
+            "The undated tree's scale is prior-dependent."
+          ],
+          "evidence_refs": [
+            "https://github.com/lexibank/iecor/tree/v1.2.1"
+          ]
+        },
+        "matching_draws": 201,
+        "per_chain": [
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 14,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 187,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "germanic_clade",
+      "description": "Germanic catalog group forms an exact clade",
+      "model_name": "borrowing",
+      "assumptions": [
+        "Only varieties in the frozen cohort enter the catalog group."
+      ],
+      "evidence_refs": [
+        "https://glottolog.org/resource/languoid/id/germ1287",
+        "https://doi.org/10.5281/zenodo.18840935"
+      ],
+      "support": 1.0,
+      "support_kind": "clade_frequency",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "7e95eedad7a370dfc6baa49e6731ec941e92469174fb57230d09ddbd39519d07",
+        "n_draws": 4800,
+        "config": {
+          "name": "borrowing",
+          "use_calibration": true,
+          "use_geography": false,
+          "use_borrowing": true,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "borrowing",
+        "context_sha256": "438e4d27abf3c2b7595af49a4ae619d08ec7e75dfa1743c1c97879d6d2e71059",
+        "definition": {
+          "id": "germanic_clade",
+          "title": "Germanic catalog group forms an exact clade",
+          "kind": "clade",
+          "taxa": [
+            "120",
+            "145",
+            "157",
+            "20",
+            "21",
+            "22",
+            "23",
+            "24",
+            "26",
+            "263",
+            "27",
+            "295",
+            "297",
+            "298",
+            "299",
+            "300",
+            "301",
+            "302",
+            "303",
+            "304",
+            "36",
+            "58",
+            "69"
+          ],
+          "assumptions": [
+            "Only varieties in the frozen cohort enter the catalog group."
+          ],
+          "evidence_refs": [
+            "https://glottolog.org/resource/languoid/id/germ1287",
+            "https://doi.org/10.5281/zenodo.18840935"
+          ]
+        },
+        "matching_draws": 4800,
+        "per_chain": [
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "slavic_clade",
+      "description": "Slavic catalog group forms an exact clade",
+      "model_name": "borrowing",
+      "assumptions": [
+        "Only varieties in the frozen cohort enter the catalog group."
+      ],
+      "evidence_refs": [
+        "https://glottolog.org/resource/languoid/id/slav1255",
+        "https://doi.org/10.5281/zenodo.18840935"
+      ],
+      "support": 0.839375,
+      "support_kind": "clade_frequency",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "7e95eedad7a370dfc6baa49e6731ec941e92469174fb57230d09ddbd39519d07",
+        "n_draws": 4800,
+        "config": {
+          "name": "borrowing",
+          "use_calibration": true,
+          "use_geography": false,
+          "use_borrowing": true,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "borrowing",
+        "context_sha256": "438e4d27abf3c2b7595af49a4ae619d08ec7e75dfa1743c1c97879d6d2e71059",
+        "definition": {
+          "id": "slavic_clade",
+          "title": "Slavic catalog group forms an exact clade",
+          "kind": "clade",
+          "taxa": [
+            "100",
+            "15",
+            "16",
+            "175",
+            "176",
+            "18",
+            "238",
+            "243",
+            "245",
+            "249",
+            "253",
+            "254",
+            "259",
+            "260",
+            "47",
+            "48",
+            "55",
+            "60",
+            "66",
+            "73",
+            "92",
+            "95",
+            "97"
+          ],
+          "assumptions": [
+            "Only varieties in the frozen cohort enter the catalog group."
+          ],
+          "evidence_refs": [
+            "https://glottolog.org/resource/languoid/id/slav1255",
+            "https://doi.org/10.5281/zenodo.18840935"
+          ]
+        },
+        "matching_draws": 4029,
+        "per_chain": [
+          {
+            "matching_draws": 1166,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 463,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "root_5000_7000",
+      "description": "Root age in the 5000 to 7000 year window",
+      "model_name": "borrowing",
+      "assumptions": [
+        "Exploratory window with an exclusive upper bound.",
+        "The undated tree's scale is prior-dependent."
+      ],
+      "evidence_refs": [
+        "https://github.com/lexibank/iecor/tree/v1.2.1"
+      ],
+      "support": 0.13604166666666667,
+      "support_kind": "scalar_interval",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "7e95eedad7a370dfc6baa49e6731ec941e92469174fb57230d09ddbd39519d07",
+        "n_draws": 4800,
+        "config": {
+          "name": "borrowing",
+          "use_calibration": true,
+          "use_geography": false,
+          "use_borrowing": true,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "borrowing",
+        "context_sha256": "438e4d27abf3c2b7595af49a4ae619d08ec7e75dfa1743c1c97879d6d2e71059",
+        "definition": {
+          "id": "root_5000_7000",
+          "title": "Root age in the 5000 to 7000 year window",
+          "kind": "root_age_interval",
+          "calendar_epoch": 2000,
+          "age_years": [
+            5000,
+            7000
+          ],
+          "assumptions": [
+            "Exploratory window with an exclusive upper bound.",
+            "The undated tree's scale is prior-dependent."
+          ],
+          "evidence_refs": [
+            "https://github.com/lexibank/iecor/tree/v1.2.1"
+          ]
+        },
+        "matching_draws": 653,
+        "per_chain": [
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 198,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 12,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 443,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "root_7000_9000",
+      "description": "Root age in the 7000 to 9000 year window",
+      "model_name": "borrowing",
+      "assumptions": [
+        "Exploratory window with an exclusive upper bound.",
+        "The undated tree's scale is prior-dependent."
+      ],
+      "evidence_refs": [
+        "https://github.com/lexibank/iecor/tree/v1.2.1"
+      ],
+      "support": 0.8583333333333333,
+      "support_kind": "scalar_interval",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "7e95eedad7a370dfc6baa49e6731ec941e92469174fb57230d09ddbd39519d07",
+        "n_draws": 4800,
+        "config": {
+          "name": "borrowing",
+          "use_calibration": true,
+          "use_geography": false,
+          "use_borrowing": true,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "borrowing",
+        "context_sha256": "438e4d27abf3c2b7595af49a4ae619d08ec7e75dfa1743c1c97879d6d2e71059",
+        "definition": {
+          "id": "root_7000_9000",
+          "title": "Root age in the 7000 to 9000 year window",
+          "kind": "root_age_interval",
+          "calendar_epoch": 2000,
+          "age_years": [
+            7000,
+            9000
+          ],
+          "assumptions": [
+            "Exploratory window with an exclusive upper bound.",
+            "The undated tree's scale is prior-dependent."
+          ],
+          "evidence_refs": [
+            "https://github.com/lexibank/iecor/tree/v1.2.1"
+          ]
+        },
+        "matching_draws": 4120,
+        "per_chain": [
+          {
+            "matching_draws": 1200,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1002,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 1188,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 730,
+            "total_draws": 1200
+          }
+        ]
+      }
+    },
+    {
+      "name": "root_9000_11000",
+      "description": "Root age in the 9000 to 11000 year window",
+      "model_name": "borrowing",
+      "assumptions": [
+        "Exploratory window with an exclusive upper bound.",
+        "The undated tree's scale is prior-dependent."
+      ],
+      "evidence_refs": [
+        "https://github.com/lexibank/iecor/tree/v1.2.1"
+      ],
+      "support": 0.005625,
+      "support_kind": "scalar_interval",
+      "detail": {
+        "dataset": "iecor",
+        "dataset_version": "v1.2.1",
+        "is_synthetic": false,
+        "source_commit": "01459af9ab79bca1c97ac2490624223a294292a2",
+        "draw_digest": "7e95eedad7a370dfc6baa49e6731ec941e92469174fb57230d09ddbd39519d07",
+        "n_draws": 4800,
+        "config": {
+          "name": "borrowing",
+          "use_calibration": true,
+          "use_geography": false,
+          "use_borrowing": true,
+          "pop_size": 3000.0,
+          "ascertainment": true,
+          "rate_alpha": null,
+          "rate_categories": 4,
+          "rate_prior_median": 0.001,
+          "rate_prior_log_sd": 1.5,
+          "clock_prior_log_sd": 0.5,
+          "diffusion_prior_median": 0.004,
+          "diffusion_prior_log_sd": 2.0,
+          "borrowing_prior_rate": 10.0,
+          "relaxed_clock_sigma": 0.0,
+          "geo_region_count": 0,
+          "geography_error_degrees": 0.0
+        },
+        "scope": "Sampling frequency in the named bundle.",
+        "model_alias": "borrowing",
+        "context_sha256": "438e4d27abf3c2b7595af49a4ae619d08ec7e75dfa1743c1c97879d6d2e71059",
+        "definition": {
+          "id": "root_9000_11000",
+          "title": "Root age in the 9000 to 11000 year window",
+          "kind": "root_age_interval",
+          "calendar_epoch": 2000,
+          "age_years": [
+            9000,
+            11000
+          ],
+          "assumptions": [
+            "Exploratory window with an exclusive upper bound.",
+            "The undated tree's scale is prior-dependent."
+          ],
+          "evidence_refs": [
+            "https://github.com/lexibank/iecor/tree/v1.2.1"
+          ]
+        },
+        "matching_draws": 27,
+        "per_chain": [
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 0,
+            "total_draws": 1200
+          },
+          {
+            "matching_draws": 27,
+            "total_draws": 1200
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -37,3 +37,20 @@ budget. Every model failed convergence. Root split R-hat ranged from 1.53 to
 1.99 and root bulk ESS from 5.9 to 7.6. The maximum between-chain frequency
 difference for a clade was 1.00 in each model. Full checkpoints and the
 source-bound replay checks passed. [Full inference results](../results/full-inference.md)
+
+Four additional pilots changed topology moves or introduced lexical replica
+exchange. Informed attachment visited more distinct topologies, with worse
+root-age split Rhat than the control. Each pilot still had a maximum
+between-chain clade frequency difference of 1.00. [Sampler pilot results](../results/sampler-pilots.md)
+
+The alternative-history registry counts declared age windows and exact
+catalog-defined clades over every saved draw. It retains source and context
+digests and the counts by chain. The Germanic group occurs in every draw of
+all four bundles. The Slavic group occurs in 83.9% of the borrowing draws
+and every draw of the other three bundles. These frequencies describe a
+specific frozen cohort and unconverged samples. [Observed scenarios](../results/observed-scenarios.json)
+
+The observed prediction experiment withheld 34 concepts or 30 varieties.
+The geography fit had a higher saved-draw score on withheld varieties than
+tree-only. The comparison across withheld concepts was near zero. The
+concept bootstrap does not propagate poor chain mixing. [Held-out results](../results/observed-campaign.md)

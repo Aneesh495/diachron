@@ -11,8 +11,9 @@ root quantiles. The half-attestation lever removes source records before
 deriving the calibration. The subset can retain the oldest observation, so
 a small shift would not imply robustness to different calendar evidence.
 
-These are two-chain diagnostics on a known-truth corpus. Differences
-between short-chain distributions can reflect initial conditions and
-mixing. Decision-grade sensitivity needs an observed campaign with a
-declared topology agreement check and convergence on each endpoint.
-The current study leaves that inference open.
+The two-chain diagnostics use a known-truth corpus. The subsequent observed
+campaign completed all 20 predeclared settings with four full-budget chains
+each. All 20 archived fits replayed, and all failed convergence. Eight
+settings shifted the saved root mean by more than 15% of baseline. The
+changes combine differences in assumptions with poor chain mixing.
+[Observed sensitivity results](../results/observed-campaign.md)

@@ -1,0 +1,27 @@
+{
+  "source_commit": "d272a49aa4f57ee0d062b9fef0954c7e3e71759b",
+  "release": "https://github.com/Aneesh495/diachron/releases/tag/research-42146898983-1",
+  "assets": {
+    "alternative_cognacy_merge.tar.gz": "90822c526e23b9e3a801be4b3b535807a5dd8548b2a0263d1062458c725df828",
+    "ascertainment_off.tar.gz": "6a94725c2f3113ee7a51d97122cbf1783b88ba23ffeea4720f24def79fced8fa",
+    "borrowing_default.tar.gz": "1d37e37b0d887a4011a99c6e9341873da9f73277da04e86417d2acc9b1a03bf7",
+    "borrowing_tighter_prior.tar.gz": "f60a3d4874739c76f2f0a52ed642adbff08174b3a9b527c659b2a370f3dca7f7",
+    "broad_all_tip_dates.tar.gz": "9aecb5fb2304ca07655a493397e688bcf986028fbafcb5d9f4dfb5b5876aa98f",
+    "catalog_monophyly.tar.gz": "7dc1eb4510726ea7e8668af269ace1b715b0bb58b24940509eeea10d7d44fd8d",
+    "diffusion_wide_prior.tar.gz": "ca2142026d70338c0df3e1fc41037c63efb88352d70fca3325a8d28ec2732b24",
+    "gamma_rate_heterogeneity.tar.gz": "d936c1805b47c53ee2ca6f1c563296261d6f01c865b4628b3c97f27421206f80",
+    "geographic_error_5deg.tar.gz": "68fd2b6a003d647a64a832973d1f4eb5c88c141bd24615c19d67c53132b9b9ef",
+    "half_calibrations.tar.gz": "727d22aeebd76ed0fac7a40d6b4dddc03a5d80f8c5e43ba4d02b81440c51b9f9",
+    "include_singletons.tar.gz": "741b87ff3ab0ef90a183b285773814f0a89c4070d5b9d208cfc5a81a3cf29ed2",
+    "no_calibration.tar.gz": "6f992cae0c89be491225578c4834fa4034d18fdab03bd354f0f70cbc8faec4e4",
+    "planar_geography.tar.gz": "7a2713aff314e0f63f8dce8b0d8c4930e079abada8ef011f0047706350a05d4f",
+    "pop_size_1000.tar.gz": "89e85a4e8ecee140a802661084b1482778c37b106531fb841b717c2bf25621ec",
+    "pop_size_3000.tar.gz": "195b3d62c3093272c243bc2fa54a2e0c842574c3f43b192f3ce57a27e1618d75",
+    "pop_size_9000.tar.gz": "f23d63b0019951c54e2719802ae851863e52a210c3125a1828132f9c65399e20",
+    "prediction.tar.gz": "6b7f28a8a99df9ba3d828d4f80be9d412c53fafe12d1759dd254a3de8dd637a7",
+    "regional_geography_3.tar.gz": "ebf45df253e6ca10bd414018eeba54ae4ad3981d6ba4a1fdd9044d1b505cd731",
+    "regional_geography_6.tar.gz": "662dce0a39b633c44f39ac4d326ed6abcdcd7d200b372c366e863a06efa11810",
+    "relaxed_clock.tar.gz": "8ade6f225f9d3ad3d4ac541c7b6eae4e4f13a8122ba6e3d2a88781139b5c87cb",
+    "remove_loans.tar.gz": "97e01b5a71c58fbf93c3fd31aedc1c3db8f2450e24f9d65e4babfd1aadd81f63"
+  }
+}
