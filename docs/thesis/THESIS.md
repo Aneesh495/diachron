@@ -585,6 +585,10 @@ exchange. Informed attachment visited more distinct topologies, with worse
 root-age split Rhat than the control. Each pilot still had a maximum
 between-chain clade frequency difference of 1.00. [Sampler pilot results](../results/sampler-pilots.md)
 
+Holding two reference topologies fixed still gave root bulk ESS of 8.8 and
+15.8. Both conditional targets replayed. Poor mixing therefore persists
+within the sampled time coordinates at this budget. [Conditional-time diagnostic](../results/sampler-pilots.md#calendar-time-mixing-with-fixed-topology)
+
 The alternative-history registry counts declared age windows and exact
 catalog-defined clades over every saved draw. It retains source and context
 digests and the counts by chain. The Germanic group occurs in every draw of

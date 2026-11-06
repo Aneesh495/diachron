@@ -20,3 +20,19 @@ the control. These results leave the default sampler and declared full
 thresholds in place.
 [Machine-readable pilot results](sampler-pilots.json)
 [Source-bound trajectories and checkpoints](https://github.com/Aneesh495/diachron/releases/tag/pilots-47f25ca)
+
+## Calendar-time mixing with fixed topology
+
+At `c6b81929cccb2f6e3c1591090627f9f47b6226a3`, two prescribed topologies
+each ran four chains on the observed dated target. The roots used the first
+retained trees of chains one and four in the full observed run. Each
+conditional chain stayed within its prescribed topology and replayed.
+
+| Anchor | Root split R-hat | Root bulk ESS | Root tail ESS |
+| --- | ---: | ---: | ---: |
+| Chain one | 1.458 | 8.81 | 21.61 |
+| Chain four | 1.182 | 15.77 | 42.34 |
+
+Calendar mixing remained poor on both fixed topologies at the pilot budget.
+The results motivate checking coupled clock and dated-height moves separately
+from topology transitions. [Conditional diagnostic](conditional-time-c6b8192.json)
