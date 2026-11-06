@@ -9,6 +9,8 @@ from pathlib import Path
 import numpy as np
 
 from ..infer.artifacts import PosteriorBundle
+from ..geo.marginals import SpatialKernel, state_marginals
+from ..geo.regions import RegionModel
 from ..models.posterior import planar_location_marginals
 from collections import Counter
 from ..models.tree import PhyloTree
@@ -31,11 +33,18 @@ def _retained_subset(bundle: PosteriorBundle) -> list[list[dict]]:
 
 def _clade_locations(bundle: PosteriorBundle, chains: list[list[dict]]) -> tuple[list, dict]:
     model = bundle.context["model"]
-    if not model["config"]["use_geography"] or model["region_model"] is not None:
+    if not model["config"]["use_geography"]:
         return [], {}
     coords = {int(taxon): tuple(point) for taxon, point in model["tip_coords"].items()}
-    if len(coords) < 2:
+    region = RegionModel(**model["region_model"]) if model["region_model"] is not None else None
+    if region is None and len(coords) < 2:
         return [], {}
+    if region is not None:
+        if not model["tip_regions"]:
+            return [], {}
+        kernel = SpatialKernel(region.rate_matrix())
+        indicators = np.eye(kernel.size)
+        region_emissions = {int(taxon): indicators[state] for taxon, state in model["tip_regions"].items()}
 
     frequency = Counter()
     samples = []
@@ -67,12 +76,20 @@ def _clade_locations(bundle: PosteriorBundle, chains: list[list[dict]]) -> tuple
     clade_samples = {key: [] for key in selected}
     rng = np.random.default_rng(20261104)
     for chain_index, tree, diffusion, clades in samples:
-        error = model["config"].get("geography_error_degrees", 0.0)
-        marginals = planar_location_marginals(tree, coords, diffusion, error)
-        if not marginals:
-            continue
+        if region is None:
+            error = model["config"].get("geography_error_degrees", 0.0)
+            marginals = planar_location_marginals(tree, coords, diffusion, error)
+            if not marginals:
+                continue
+        else:
+            marginals = state_marginals(tree, kernel, region_emissions, diffusion / 0.004).probabilities
 
         def point(node):
+            if region is not None:
+                state = int(rng.choice(kernel.size, p=marginals[node]))
+                lat, lon = region.centroids[state]
+                return {"lat": lat, "lon": lon, "age": tree.heights[node],
+                        "chain": chain_index, "region": region.names[state]}
             lat, lon, variance = marginals[node]
             sample = rng.normal((lat, lon), np.sqrt(variance))
             return {"lat": float(sample[0]), "lon": float(sample[1]), "age": tree.heights[node],

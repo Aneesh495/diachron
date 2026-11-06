@@ -367,6 +367,17 @@ def cmd_thesis(args) -> int:
     return 0 if result["ledger_ok"] and result["rendered_html"] else 1
 
 
+def cmd_spatial_study(args) -> int:
+    from ..geo.study import run_spatial_study
+
+    try:
+        _print(run_spatial_study(args.out))
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    return 0
+
+
 def cmd_demo(args) -> int:
     from .demo import run_demo
 
@@ -622,6 +633,10 @@ def build_parser() -> argparse.ArgumentParser:
     tp.add_argument("--out", default="runs/thesis/THESIS.md")
     tp.add_argument("--reference-base", help="HTTPS URL for repository-relative evidence links")
     tp.set_defaults(func=cmd_thesis)
+
+    spatial = sub.add_parser("spatial-study", help="compare spatial models on known trees and held-out regions")
+    spatial.add_argument("--out", required=True, type=Path)
+    spatial.set_defaults(func=cmd_spatial_study)
 
     mp = sub.add_parser("demo")
     mp.add_argument("--out", default="runs/demo")
