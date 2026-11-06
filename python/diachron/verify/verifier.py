@@ -273,24 +273,35 @@ def verify_evidence(
         except (DataError, OSError, KeyError, IndexError, TypeError, ValueError, RecursionError) as exc:
             record(f"{name}:artifact_error", False, str(exc))
 
+    if (root / "PREDICTION_PLAN.json").is_file() and not (root / "heldout.json").is_file():
+        record("prediction:campaign_complete", False, "missing completed score report")
     if (root / "heldout.json").is_file():
         try:
             from .prediction import verify_prediction
-            if observed_source is None:
-                record("prediction:observed_inputs", False, "provide pinned lexical inputs for score replay")
-            else:
+            prediction = _read_json(root / "heldout.json", 1024 * 1024)
+            if observed_source is not None:
                 from ..io.freeze import load_study
 
-                name = _read_json(root / "heldout.json", 1024 * 1024)["study"]
-                dataset, _, _ = load_study(name, observed_source, catalog)
+                dataset, _, _ = load_study(prediction["study"], observed_source, catalog)
                 checks.extend(verify_prediction(root, dataset))
+            elif prediction["is_synthetic"]:
+                from ..io.corpus import build_primary_corpus
+
+                checks.extend(verify_prediction(root, build_primary_corpus().dataset))
+            else:
+                record("prediction:observed_inputs", False, "provide pinned lexical inputs for score replay")
         except (DataError, OSError, KeyError, IndexError, TypeError, ValueError) as exc:
             record("prediction:artifact_error", False, str(exc))
 
+    if (root / "SENSITIVITY_PLAN.json").is_file() and not (root / "sensitivity.json").is_file():
+        record("sensitivity:campaign_complete", False, "missing completed sensitivity report")
     if (root / "sensitivity.json").is_file():
         try:
             from .sensitivity import verify_sensitivity
 
+            sensitivity = _read_json(root / "sensitivity.json", 8 * 1024 * 1024)
+            if not sensitivity["is_synthetic"]:
+                record("sensitivity:pinned_inputs", observed_source is not None)
             checks.extend(verify_sensitivity(root))
         except (OSError, KeyError, IndexError, TypeError, ValueError) as exc:
             record("sensitivity:artifact_error", False, str(exc))

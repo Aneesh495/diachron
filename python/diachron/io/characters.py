@@ -20,11 +20,11 @@ language) carry no phylogenetic signal about internal structure and are excluded
 from the likelihood but recorded in the evidence ledger. The ascertainment
 correction later conditions on the fact that we only keep variable characters.
 
-Loans and partial cognates (D02, D03): a loan judgment is not folded into the
-inherited character. A borrowed form is recorded in the character's provenance
-and, in the borrowing-aware model, enters a separate contact channel. Partial
-cognates are kept as their own classes rather than merged into a full cognate,
-so shared morphology is not overclaimed as full cognacy.
+Loans and partial cognates (D02, D03): the baseline records annotated loans as
+present, with their loan provenance preserved. A separate loan-removal setting
+withholds those judgments and can turn a potential absence into missing data.
+The finite contact model copies states within a binary class. Partial judgments
+retain the source class and segment flags, so the projection remains auditable.
 
 Every character carries an `EvidenceLink` back to the lexemes and judgments that
 produced each cell, which is what makes the transform auditable.

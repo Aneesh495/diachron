@@ -46,7 +46,10 @@ def _diagnose(raw: dict) -> dict:
         and agreement["maximum_chain_delta"] < 0.1
     )
     return {
-        "scalars": scalars, "between_chain_clades": agreement,
+        "scalars": {name: {metric: value if math.isfinite(value) else None
+                           for metric, value in endpoint.items()}
+                    for name, endpoint in scalars.items()},
+        "between_chain_clades": agreement,
         "topology_per_chain": mixing,
         "converged": bool(len(raw["chains"]) >= 4 and scalar_pass and topology_pass),
     }
@@ -108,16 +111,22 @@ def verify_inference_campaign(root: Path, expected_commit: str | None) -> list[d
 
     plan = _read_json(root / "RUN_PLAN.json", 1024 * 1024)
     record("trusted_source", expected_commit is not None and plan["source_commit"] == expected_commit)
-    record("frozen_plan", (
+    frozen_plan = (
         plan["schema"] == 1 and plan["protocol"] == 3 and plan["component"] == "observed_inference"
         and plan["models"] == list(_MODELS) and plan["study"] == "iecor"
-        and plan["chains"] >= 4 and plan["warmup"] >= 3000 and plan["iterations"] >= 12000
-        and plan["thin"] == 10 and plan["initialization"] == "distance"
-    ))
+        and plan["chains"] == 4 and plan["warmup"] == 3000 and plan["iterations"] == 12000
+        and plan["thin"] == 10 and plan["initialization"] == "distance" and 1 <= plan["jobs"] <= 4
+    )
+    record("frozen_plan", frozen_plan)
+    if not frozen_plan:
+        return checks
     if expected_commit is not None:
         record("source_inventory", _source_matches(root, expected_commit))
     status = _read_json(root / "INFERENCE.json", 1024 * 1024)
-    commands = [json.loads(line) for line in (root / "COMMANDS.jsonl").read_text().splitlines()]
+    commands_path = root / "COMMANDS.jsonl"
+    if commands_path.stat().st_size > 2 * 1024 * 1024:
+        raise ValueError("oversized inference command record")
+    commands = [json.loads(line) for line in commands_path.read_text().splitlines()]
     record("status_identity", status["source_commit"] == plan["source_commit"]
            and status["component"] == plan["component"] and set(status["models"]) == set(_MODELS)
            and status["status"] == "completed" and status["full_project_acceptance"] is False)
@@ -130,15 +139,17 @@ def verify_inference_campaign(root: Path, expected_commit: str | None) -> list[d
                and raw["context"]["model"]["config"] == asdict(getattr(ModelConfig, name)())
                and raw["source_commit"] == plan["source_commit"]
                and raw["dataset_name"] == "iecor" and raw["is_synthetic"] is False)
-        expected_iterations = list(range(plan["warmup"] + plan["thin"],
-                                         plan["warmup"] + plan["iterations"] + 1, plan["thin"]))
+        expected_draws = plan["iterations"] // plan["thin"]
         budgets_match = (
             len(configs) == raw["n_chains"] == plan["chains"]
             and len({config["seed"] for config in configs}) == plan["chains"]
             and all(all(config[key] == plan[key] for key in (
                 "warmup", "iterations", "thin", "initialization",
             )) for config in configs)
-            and all([draw["iteration"] for draw in chain] == expected_iterations for chain in raw["chains"])
+            and all(len(chain) == expected_draws and all(
+                draw["iteration"] == plan["warmup"] + plan["thin"] * (index + 1)
+                for index, draw in enumerate(chain)
+            ) for chain in raw["chains"])
         )
         record(f"{name}:complete_budgets", budgets_match)
         checkpoint_matches = budgets_match and all(

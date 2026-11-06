@@ -391,6 +391,17 @@ def cmd_verify(args) -> int:
     return 0 if result["ok"] else 1
 
 
+def cmd_verify_controls(args) -> int:
+    from ..verify.controls import run_semantic_controls
+
+    result = run_semantic_controls(
+        args.bundle, args.out, args.expected_commit, source=args.source, catalog=args.catalog,
+        edh_source=args.edh_source, edh_geography=args.edh_geography,
+    )
+    _print(result)
+    return 0 if result["passed"] else 1
+
+
 def cmd_restore_evidence(args) -> int:
     from ..io.evidence_archive import restore_evidence
     from ..io.types import DataError
@@ -589,6 +600,16 @@ def build_parser() -> argparse.ArgumentParser:
     vp.add_argument("--edh-source", type=Path, help="trusted EDH XML inputs")
     vp.add_argument("--edh-geography", type=Path, help="trusted EDH gazetteer")
     vp.set_defaults(func=cmd_verify)
+
+    vc = sub.add_parser("verify-controls")
+    vc.add_argument("--bundle", type=Path, required=True)
+    vc.add_argument("--out", type=Path, required=True)
+    vc.add_argument("--expected-commit", required=True)
+    vc.add_argument("--source", type=Path)
+    vc.add_argument("--catalog", type=Path)
+    vc.add_argument("--edh-source", type=Path)
+    vc.add_argument("--edh-geography", type=Path)
+    vc.set_defaults(func=cmd_verify_controls)
 
     ra = sub.add_parser("restore-evidence")
     ra.add_argument("--archive", type=Path, required=True)
