@@ -32,7 +32,7 @@ jobs:
           gh release download v0.1.0-preview --repo "$GITHUB_REPOSITORY" --pattern 'Diachron_*.html' --pattern SHA256SUMS --dir _site
           (cd _site && grep 'Diachron_' SHA256SUMS | sha256sum -c -)
           python3 scripts/prepare_pages.py _site
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
       - name: Deploy
